@@ -4,6 +4,41 @@
 
 @import '../styles/hero-animations.css';
 
+/* Performance optimizations */
+* {
+  box-sizing: border-box;
+}
+
+/* Reduce motion for better performance on mobile */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Mobile-first responsive utilities */
+@media (max-width: 767px) {
+  .mobile-optimized {
+    will-change: auto;
+    transform: none;
+  }
+  
+  /* Reduce blur effects on mobile for performance */
+  .backdrop-blur-sm {
+    backdrop-filter: none;
+    background-color: rgba(255, 255, 255, 0.9);
+  }
+  
+  .backdrop-blur-md {
+    backdrop-filter: none;
+    background-color: rgba(255, 255, 255, 0.95);
+  }
+}
+
 :root {
   /* Light theme colors - HSL values */
   --background: 0 0% 100%;
@@ -41,6 +76,27 @@ body {
   color: hsl(var(--foreground));
   background: hsl(var(--background));
   font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeSpeed;
+  line-height: 1.5;
+}
+
+/* Mobile optimization */
+@media (max-width: 767px) {
+  body {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  
+  /* Reduce complex shadows on mobile */
+  .shadow-2xl {
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .shadow-3xl {
+    box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.15), 0 10px 15px -6px rgba(0, 0, 0, 0.1);
+  }
 }
 
 /* Custom utilities */
@@ -48,12 +104,107 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+  
+  /* Compact design utilities */
+  .compact-section {
+    @apply py-4 sm:py-6 lg:py-8;
+  }
+  
+  .compact-container {
+    @apply px-2 sm:px-4 lg:px-6;
+  }
+  
+  .compact-spacing {
+    @apply space-y-2 sm:space-y-3 lg:space-y-4;
+  }
+  
+  .compact-gap {
+    @apply gap-2 sm:gap-3 lg:gap-4;
+  }
+  
+  .compact-padding {
+    @apply p-2 sm:p-3 lg:p-4;
+  }
+  
+  .compact-margin {
+    @apply m-2 sm:m-3 lg:m-4;
+  }
+  
+  .compact-text {
+    @apply text-xs sm:text-sm lg:text-base;
+  }
+  
+  .compact-heading {
+    @apply text-sm sm:text-base lg:text-lg font-semibold;
+  }
+  
+  .compact-title {
+    @apply text-base sm:text-lg lg:text-xl font-bold;
+  }
+  
+  /* Mobile-first responsive utilities */
+  .touch-target {
+    min-height: 40px;
+    min-width: 40px;
+  }
+  
+  .mobile-padding {
+    @apply px-3 py-2;
+  }
+  
+  .mobile-margin {
+    @apply mx-3 my-2;
+  }
+  
+  .mobile-text {
+    @apply text-xs sm:text-sm;
+  }
+  
+  .mobile-heading {
+    @apply text-sm sm:text-base font-semibold;
+  }
+  
+  /* Performance optimizations */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+  
+  .smooth-scroll {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Compact spacing for mobile and overall system */
+  .mobile-compact {
+    @apply space-y-1.5;
+  }
+  
+  .mobile-compact > * + * {
+    margin-top: 0.375rem;
+  }
+  
+  .system-compact {
+    @apply space-y-1.5 sm:space-y-2 lg:space-y-3;
+  }
+  
+  .ultra-compact {
+    @apply space-y-1 sm:space-y-1.5;
+  }
 }
 
-/* Scrollbar styles */
+/* Mobile-optimized scrollbar styles */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
+}
+
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
 }
 
 ::-webkit-scrollbar-track {
@@ -69,50 +220,190 @@ body {
   background: hsl(var(--muted-foreground));
 }
 
-/* Focus styles */
+/* Mobile touch improvements */
+@media (max-width: 767px) {
+  /* Hide scrollbars on mobile for cleaner look */
+  ::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+  }
+  
+  /* Improve touch scrolling */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Enhanced focus styles for accessibility */
 .focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
 }
 
-/* Animation keyframes */
+/* Mobile-friendly focus styles */
+@media (max-width: 767px) {
+  .focus-visible {
+    outline: 3px solid hsl(var(--ring));
+    outline-offset: 1px;
+  }
+  
+  /* Larger touch targets */
+  button,
+  a,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Better tap highlights */
+  * {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    tap-highlight-color: rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Optimized Animation keyframes */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes fadeUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translate3d(0, 20px, 0);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
 @keyframes slideIn {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(0);
-  }
+  from { transform: translate3d(-100%, 0, 0); }
+  to { transform: translate3d(0, 0, 0); }
 }
 
 @keyframes bounceGentle {
   0%, 20%, 50%, 80%, 100% {
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
   40% {
-    transform: translateY(-5px);
+    transform: translate3d(0, -5px, 0);
   }
   60% {
-    transform: translateY(-3px);
+    transform: translate3d(0, -3px, 0);
+  }
+}
+
+/* Floating animation for hero elements */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Mobile-optimized animations */
+@media (max-width: 767px) {
+  .animate-bounce,
+  .animate-pulse,
+  .animate-spin {
+    animation-duration: 1.5s;
+  }
+  
+  .animate-float {
+    animation: none; /* Disable floating animation on mobile for performance */
+  }
+  
+  .hover\:scale-105:hover {
+    transform: scale(1.02);
+  }
+  
+  .hover\:scale-110:hover {
+    transform: scale(1.05);
+  }
+  
+  /* Disable complex transitions on mobile for performance */
+  .group-hover\:scale-105 {
+    transform: none;
+  }
+  
+  .group:hover .group-hover\:scale-105 {
+    transform: scale(1.02);
+  }
+}
+
+/* Performance optimizations for mobile */
+@media (max-width: 767px) {
+  /* Disable expensive CSS filters on mobile */
+  .backdrop-blur-xl,
+  .backdrop-blur-2xl {
+    backdrop-filter: none;
+    background-color: rgba(255, 255, 255, 0.95);
+  }
+  
+  /* Simplify gradients on mobile */
+  .bg-gradient-to-br {
+    background: linear-gradient(135deg, var(--tw-gradient-from), var(--tw-gradient-to));
+  }
+  
+  /* Reduce shadow complexity */
+  .shadow-3xl {
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* Safe area insets for mobile devices */
+.safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-inset-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Extra small mobile breakpoint */
+@media (min-width: 475px) {
+  .xs\:inline {
+    display: inline;
+  }
+  
+  .xs\:hidden {
+    display: none;
+  }
+}
+
+/* Mobile sticky bottom bar optimizations */
+@media (max-width: 767px) {
+  .mobile-bottom-bar {
+    /* Ensure bottom bar is above iOS home indicator */
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    /* Add backdrop blur fallback for older browsers */
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  
+  /* Prevent content from being hidden behind sticky elements */
+  .mobile-content-padding {
+    padding-bottom: 8rem; /* Adjust based on sticky bar height */
+  }
+  
+  /* Compact mobile layout for very small screens */
+  @media (max-width: 375px) {
+    .mobile-bottom-bar {
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+    }
+  }
+}
+
+/* Small mobile devices (iPhone SE, etc.) */
+@media (max-width: 374px) {
+  .xs\:hidden {
+    display: none !important;
   }
 }

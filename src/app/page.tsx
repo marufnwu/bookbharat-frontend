@@ -42,6 +42,17 @@ export default function Home() {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [isSubscribingNewsletter, setIsSubscribingNewsletter] = useState(false);
   const [heroConfig, setHeroConfig] = useState<any>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Load essential content first (hero, categories)
   useEffect(() => {
@@ -129,10 +140,11 @@ export default function Home() {
 
   if (configLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex items-center space-x-2">
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="flex flex-col items-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="text-lg">Loading...</span>
+          <span className="text-base md:text-lg text-center">Loading your bookstore...</span>
+          <div className="text-sm text-muted-foreground">Please wait</div>
         </div>
       </div>
     );
@@ -239,20 +251,20 @@ export default function Home() {
         }} 
       />
 
-      {/* Features Section */}
-      <section className="py-16 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-8">
+      {/* Compact Features Section - Mobile Optimized */}
+      <section className="py-6 md:py-12 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
             {features.map((feature, index) => {
               const IconComponent = getIconComponent(feature.icon);
               return (
-                <div key={index} className="flex items-center space-x-4">
-                  <div className={`bg-${index === 0 ? 'primary' : index === 1 ? 'success' : 'accent'}/10 text-${index === 0 ? 'primary' : index === 1 ? 'success' : 'accent'} rounded-full p-3`}>
-                    <IconComponent className="h-6 w-6" />
+                <div key={index} className="flex items-center space-x-3 p-3 md:p-4 bg-white/50 rounded-xl hover:bg-white/80 transition-colors duration-200">
+                  <div className="bg-primary/10 text-primary rounded-full p-2 md:p-3 flex-shrink-0">
+                    <IconComponent className="h-4 w-4 md:h-6 md:w-6" />
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">{feature.title}</h3>
-                    <p className="text-sm text-muted-foreground">{feature.description}</p>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-foreground text-sm md:text-base truncate">{feature.title}</h3>
+                    <p className="text-xs md:text-sm text-muted-foreground line-clamp-1">{feature.description}</p>
                   </div>
                 </div>
               );
@@ -261,17 +273,19 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Featured Books Section */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-12">
-            <div>
-              <h2 className="text-3xl font-bold text-foreground">Featured Books</h2>
-              <p className="text-muted-foreground mt-2">Discover our handpicked selection of must-read books</p>
+      {/* Mobile-Optimized Featured Books Section */}
+      <section className="py-8 md:py-16">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+          <div className="flex items-start justify-between mb-6 md:mb-12">
+            <div className="flex-1">
+              <h2 className="text-xl md:text-3xl font-bold text-foreground">Featured Books</h2>
+              {!isMobile && (
+                <p className="text-muted-foreground mt-2">Discover our handpicked selection of must-read books</p>
+              )}
             </div>
-            <Button variant="outline" asChild>
+            <Button variant="outline" size="sm" className="ml-4 flex-shrink-0" asChild>
               <Link href="/products?featured=true">
-                View All <ChevronRight className="ml-2 h-4 w-4" />
+                {isMobile ? 'View All' : 'View All'} <ChevronRight className="ml-1 md:ml-2 h-3 w-3 md:h-4 md:w-4" />
               </Link>
             </Button>
           </div>
@@ -284,18 +298,19 @@ export default function Home() {
               </div>
             </div>
           ) : featuredBooks.length > 0 ? (
-            <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {featuredBooks.map((book) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+              {featuredBooks.slice(0, isMobile ? 6 : 8).map((book) => (
                 <ProductCard 
                   key={book.id}
                   product={book}
-                  variant="compact"
-                  showCategory={true}
-                  showAuthor={true}
-                  showRating={true}
+                  variant={isMobile ? "minimal" : "compact"}
+                  showCategory={false}
+                  showAuthor={!isMobile}
+                  showRating={!isMobile}
                   showDiscount={true}
-                  showWishlist={true}
+                  showWishlist={!isMobile}
                   showAddToCart={true}
+                  showBuyNow={true}
                 />
               ))}
             </div>
@@ -303,31 +318,33 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Categories Section */}
+      {/* Mobile-Optimized Categories Section */}
       {categories.length > 0 && (
-        <section className="py-12 bg-muted/20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl md:text-3xl font-bold text-foreground">Browse by Category</h2>
-              <p className="text-muted-foreground mt-2">Find books in your favorite genres</p>
+        <section className="py-8 md:py-12 bg-muted/20">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+            <div className="text-center mb-6 md:mb-8">
+              <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-foreground">Browse Categories</h2>
+              {!isMobile && (
+                <p className="text-muted-foreground mt-2">Find books in your favorite genres</p>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {categories.map((category, index) => {
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6 gap-3 md:gap-4">
+              {categories.slice(0, isMobile ? 6 : categories.length).map((category, index) => {
                 const IconComponent = getCategoryIcon(index);
                 return (
                   <Link key={category.id} href={`/categories/${category.slug || category.id}`}>
-                    <Card className="group hover:shadow-md transition-all duration-200 hover:-translate-y-1 h-full">
-                      <CardContent className="p-4 text-center h-full flex flex-col justify-between">
-                        <div>
-                          <div className={`inline-flex rounded-full p-3 ${getCategoryColor(index)} mb-3`}>
-                            <IconComponent className="h-5 w-5" />
-                          </div>
-                          <h3 className="font-medium text-foreground text-sm mb-1 line-clamp-2">{category.name}</h3>
+                    <Card className="group hover:shadow-md transition-all duration-200 hover:scale-105 h-full border-0 shadow-sm">
+                      <CardContent className="p-3 md:p-4 text-center h-full flex flex-col justify-center">
+                        <div className={`inline-flex rounded-full p-2 md:p-3 ${getCategoryColor(index)} mb-2 md:mb-3`}>
+                          <IconComponent className="h-4 w-4 md:h-5 md:w-5" />
                         </div>
-                        <p className="text-muted-foreground text-xs">
-                          {category.products_count || 0} books
-                        </p>
+                        <h3 className="font-medium text-foreground text-xs md:text-sm mb-1 line-clamp-2">{category.name}</h3>
+                        {!isMobile && (
+                          <p className="text-muted-foreground text-xs">
+                            {category.products_count || 0} books
+                          </p>
+                        )}
                       </CardContent>
                     </Card>
                   </Link>
@@ -360,26 +377,33 @@ export default function Home() {
         ));
       })()}
 
-      {/* Newsletter Section */}
+      {/* Compact Newsletter Section - Mobile Optimized */}
       {homepageConfig?.newsletter?.enabled && (
-        <section className="py-16">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl font-bold text-foreground mb-4">
+        <section className="py-8 md:py-16 bg-gradient-to-r from-primary/5 to-primary/10">
+          <div className="max-w-4xl mx-auto px-3 sm:px-4 lg:px-8 text-center">
+            <h2 className="text-xl md:text-3xl font-bold text-foreground mb-3 md:mb-4">
               {homepageConfig.newsletter.title}
             </h2>
-            <p className="text-muted-foreground mb-8">
-              {homepageConfig.newsletter.subtitle}
-            </p>
-            <form onSubmit={handleNewsletterSubscribe} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+            {!isMobile && (
+              <p className="text-muted-foreground mb-6 md:mb-8">
+                {homepageConfig.newsletter.subtitle}
+              </p>
+            )}
+            <form onSubmit={handleNewsletterSubscribe} className="flex flex-col sm:flex-row gap-3 md:gap-4 max-w-md mx-auto">
               <input
                 type="email"
                 value={newsletterEmail}
                 onChange={(e) => setNewsletterEmail(e.target.value)}
                 placeholder={homepageConfig.newsletter.placeholder}
                 disabled={isSubscribingNewsletter}
-                className="flex-1 px-4 py-3 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-3 md:px-4 py-2 md:py-3 text-sm md:text-base border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
               />
-              <Button type="submit" disabled={isSubscribingNewsletter} className="flex items-center justify-center min-w-[120px]">
+              <Button 
+                type="submit" 
+                disabled={isSubscribingNewsletter} 
+                className="flex items-center justify-center min-w-[100px] md:min-w-[120px] py-2 md:py-3"
+                size={isMobile ? "sm" : "default"}
+              >
                 {isSubscribingNewsletter ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
@@ -387,24 +411,33 @@ export default function Home() {
                 )}
               </Button>
             </form>
-            <p className="text-sm text-muted-foreground mt-4">
-              {homepageConfig.newsletter.privacy_text}
-            </p>
+            {!isMobile && (
+              <p className="text-sm text-muted-foreground mt-4">
+                {homepageConfig.newsletter.privacy_text}
+              </p>
+            )}
           </div>
         </section>
       )}
 
-      {/* CTA Section */}
-      <section className="py-16 bg-primary text-primary-foreground">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to Start Reading?</h2>
-          <p className="text-primary-foreground/80 mb-8 max-w-2xl mx-auto">
-            Join millions of readers who trust {siteConfig?.site.name || 'BookBharat'} for their reading needs. 
-            Discover your next favorite book today!
-          </p>
-          <Button variant="secondary" size="lg" asChild>
+      {/* Compact CTA Section - Mobile Optimized */}
+      <section className="py-12 md:py-16 bg-primary text-primary-foreground">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 text-center">
+          <h2 className="text-xl md:text-3xl font-bold mb-3 md:mb-4">Ready to Start Reading?</h2>
+          {!isMobile && (
+            <p className="text-primary-foreground/80 mb-6 md:mb-8 max-w-2xl mx-auto">
+              Join millions of readers who trust {siteConfig?.site.name || 'BookBharat'} for their reading needs. 
+              Discover your next favorite book today!
+            </p>
+          )}
+          <Button 
+            variant="secondary" 
+            size={isMobile ? "default" : "lg"} 
+            className="min-w-[140px]"
+            asChild
+          >
             <Link href="/products">
-              Shop Now <ArrowRight className="ml-2 h-5 w-5" />
+              Shop Now <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />
             </Link>
           </Button>
         </div>

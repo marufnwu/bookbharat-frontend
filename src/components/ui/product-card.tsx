@@ -125,58 +125,58 @@ export function ProductCard({
       case 'compact':
         return {
           card: 'h-auto',
-          content: 'p-3',
-          image: 'aspect-[4/5] mb-3',
-          imageSize: 'h-10 w-10',
-          title: 'text-sm font-medium line-clamp-2',
+          content: 'compact-padding',
+          image: 'aspect-[4/5] mb-2',
+          imageSize: 'h-8 w-8',
+          title: 'compact-text font-medium line-clamp-2',
           author: 'text-xs',
-          price: 'text-base',
-          comparePrice: 'text-xs',
-          rating: 'h-3 w-3',
-          button: 'h-8 w-8',
-          actionButton: 'h-8 px-3 text-xs'
-        };
-      case 'large':
-        return {
-          card: 'h-auto',
-          content: 'p-6',
-          image: 'aspect-[3/4] mb-6',
-          imageSize: 'h-16 w-16',
-          title: 'text-lg font-semibold line-clamp-2',
-          author: 'text-base',
-          price: 'text-xl',
-          comparePrice: 'text-sm',
-          rating: 'h-5 w-5',
-          button: 'h-12 w-12',
-          actionButton: 'h-10 px-4 text-sm'
-        };
-      case 'minimal':
-        return {
-          card: 'h-auto border-0 shadow-none',
-          content: 'p-0',
-          image: 'aspect-[3/4] mb-3',
-          imageSize: 'h-12 w-12',
-          title: 'text-sm font-medium line-clamp-2',
-          author: 'text-xs',
-          price: 'text-base',
+          price: 'compact-text',
           comparePrice: 'text-xs',
           rating: 'h-3 w-3',
           button: 'h-7 w-7',
           actionButton: 'h-7 px-2 text-xs'
         };
+      case 'large':
+        return {
+          card: 'h-auto',
+          content: 'p-5',
+          image: 'aspect-[3/4] mb-4',
+          imageSize: 'h-14 w-14',
+          title: 'compact-title font-semibold line-clamp-2',
+          author: 'compact-text',
+          price: 'text-lg',
+          comparePrice: 'compact-text',
+          rating: 'h-4 w-4',
+          button: 'h-10 w-10',
+          actionButton: 'h-9 px-3 compact-text'
+        };
+      case 'minimal':
+        return {
+          card: 'h-auto border-0 shadow-none',
+          content: 'p-0',
+          image: 'aspect-[3/4] mb-2',
+          imageSize: 'h-10 w-10',
+          title: 'compact-text font-medium line-clamp-2',
+          author: 'text-xs',
+          price: 'compact-text',
+          comparePrice: 'text-xs',
+          rating: 'h-3 w-3',
+          button: 'h-6 w-6',
+          actionButton: 'h-6 px-1.5 text-xs'
+        };
       default:
         return {
           card: 'h-auto',
-          content: 'p-4',
-          image: 'aspect-[3/4] mb-4',
-          imageSize: 'h-12 w-12',
-          title: 'text-base font-semibold line-clamp-2',
-          author: 'text-sm',
-          price: 'text-lg',
-          comparePrice: 'text-sm',
-          rating: 'h-4 w-4',
-          button: 'h-9 w-9',
-          actionButton: 'h-9 px-3 text-sm'
+          content: 'compact-padding',
+          image: 'aspect-[3/4] mb-3',
+          imageSize: 'h-10 w-10',
+          title: 'compact-heading line-clamp-2',
+          author: 'compact-text',
+          price: 'compact-heading',
+          comparePrice: 'compact-text',
+          rating: 'h-3 w-3',
+          button: 'h-8 w-8',
+          actionButton: 'h-8 px-2.5 compact-text'
         };
     }
   };
@@ -201,6 +201,8 @@ export function ProductCard({
                 fill
                 className="object-cover group-hover:scale-110 transition-transform duration-300"
                 onError={() => setImageError(true)}
+                priority={false}
+                eager={false}
               />
             ) : (
               <div className="flex items-center justify-center h-full">
@@ -271,7 +273,7 @@ export function ProductCard({
         </div>
 
         {/* Product Info */}
-        <div className="space-y-2">
+        <div className="system-compact">
           {showCategory && product.category?.name && (
             <p className="text-xs text-primary font-medium uppercase tracking-wider">
               {product.category.name}
@@ -302,38 +304,36 @@ export function ProductCard({
           )}
           
           {/* Price */}
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className={cn('font-bold text-foreground', styles.price)}>
-                {currencySymbol}{product.price}
+          <div className="flex items-center compact-gap">
+            <span className={cn('font-bold text-foreground', styles.price)}>
+              {currencySymbol}{product.price}
+            </span>
+            {product.compare_price && product.compare_price > product.price && (
+              <span className={cn('text-muted-foreground line-through', styles.comparePrice)}>
+                {currencySymbol}{product.compare_price}
               </span>
-              {product.compare_price && product.compare_price > product.price && (
-                <span className={cn('text-muted-foreground line-through', styles.comparePrice)}>
-                  {currencySymbol}{product.compare_price}
-                </span>
-              )}
-            </div>
+            )}
           </div>
           
           {/* Action Buttons */}
           {product.in_stock && (
-            <div className="flex items-center gap-2 pt-2">
+            <div className="flex items-center compact-gap pt-1.5">
               {showAddToCart && (
                 <Button
                   size="sm"
                   variant="outline"
                   className={cn(
-                    'flex-1 rounded-lg border-2 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-200',
+                    'flex-1 rounded-md border-2 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-200',
                     styles.actionButton
                   )}
                   onClick={handleAddToCart}
                   disabled={addingToCart}
                 >
                   {addingToCart ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-3 w-3 animate-spin" />
                   ) : (
                     <>
-                      <ShoppingCart className="h-4 w-4 mr-1" />
+                      <ShoppingCart className="h-3 w-3 mr-1" />
                       {variant === 'compact' || variant === 'minimal' ? 'Cart' : 'Add to Cart'}
                     </>
                   )}
@@ -344,17 +344,17 @@ export function ProductCard({
                 <Button
                   size="sm"
                   className={cn(
-                    'flex-1 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all duration-200 transform hover:-translate-y-0.5',
+                    'flex-1 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md transition-all duration-200',
                     styles.actionButton
                   )}
                   onClick={handleBuyNow}
                   disabled={buyingNow}
                 >
                   {buyingNow ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-3 w-3 animate-spin" />
                   ) : (
                     <>
-                      <Zap className="h-4 w-4 mr-1" />
+                      <Zap className="h-3 w-3 mr-1" />
                       {variant === 'compact' || variant === 'minimal' ? 'Buy' : 'Buy Now'}
                     </>
                   )}

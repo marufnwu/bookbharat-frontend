@@ -109,125 +109,128 @@ export function HeroSection({ config, className }: HeroSectionProps) {
     }
   };
 
-  // Variant 1: Minimal & Product-Focused
+  // Variant 1: Minimal & Product-Focused - Ultra Mobile-First Design
   if (config.variant === 'minimal-product') {
     return (
       <section className={cn(
-        'relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/30 py-16 lg:py-24',
+        'relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/20 py-3 sm:py-6 lg:py-8 mobile-optimized',
         className
       )}>
-        {/* Subtle background pattern */}
-        <div className="absolute inset-0 opacity-[0.02]">
+        {/* Subtle background pattern - Minimal for mobile */}
+        <div className="absolute inset-0 opacity-[0.005] sm:opacity-[0.01]">
           <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0,0,0,0.15) 1px, transparent 0)`,
-            backgroundSize: '24px 24px'
+            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(0,0,0,0.1) 1px, transparent 0)`,
+            backgroundSize: '16px 16px'
           }}></div>
         </div>
         
-        {/* Floating geometric shapes */}
-        <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-br from-blue-100/40 to-purple-100/40 rounded-full blur-xl animate-float"></div>
-        <div className="absolute bottom-20 right-10 w-24 h-24 bg-gradient-to-br from-orange-100/40 to-pink-100/40 rounded-full blur-xl animate-float" style={{animationDelay: '1s'}}></div>
+        {/* Floating geometric shapes - Desktop only */}
+        <div className="hidden xl:block absolute top-12 left-6 w-12 h-12 bg-gradient-to-br from-blue-100/20 to-purple-100/20 rounded-full blur-md"></div>
+        <div className="hidden xl:block absolute bottom-12 right-6 w-10 h-10 bg-gradient-to-br from-orange-100/20 to-pink-100/20 rounded-full blur-md"></div>
         
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+        <div className="relative max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
+          <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-center">
             {/* Left Side - Content */}
-            <div className="space-y-10">
-              <div className="space-y-8">
-                <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100/50 rounded-full px-4 py-2 text-sm font-medium text-blue-700 shadow-sm">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                  <span>Premium Quality Books</span>
+            <div className="space-y-3 sm:space-y-4 lg:space-y-5 order-2 lg:order-1">
+              <div className="space-y-2 sm:space-y-3">
+                <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100/50 rounded-full px-2.5 py-1 text-[10px] sm:text-xs font-medium text-blue-700 shadow-sm">
+                  <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
+                  <span className="hidden xs:inline">Premium Quality Books</span>
+                  <span className="xs:hidden">Premium Books</span>
                 </div>
                 
-                <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 leading-[0.9] tracking-tight">
+                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 leading-[0.9] tracking-tight">
                   {config.title}
                 </h1>
-                <p className="text-xl md:text-2xl text-gray-600 max-w-lg leading-relaxed font-light">
+                <p className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 max-w-lg leading-relaxed font-light">
                   {config.subtitle}
                 </p>
               </div>
               
-              <div className="flex flex-col sm:flex-row items-start gap-4">
+              <div className="flex flex-col xs:flex-row items-start gap-2 sm:gap-3">
                 <Button 
-                  size="lg" 
-                  className="group relative overflow-hidden bg-gradient-to-r from-gray-900 to-black hover:from-black hover:to-gray-900 text-white px-10 py-5 text-lg font-semibold transition-all duration-500 transform hover:-translate-y-1 shadow-2xl hover:shadow-3xl rounded-full"
+                  size="xs"
+                  className="w-full xs:w-auto group relative overflow-hidden bg-gradient-to-r from-gray-900 to-black hover:from-black hover:to-gray-900 text-white px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md rounded-md"
                   asChild
                 >
                   <Link href={config.primaryCta.href}>
-                    <span className="relative z-10 flex items-center">
-                      {config.primaryCta.text}
-                      <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-1 transition-transform duration-300" />
+                    <span className="relative z-10 flex items-center justify-center">
+                      <span className="truncate">{config.primaryCta.text}</span>
+                      <ArrowRight className="ml-1 sm:ml-1.5 h-3 w-3 sm:h-4 sm:w-4 group-hover:translate-x-0.5 transition-transform duration-200" />
                     </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                   </Link>
                 </Button>
                 {config.secondaryCta && (
                   <Button 
                     variant="outline" 
-                    size="lg" 
-                    className="border-2 border-gray-200 hover:border-gray-900 hover:bg-gray-900 hover:text-white px-10 py-5 text-lg font-medium transition-all duration-300 rounded-full"
+                    size="xs"
+                    className="w-full xs:w-auto border border-gray-200 hover:border-gray-900 hover:bg-gray-900 hover:text-white px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium transition-all duration-200 rounded-md"
                     asChild
                   >
                     <Link href={config.secondaryCta.href}>
-                      {config.secondaryCta.text}
+                      <span className="truncate">{config.secondaryCta.text}</span>
                     </Link>
                   </Button>
                 )}
               </div>
 
-              {/* Enhanced Trust Badges */}
+              {/* Ultra-compact Trust Badges - Mobile First */}
               {config.trustBadges && config.trustBadges.length > 0 && (
-                <div className="grid grid-cols-3 gap-4 pt-8 border-t border-gray-100">
-                  {config.trustBadges.map((badge, index) => (
-                    <div key={index} className="flex flex-col items-center gap-2 p-4 bg-white/60 backdrop-blur-sm rounded-2xl border border-white/40 shadow-sm hover:shadow-md transition-all duration-300 group">
-                      <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                        <CheckCircle className="h-4 w-4 text-white" />
+                <div className="grid grid-cols-2 xs:grid-cols-3 gap-1.5 sm:gap-2 pt-2 sm:pt-3 border-t border-gray-100/50">
+                  {config.trustBadges.slice(0, 3).map((badge, index) => (
+                    <div key={index} className="flex items-center gap-1.5 px-1.5 py-1 sm:px-2 sm:py-1.5 bg-white/50 backdrop-blur-sm rounded-md border border-white/30 shadow-sm">
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <CheckCircle className="h-2 w-2 sm:h-2.5 sm:w-2.5 text-white" />
                       </div>
-                      <span className="text-xs font-medium text-gray-700 text-center">{badge}</span>
+                      <span className="text-[9px] sm:text-[10px] font-medium text-gray-700 text-left leading-tight truncate">{badge}</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Right Side - Enhanced Product Image */}
-            <div className="relative">
+            {/* Right Side - Ultra Mobile-Optimized Product Showcase */}
+            <div className="relative order-1 lg:order-2">
               {config.featuredProducts && config.featuredProducts[0] && (
                 <div className="relative">
-                  {/* Main product showcase */}
-                  <div className="aspect-square bg-gradient-to-br from-white to-gray-50/80 rounded-3xl p-12 flex items-center justify-center shadow-2xl border border-white/60 backdrop-blur-sm hover:shadow-3xl transition-all duration-500 group">
+                  {/* Main product showcase - Ultra compact for mobile */}
+                  <div className="aspect-square bg-gradient-to-br from-white to-gray-50/60 rounded-xl sm:rounded-2xl lg:rounded-3xl p-4 sm:p-6 lg:p-8 flex items-center justify-center shadow-md sm:shadow-xl border border-white/40 backdrop-blur-sm transition-all duration-300">
                     {config.featuredProducts[0].images?.[0] ? (
                       <OptimizedImage
                         src={config.featuredProducts[0].images[0].url}
                         alt={config.featuredProducts[0].name}
-                        width={500}
-                        height={500}
-                        className="object-contain max-h-full group-hover:scale-105 transition-transform duration-500"
+                        width={300}
+                        height={300}
+                        className="object-contain max-h-full"
+                        priority={true}
+                        eager={true}
                       />
                     ) : (
-                      <BookOpen className="h-40 w-40 text-gray-300" />
+                      <BookOpen className="h-16 w-16 sm:h-24 sm:w-24 lg:h-32 lg:w-32 text-gray-300" />
                     )}
                   </div>
                   
-                  {/* Floating elements */}
-                  <div className="absolute -top-6 -right-6 bg-gradient-to-r from-red-500 to-pink-500 text-white px-6 py-3 rounded-full font-bold text-xl shadow-2xl animate-bounce hover:animate-pulse">
+                  {/* Ultra-compact floating discount badge */}
+                  <div className="absolute -top-2 -right-2 sm:-top-3 sm:-right-3 bg-gradient-to-r from-red-500 to-pink-500 text-white px-2 py-0.5 sm:px-3 sm:py-1 rounded-full font-bold text-xs sm:text-sm shadow-lg">
                     {config.discountBadge?.text || '50% OFF'}
                   </div>
                   
-                  {/* Glowing orbs */}
-                  <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full blur-md opacity-60 animate-pulse"></div>
-                  <div className="absolute top-1/2 -right-8 w-12 h-12 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full blur-lg opacity-50 animate-pulse" style={{animationDelay: '1.5s'}}></div>
+                  {/* Minimal glowing orbs - Only on larger screens for performance */}
+                  <div className="hidden sm:block absolute -bottom-2 -left-2 w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full blur-sm opacity-40"></div>
+                  <div className="hidden sm:block absolute top-1/3 -right-4 w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full blur-md opacity-30"></div>
                   
-                  {/* Floating review badge */}
-                  <div className="absolute top-8 -left-8 bg-white/90 backdrop-blur-sm rounded-2xl px-4 py-3 shadow-xl border border-white/50 group">
-                    <div className="flex items-center gap-2">
+                  {/* Floating review badge - Repositioned for mobile */}
+                  <div className="absolute top-4 -left-4 sm:top-6 sm:-left-6 lg:top-8 lg:-left-8 bg-white/90 backdrop-blur-sm rounded-xl sm:rounded-2xl px-2.5 py-2 sm:px-3 sm:py-2.5 lg:px-4 lg:py-3 shadow-lg sm:shadow-xl border border-white/50 group">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
                       <div className="flex">
                         {[...Array(5)].map((_, i) => (
-                          <Star key={i} className="h-3 w-3 text-yellow-400 fill-current" />
+                          <Star key={i} className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-yellow-400 fill-current" />
                         ))}
                       </div>
-                      <span className="text-sm font-semibold text-gray-900">4.9</span>
+                      <span className="text-xs sm:text-sm font-semibold text-gray-900">4.9</span>
                     </div>
-                    <p className="text-xs text-gray-600 mt-1">2.5k+ reviews</p>
+                    <p className="text-[10px] sm:text-xs text-gray-600 mt-0.5 sm:mt-1">2.5k+ reviews</p>
                   </div>
                 </div>
               )}

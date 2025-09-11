@@ -19,9 +19,10 @@ const buttonVariantsConfig = {
 };
 
 const buttonSizes = {
-  sm: 'h-8 px-3 text-sm',
-  md: 'h-10 px-4 text-sm',
-  lg: 'h-12 px-6 text-base',
+  xs: 'h-6 px-2 text-xs',
+  sm: 'h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm',
+  md: 'h-8 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm',
+  lg: 'h-9 sm:h-12 px-4 sm:px-6 text-sm sm:text-base',
 };
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
@@ -35,10 +36,11 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
   ...props
 }, ref) => {
   const buttonClasses = cn(
-    'inline-flex items-center justify-center rounded-lg font-medium',
+    'inline-flex items-center justify-center rounded-md sm:rounded-lg font-medium',
     'transition-all duration-200',
     'focus:outline-none focus:ring-2 focus:ring-offset-2',
     'disabled:opacity-50 disabled:pointer-events-none',
+    'active:scale-95',
     buttonVariantsConfig[variant],
     buttonSizes[size],
     loading && 'pointer-events-none',

@@ -109,25 +109,25 @@ export function Footer() {
   ];
 
   return (
-    <footer className="bg-muted/30 border-t border-border">
-      {/* Features section */}
+    <footer className="bg-muted/30 border-t border-border mobile-optimized">
+      {/* Features section - Compact design */}
       <div className="bg-primary/5 border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="max-w-7xl mx-auto compact-container compact-section">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 compact-gap">
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <div key={index} className="flex items-center space-x-3">
+                <div key={index} className="flex items-center compact-gap">
                   <div className="flex-shrink-0">
-                    <div className="bg-primary/10 text-primary rounded-lg p-2">
-                      <Icon className="h-5 w-5" />
+                    <div className="bg-primary/10 text-primary rounded-md p-1.5">
+                      <Icon className="h-4 w-4" />
                     </div>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="compact-text font-semibold text-foreground truncate">
                       {feature.title}
                     </h3>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[10px] compact-text text-muted-foreground line-clamp-1">
                       {feature.description}
                     </p>
                   </div>
@@ -138,65 +138,65 @@ export function Footer() {
         </div>
       </div>
 
-      {/* Main footer content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+      {/* Main footer content - Compact design */}
+      <div className="max-w-7xl mx-auto compact-container compact-section">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 compact-gap">
           {/* Brand section */}
-          <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center space-x-2 mb-4">
-              <div className="bg-primary text-primary-foreground rounded-lg p-2">
-                <span className="text-lg font-bold">BB</span>
+          <div className="sm:col-span-2 lg:col-span-2">
+            <Link href="/" className="flex items-center compact-gap mb-3">
+              <div className="bg-primary text-primary-foreground rounded-lg p-1.5">
+                <span className="compact-text font-bold">BB</span>
               </div>
               <div>
-                <h2 className="text-lg font-bold text-primary">BookBharat</h2>
-                <p className="text-sm text-muted-foreground">Your Knowledge Partner</p>
+                <h2 className="compact-heading text-primary">BookBharat</h2>
+                <p className="compact-text text-muted-foreground">Your Knowledge Partner</p>
               </div>
             </Link>
-            <p className="text-sm text-muted-foreground mb-6 max-w-md">
+            <p className="compact-text text-muted-foreground mb-3 max-w-md leading-relaxed">
               BookBharat is India's leading online bookstore offering millions of books across all genres. 
-              Discover your next favorite read with us and join millions of happy readers.
+              Discover your next favorite read with us.
             </p>
             
-            {/* Contact info */}
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2 text-sm">
-                <Phone className="h-4 w-4 text-primary" />
+            {/* Contact info - Compact */}
+            <div className="ultra-compact mb-3">
+              <div className="flex items-center compact-gap compact-text">
+                <Phone className="h-3 w-3 text-primary flex-shrink-0" />
                 <span>+91 12345 67890</span>
               </div>
-              <div className="flex items-center space-x-2 text-sm">
-                <Mail className="h-4 w-4 text-primary" />
+              <div className="flex items-center compact-gap compact-text">
+                <Mail className="h-3 w-3 text-primary flex-shrink-0" />
                 <span>support@bookbharat.com</span>
               </div>
-              <div className="flex items-center space-x-2 text-sm">
-                <MapPin className="h-4 w-4 text-primary" />
+              <div className="flex items-center compact-gap compact-text">
+                <MapPin className="h-3 w-3 text-primary flex-shrink-0" />
                 <span>Mumbai, Maharashtra, India</span>
               </div>
             </div>
 
-            {/* Social links */}
-            <div className="flex items-center space-x-4 mt-6">
-              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Facebook className="h-5 w-5" />
+            {/* Social links - Compact */}
+            <div className="flex items-center compact-gap">
+              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors p-1 touch-target">
+                <Facebook className="h-4 w-4" />
               </Link>
-              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Twitter className="h-5 w-5" />
+              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors p-1 touch-target">
+                <Twitter className="h-4 w-4" />
               </Link>
-              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Instagram className="h-5 w-5" />
+              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors p-1 touch-target">
+                <Instagram className="h-4 w-4" />
               </Link>
-              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                <Youtube className="h-5 w-5" />
+              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors p-1 touch-target">
+                <Youtube className="h-4 w-4" />
               </Link>
             </div>
           </div>
 
-          {/* Footer links */}
+          {/* Footer links - Compact design */}
           <div>
-            <h3 className="text-sm font-semibold text-foreground mb-4">Company</h3>
-            <ul className="space-y-2">
-              {footerLinks.company.map((link) => (
+            <h3 className="compact-heading text-foreground mb-2">Company</h3>
+            <ul className="ultra-compact">
+              {footerLinks.company.slice(0, 4).map((link) => (
                 <li key={link.name}>
-                  <Link href={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href={link.href} className="compact-text text-muted-foreground hover:text-primary transition-colors py-0.5 touch-target block">
                     {link.name}
                   </Link>
                 </li>
@@ -205,11 +205,11 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-foreground mb-4">Support</h3>
-            <ul className="space-y-2">
-              {footerLinks.support.map((link) => (
+            <h3 className="compact-heading text-foreground mb-2">Support</h3>
+            <ul className="ultra-compact">
+              {footerLinks.support.slice(0, 4).map((link) => (
                 <li key={link.name}>
-                  <Link href={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href={link.href} className="compact-text text-muted-foreground hover:text-primary transition-colors py-0.5 touch-target block">
                     {link.name}
                   </Link>
                 </li>
@@ -218,11 +218,11 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-foreground mb-4">Categories</h3>
-            <ul className="space-y-2">
+            <h3 className="compact-heading text-foreground mb-2">Categories</h3>
+            <ul className="ultra-compact">
               {footerLinks.categories.map((link) => (
                 <li key={link.name}>
-                  <Link href={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <Link href={link.href} className="compact-text text-muted-foreground hover:text-primary transition-colors py-0.5 touch-target block">
                     {link.name}
                   </Link>
                 </li>
@@ -231,31 +231,31 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Newsletter signup */}
-        <div className="mt-12 pt-8 border-t border-border">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div className="mb-4 md:mb-0">
-              <h3 className="text-lg font-semibold text-foreground mb-2">Stay Updated</h3>
-              <p className="text-sm text-muted-foreground">
-                Subscribe to our newsletter for the latest books and exclusive offers.
+        {/* Newsletter signup - Compact design */}
+        <div className="mt-4 sm:mt-6 pt-4 sm:pt-5 border-t border-border">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between compact-gap">
+            <div className="mb-2 sm:mb-0">
+              <h3 className="compact-heading text-foreground mb-1">Stay Updated</h3>
+              <p className="compact-text text-muted-foreground">
+                Subscribe for the latest books and exclusive offers.
               </p>
             </div>
-            <form onSubmit={handleNewsletterSubscribe} className="flex w-full md:w-auto">
+            <form onSubmit={handleNewsletterSubscribe} className="flex w-full sm:w-auto">
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 disabled={isSubscribing}
-                className="flex-1 md:w-64 px-3 py-2 border border-border rounded-l-lg bg-input focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 sm:w-48 lg:w-56 px-2.5 py-1.5 compact-text border border-border rounded-l-md bg-input focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed touch-target"
               />
               <button 
                 type="submit"
                 disabled={isSubscribing}
-                className="bg-primary text-primary-foreground px-4 py-2 rounded-r-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[100px]"
+                className="bg-primary text-primary-foreground px-2.5 sm:px-3 py-1.5 compact-text rounded-r-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[70px] sm:min-w-[80px] touch-target"
               >
                 {isSubscribing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-3 w-3 animate-spin" />
                 ) : (
                   'Subscribe'
                 )}
@@ -265,19 +265,19 @@ export function Footer() {
         </div>
       </div>
 
-      {/* Bottom bar */}
+      {/* Bottom bar - Compact design */}
       <div className="bg-muted border-t border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between text-sm text-muted-foreground">
+        <div className="max-w-7xl mx-auto compact-container py-2.5 sm:py-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between compact-text text-muted-foreground compact-gap">
             <p>© 2024 BookBharat. All rights reserved.</p>
-            <div className="mt-2 md:mt-0 flex items-center space-x-4">
-              <Link href="/privacy" className="hover:text-primary transition-colors">
+            <div className="flex items-center compact-gap">
+              <Link href="/privacy" className="hover:text-primary transition-colors py-0.5 touch-target">
                 Privacy Policy
               </Link>
-              <Link href="/terms" className="hover:text-primary transition-colors">
+              <Link href="/terms" className="hover:text-primary transition-colors py-0.5 touch-target">
                 Terms of Service
               </Link>
-              <Link href="/cookies" className="hover:text-primary transition-colors">
+              <Link href="/cookies" className="hover:text-primary transition-colors py-0.5 touch-target">
                 Cookie Policy
               </Link>
             </div>

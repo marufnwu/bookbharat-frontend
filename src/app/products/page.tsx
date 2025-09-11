@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { ProductCard } from '@/components/ui/product-card';
 import { useConfig } from '@/contexts/ConfigContext';
 import { productApi, categoryApi, cartApi } from '@/lib/api';
 import { Product, Category } from '@/types';
@@ -197,103 +198,6 @@ export default function ProductsPage() {
     }
   };
 
-  const ProductCard = ({ product, isListView = false }: { product: Product, isListView?: boolean }) => (
-    <Card className={`group hover:shadow-lg transition-all duration-300 ${isListView ? 'flex-row' : ''}`}>
-      <CardContent className={`p-4 ${isListView ? 'flex items-center space-x-4 w-full' : ''}`}>
-        <div className={`${isListView ? 'flex-shrink-0 w-24 h-32' : 'aspect-[3/4]'} bg-gray-100 rounded-lg mb-4 relative overflow-hidden`}>
-          {product.images && product.images.length > 0 ? (
-            <Image
-              src={product.images[0].url}
-              alt={product.name}
-              fill
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <BookOpen className="h-12 w-12 text-gray-400" />
-            </div>
-          )}
-          
-          {product.is_featured && (
-            <Badge className="absolute top-2 right-2 bg-accent text-accent-foreground">
-              Featured
-            </Badge>
-          )}
-          
-          {!product.in_stock && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <Badge variant="destructive">Out of Stock</Badge>
-            </div>
-          )}
-        </div>
-        
-        <div className={`space-y-2 ${isListView ? 'flex-1' : ''}`}>
-          <p className="text-sm text-primary font-medium">{product.category?.name || 'Book'}</p>
-          <Link href={`/products/${product.slug || product.id}`}>
-            <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
-              {product.name}
-            </h3>
-          </Link>
-          <p className="text-sm text-muted-foreground">by {product.brand || 'Unknown Author'}</p>
-          
-          {isListView && product.short_description && (
-            <p className="text-sm text-muted-foreground line-clamp-2">{product.short_description}</p>
-          )}
-          
-          <div className="flex items-center space-x-1">
-            <div className="flex">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
-              ))}
-            </div>
-            <span className="text-sm text-muted-foreground">(4.5)</span>
-          </div>
-          
-          <div className={`${isListView ? 'flex items-center justify-between' : 'space-y-2'}`}>
-            <div className="space-x-2">
-              <span className="text-lg font-bold text-foreground">
-                {siteConfig?.payment?.currency_symbol || '₹'}{product.price}
-              </span>
-              {product.compare_price && product.compare_price > product.price && (
-                <>
-                  <span className="text-sm text-muted-foreground line-through">
-                    {siteConfig?.payment?.currency_symbol || '₹'}{product.compare_price}
-                  </span>
-                  <Badge variant="secondary" className="text-xs">
-                    {Math.round((1 - product.price / product.compare_price) * 100)}% off
-                  </Badge>
-                </>
-              )}
-            </div>
-            
-            <div className={`${isListView ? 'flex items-center space-x-2' : 'flex flex-col space-y-2'}`}>
-              {product.in_stock ? (
-                <Button 
-                  size="sm" 
-                  className="w-full"
-                  onClick={() => addToCart(product.id)}
-                  disabled={addingToCart === product.id}
-                >
-                  {addingToCart === product.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      Add to Cart
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <Button size="sm" variant="outline" disabled className="w-full">
-                  Out of Stock
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
 
   if (loading && products.length === 0) {
     return (
@@ -317,19 +221,19 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto compact-container compact-section">
       {/* Breadcrumb */}
-      <nav className="text-sm text-muted-foreground mb-6">
+      <nav className="compact-text text-muted-foreground mb-3 sm:mb-4">
         <Link href="/" className="hover:text-primary">Home</Link>
-        <span className="mx-2">/</span>
+        <span className="mx-1 sm:mx-2">/</span>
         <span>Products</span>
       </nav>
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 sm:mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">All Books</h1>
-          <p className="text-muted-foreground">Discover your next great read from our vast collection</p>
+          <h1 className="compact-title text-foreground mb-1 sm:mb-2">All Books</h1>
+          <p className="compact-text text-muted-foreground">Discover your next great read from our vast collection</p>
         </div>
         
         <div className="flex items-center space-x-4 mt-4 md:mt-0">
@@ -510,11 +414,16 @@ export default function ProductsPage() {
             </div>
           ) : (
             <div className={viewMode === 'grid' 
-              ? 'grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' 
-              : 'space-y-4'
+              ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 compact-gap' 
+              : 'system-compact'
             }>
               {products.map((product) => (
-                <ProductCard key={product.id} product={product} isListView={viewMode === 'list'} />
+                <ProductCard 
+                  key={product.id} 
+                  product={product} 
+                  variant={viewMode === 'list' ? 'compact' : 'default'}
+                  className={viewMode === 'list' ? 'flex' : ''}
+                />
               ))}
             </div>
           )}

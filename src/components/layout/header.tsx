@@ -135,21 +135,21 @@ export function Header() {
 
   return (
     <header className="bg-background border-b border-border sticky top-0 z-50">
-      {/* Top bar */}
-      <div className="bg-primary text-primary-foreground">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-10 text-sm">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Phone className="h-4 w-4" />
+      {/* Top bar - Hidden on mobile for compact design */}
+      <div className="bg-primary text-primary-foreground hidden lg:block">
+        <div className="max-w-7xl mx-auto compact-container">
+          <div className="flex items-center justify-between h-6 text-xs">
+            <div className="flex items-center compact-gap">
+              <div className="flex items-center space-x-1">
+                <Phone className="h-3 w-3" />
                 <span>+91 12345 67890</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <Mail className="h-4 w-4" />
+              <div className="flex items-center space-x-1">
+                <Mail className="h-3 w-3" />
                 <span>support@bookbharat.com</span>
               </div>
             </div>
-            <div className="hidden md:block">
+            <div>
               <span>Free shipping on orders above ₹499!</span>
             </div>
           </div>
@@ -157,92 +157,87 @@ export function Header() {
       </div>
 
       {/* Main header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+      <div className="max-w-7xl mx-auto compact-container">
+        <div className="flex items-center justify-between h-12 sm:h-14">
           {/* Logo */}
           <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="bg-primary text-primary-foreground rounded-lg p-2">
-                <span className="text-xl font-bold">BB</span>
+            <Link href="/" className="flex items-center space-x-1.5 sm:space-x-2">
+              <div className="bg-primary text-primary-foreground rounded-lg p-1 sm:p-1.5">
+                <span className="text-base sm:text-lg font-bold">BB</span>
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-xl font-bold text-primary">BookBharat</h1>
-                <p className="text-sm text-muted-foreground">Your Knowledge Partner</p>
+                <h1 className="compact-title text-primary">BookBharat</h1>
+                <p className="compact-text text-muted-foreground">Your Knowledge Partner</p>
               </div>
             </Link>
           </div>
 
           {/* Enhanced Search bar */}
-          <div className="flex-1 max-w-2xl mx-8" ref={searchContainerRef}>
+          <div className="flex-1 max-w-2xl mx-1.5 sm:mx-3 md:mx-6" ref={searchContainerRef}>
             <form onSubmit={handleSearchSubmit} className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-muted-foreground" />
+              <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-muted-foreground" />
               </div>
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search for books, authors, categories..."
+                placeholder="Search books..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
                 onFocus={() => searchSuggestions.length > 0 && setShowSuggestions(true)}
-                className="block w-full pl-10 pr-12 py-2 border border-border rounded-lg bg-input focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                className="block w-full pl-7 sm:pl-8 pr-8 sm:pr-10 py-1.5 sm:py-2 compact-text border border-border rounded-md bg-input focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 autoComplete="off"
               />
               {isSearchLoading && (
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                <div className="absolute inset-y-0 right-0 pr-2 sm:pr-3 flex items-center">
+                  <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-primary"></div>
                 </div>
               )}
 
-              {/* Search Suggestions */}
+              {/* Search Suggestions - Ultra Mobile Optimized */}
               {showSuggestions && searchSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-xl z-50 max-h-48 sm:max-h-64 overflow-y-auto mobile-optimized">
                   {searchSuggestions.map((suggestion, index) => (
                     <button
                       key={index}
                       type="button"
-                      className="w-full px-4 py-3 text-left hover:bg-muted transition-colors border-b border-border last:border-b-0 flex items-center space-x-3"
+                      className="w-full px-2 py-1.5 sm:px-3 sm:py-2 text-left hover:bg-muted active:bg-muted/80 transition-colors border-b border-border last:border-b-0 flex items-start gap-1.5 sm:gap-2 min-h-[40px] sm:min-h-[44px]"
                       onClick={() => handleSuggestionClick(suggestion)}
                     >
-                      <div className="flex-shrink-0">
+                      <div className="flex-shrink-0 mt-0.5">
                         {suggestion.type === 'product' ? (
-                          <BookOpen className="h-4 w-4 text-primary" />
+                          <BookOpen className="h-3 w-3 text-primary" />
                         ) : suggestion.type === 'category' ? (
-                          <TrendingUp className="h-4 w-4 text-accent" />
+                          <TrendingUp className="h-3 w-3 text-accent" />
                         ) : (
-                          <Search className="h-4 w-4 text-muted-foreground" />
+                          <Search className="h-3 w-3 text-muted-foreground" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
+                        <p className="text-xs font-medium text-foreground truncate leading-tight">
                           {suggestion.title || suggestion.name}
                         </p>
-                        {suggestion.author && (
-                          <p className="text-xs text-muted-foreground truncate">
-                            by {suggestion.author}
-                          </p>
-                        )}
-                        {suggestion.category && (
-                          <p className="text-xs text-muted-foreground truncate">
-                            in {suggestion.category}
+                        {(suggestion.author || suggestion.category) && (
+                          <p className="text-[10px] text-muted-foreground truncate mt-0.5 leading-tight">
+                            {suggestion.author ? `by ${suggestion.author}` : `in ${suggestion.category}`}
                           </p>
                         )}
                       </div>
                       {suggestion.price && (
-                        <div className="text-sm font-semibold text-primary">
+                        <div className="text-xs font-semibold text-primary flex-shrink-0 mt-0.5">
                           ₹{suggestion.price}
                         </div>
                       )}
                     </button>
                   ))}
-                  <div className="px-4 py-2 text-center border-t border-border">
+                  <div className="px-2 py-1 sm:px-3 sm:py-1.5 text-center border-t border-border bg-muted/30">
                     <button
                       type="button"
-                      className="text-sm text-primary hover:underline"
+                      className="text-[10px] sm:text-xs text-primary hover:underline font-medium py-1 px-2 rounded-md hover:bg-primary/10 transition-colors"
                       onClick={() => handleSearch(searchQuery)}
                     >
-                      See all results for "{searchQuery}"
+                      View all results
                     </button>
                   </div>
                 </div>
@@ -251,11 +246,11 @@ export function Header() {
           </div>
 
           {/* Right side actions */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center compact-gap">
             {/* Wishlist */}
-            <Button variant="ghost" size="sm" asChild>
+            <Button variant="ghost" size="sm" className="touch-target p-1.5 sm:p-2" asChild>
               <Link href="/wishlist">
-                <Heart className="h-5 w-5" />
+                <Heart className="h-4 w-4" />
                 <span className="sr-only">Wishlist</span>
               </Link>
             </Button>
@@ -263,23 +258,23 @@ export function Header() {
             {/* Cart */}
             <div className="relative group">
               <Link href="/cart">
-                <Button variant="ghost" size="sm" className="relative">
-                  <ShoppingCart className="h-5 w-5" />
+                <Button variant="ghost" size="sm" className="relative touch-target p-1.5 sm:p-2">
+                  <ShoppingCart className="h-4 w-4" />
                   {mounted && totalItems > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {totalItems}
+                    <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[10px] rounded-full h-4 w-4 flex items-center justify-center min-w-0">
+                      {totalItems > 99 ? '99+' : totalItems}
                     </span>
                   )}
                   <span className="sr-only">Shopping cart</span>
                 </Button>
               </Link>
               
-              {/* Cart Dropdown */}
-              <div className="absolute right-0 mt-2 w-80 bg-popover border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">Shopping Cart</h3>
-                    <Link href="/cart" className="text-primary hover:underline text-sm">
+              {/* Cart Dropdown - Mobile responsive */}
+              <div className="absolute right-0 mt-1 w-64 sm:w-72 bg-popover border border-border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 max-w-[calc(100vw-1rem)] sm:max-w-none">
+                <div className="compact-padding">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <h3 className="compact-heading">Shopping Cart</h3>
+                    <Link href="/cart" className="text-primary hover:underline compact-text">
                       View All
                     </Link>
                   </div>
@@ -361,25 +356,25 @@ export function Header() {
             {/* User menu */}
             {isAuthenticated ? (
               <div className="relative group">
-                <Button variant="ghost" size="sm">
-                  <User className="h-5 w-5 mr-2" />
-                  <span className="hidden md:inline">{user?.name}</span>
+                <Button variant="ghost" size="sm" className="touch-target">
+                  <User className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline text-sm">{user?.name}</span>
                 </Button>
-                <div className="absolute right-0 mt-2 w-48 bg-popover border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                <div className="absolute right-0 mt-2 w-44 sm:w-48 bg-popover border border-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                   <div className="py-1">
-                    <Link href="/profile" className="block px-4 py-2 text-sm hover:bg-muted">
+                    <Link href="/profile" className="block px-3 sm:px-4 py-2 text-xs sm:text-sm hover:bg-muted touch-target">
                       Profile
                     </Link>
-                    <Link href="/orders" className="block px-4 py-2 text-sm hover:bg-muted">
+                    <Link href="/orders" className="block px-3 sm:px-4 py-2 text-xs sm:text-sm hover:bg-muted touch-target">
                       Orders
                     </Link>
-                    <Link href="/addresses" className="block px-4 py-2 text-sm hover:bg-muted">
+                    <Link href="/addresses" className="block px-3 sm:px-4 py-2 text-xs sm:text-sm hover:bg-muted touch-target">
                       Addresses
                     </Link>
                     <hr className="my-1" />
                     <button
                       onClick={logout}
-                      className="block w-full text-left px-4 py-2 text-sm hover:bg-muted"
+                      className="block w-full text-left px-3 sm:px-4 py-2 text-xs sm:text-sm hover:bg-muted touch-target"
                     >
                       Sign out
                     </button>
@@ -387,11 +382,11 @@ export function Header() {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm" asChild>
+              <div className="flex items-center space-x-1 sm:space-x-2">
+                <Button variant="outline" size="sm" className="touch-target text-xs sm:text-sm px-2 sm:px-3" asChild>
                   <Link href="/auth/login">Sign in</Link>
                 </Button>
-                <Button size="sm" asChild>
+                <Button size="sm" className="touch-target text-xs sm:text-sm px-2 sm:px-3" asChild>
                   <Link href="/auth/register">Sign up</Link>
                 </Button>
               </div>
@@ -402,35 +397,35 @@ export function Header() {
               variant="ghost"
               size="sm"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden"
+              className="md:hidden touch-target ml-1"
             >
               {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </div>
         </div>
 
-        {/* Navigation */}
-        <nav className="hidden md:flex items-center justify-center space-x-8 py-4 border-t border-border">
+        {/* Navigation - More compact on tablet */}
+        <nav className="hidden md:flex items-center justify-center space-x-4 lg:space-x-8 py-3 lg:py-4 border-t border-border">
           {navigation.map((item) => (
             <Link
               key={item.name}
               href={item.href}
-              className="text-foreground hover:text-primary transition-colors duration-200 font-medium"
+              className="text-sm lg:text-base text-foreground hover:text-primary transition-colors duration-200 font-medium px-2 py-1 hover:bg-muted/50 rounded-md"
             >
               {item.name}
             </Link>
           ))}
         </nav>
 
-        {/* Mobile menu */}
+        {/* Mobile menu - Improved touch targets */}
         {isMenuOpen && (
-          <div className="md:hidden border-t border-border">
-            <div className="py-2 space-y-1">
+          <div className="md:hidden border-t border-border bg-background/95 backdrop-blur-sm">
+            <div className="py-3 space-y-1 px-3">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="block px-3 py-2 text-foreground hover:bg-muted rounded-lg"
+                  className="block px-4 py-3 text-foreground hover:bg-muted rounded-lg touch-target font-medium text-base"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {item.name}

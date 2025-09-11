@@ -1,16 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { OptimizedImage } from '@/components/ui/optimized-image';
+import { ProductCard } from '@/components/ui/product-card';
 import { productApi } from '@/lib/api';
 import { useCartStore } from '@/stores/cart';
+import { useWishlistStore } from '@/stores/wishlist';
 import { Product } from '@/types';
 import { useConfig } from '@/contexts/ConfigContext';
+import { toast } from 'sonner';
 import { 
   BookOpen, 
   Star, 
@@ -24,21 +28,39 @@ import {
   Shield,
   RotateCcw,
   Award,
-  Loader2
+  Loader2,
+  ArrowLeft,
+  Zap,
+  Info
 } from 'lucide-react';
 
 export default function ProductDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const { siteConfig } = useConfig();
   const { addToCart } = useCartStore();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlistStore();
+  
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [quantity, setQuantity] = useState(1);
   const [selectedTab, setSelectedTab] = useState('description');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [buyingNow, setBuyingNow] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Load product data from API
   useEffect(() => {
@@ -70,6 +92,7 @@ export default function ProductDetailPage() {
   }, [params.id]);
 
   const currencySymbol = siteConfig?.payment?.currency_symbol || '₹';
+  const isWishlisted = product ? isInWishlist(product.id) : false;
 
   const handleAddToCart = async () => {
     if (!product) return;
@@ -77,17 +100,74 @@ export default function ProductDetailPage() {
     try {
       setAddingToCart(true);
       await addToCart(product, quantity);
+      toast.success('Added to cart successfully!');
     } catch (error) {
       console.error('Failed to add to cart:', error);
+      toast.error('Failed to add to cart. Please try again.');
     } finally {
       setAddingToCart(false);
     }
   };
 
+  const handleBuyNow = async () => {
+    if (!product) return;
+    
+    try {
+      setBuyingNow(true);
+      await addToCart(product, quantity);
+      router.push('/checkout');
+    } catch (error) {
+      console.error('Failed to buy now:', error);
+      toast.error('Failed to proceed to checkout. Please try again.');
+    } finally {
+      setBuyingNow(false);
+    }
+  };
+
+  const handleWishlistToggle = async () => {
+    if (!product) return;
+    
+    try {
+      if (isWishlisted) {
+        await removeFromWishlist(product.id);
+        toast.success('Removed from wishlist');
+      } else {
+        await addToWishlist(product);
+        toast.success('Added to wishlist');
+      }
+    } catch (error) {
+      console.error('Failed to update wishlist:', error);
+      toast.error('Failed to update wishlist');
+    }
+  };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product?.name,
+          text: `Check out this book: ${product?.name}`,
+          url: window.location.href,
+        });
+      } catch (error) {
+        console.log('Error sharing:', error);
+      }
+    } else {
+      // Fallback: copy to clipboard
+      navigator.clipboard.writeText(window.location.href);
+      toast.success('Link copied to clipboard!');
+    }
+  };
+
   const handleQuantityChange = (newQuantity: number) => {
-    if (product && newQuantity >= 1 && newQuantity <= (product.stock_quantity || 0)) {
+    if (product && newQuantity >= 1 && newQuantity <= (product.stock_quantity || 99)) {
       setQuantity(newQuantity);
     }
+  };
+
+  const getDiscountPercentage = () => {
+    if (!product?.compare_price || product.compare_price <= product.price) return 0;
+    return Math.round((1 - product.price / product.compare_price) * 100);
   };
 
   if (loading) {
@@ -128,193 +208,295 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Breadcrumb */}
-      <nav className="text-sm text-muted-foreground mb-6">
-        <Link href="/" className="hover:text-primary">Home</Link>
-        <ChevronRight className="inline h-4 w-4 mx-2" />
-        <Link href="/products" className="hover:text-primary">Products</Link>
-        <ChevronRight className="inline h-4 w-4 mx-2" />
-        <Link href={`/categories/${product.category?.slug || product.category?.id}`} className="hover:text-primary">
-          {product.category?.name || 'Books'}
-        </Link>
-        <ChevronRight className="inline h-4 w-4 mx-2" />
-        <span>{product.name}</span>
-      </nav>
-
-      <div className="grid lg:grid-cols-2 gap-12 mb-16">
-        {/* Product Images */}
-        <div className="space-y-4">
-          <div className="bg-gray-100 rounded-lg aspect-[3/4] flex items-center justify-center relative overflow-hidden">
-            {product.images && product.images.length > 0 ? (
-              <Image
-                src={product.images[0].url}
-                alt={product.name}
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <BookOpen className="h-24 w-24 text-gray-400" />
-            )}
-            {product.is_new && (
-              <Badge className="absolute top-4 left-4 bg-success text-success-foreground">
-                New
-              </Badge>
-            )}
-            {product.is_featured && (
-              <Badge className="absolute top-4 right-4 bg-accent text-accent-foreground">
-                Featured
-              </Badge>
-            )}
+    <div className="mobile-optimized">
+      {/* Mobile Header */}
+      {isMobile && (
+        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3">
+          <div className="flex items-center justify-between">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => router.back()}
+              className="p-2"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <span className="text-sm font-medium">Product Details</span>
+            <div className="flex items-center space-x-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleWishlistToggle}
+                className="p-2"
+              >
+                <Heart className={`h-5 w-5 ${isWishlisted ? 'fill-current text-red-500' : ''}`} />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleShare}
+                className="p-2"
+              >
+                <Share2 className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Product Info */}
-        <div className="space-y-6">
-          <div>
-            <Badge variant="outline" className="mb-2">{product.category?.name || 'Book'}</Badge>
-            <h1 className="text-3xl font-bold text-foreground mb-2">{product.name}</h1>
-            <p className="text-lg text-muted-foreground">by {product.brand || 'Unknown Author'}</p>
-          </div>
+      <div className="max-w-7xl mx-auto">
+        {/* Desktop Breadcrumb */}
+        {!isMobile && (
+          <nav className="text-sm text-muted-foreground mb-6 px-4 sm:px-6 lg:px-8 pt-8">
+            <Link href="/" className="hover:text-primary">Home</Link>
+            <ChevronRight className="inline h-4 w-4 mx-2" />
+            <Link href="/products" className="hover:text-primary">Products</Link>
+            <ChevronRight className="inline h-4 w-4 mx-2" />
+            <Link href={`/categories/${product.category?.slug || product.category?.id}`} className="hover:text-primary">
+              {product.category?.name || 'Books'}
+            </Link>
+            <ChevronRight className="inline h-4 w-4 mx-2" />
+            <span className="truncate">{product.name}</span>
+          </nav>
+        )}
 
-          {/* Rating */}
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-1">
-              <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className={`h-5 w-5 ${i < Math.floor(product.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
-                ))}
+        {/* Mobile-Optimized Product Layout */}
+        <div className={`${isMobile ? 'pb-24' : 'pb-8'}`}>
+          <div className="grid lg:grid-cols-2 gap-6 lg:gap-12 px-3 sm:px-4 lg:px-8">
+            {/* Product Images - Enhanced */}
+            <div className="space-y-3 sm:space-y-4">
+              <div className="bg-gray-50 rounded-xl lg:rounded-2xl aspect-[3/4] flex items-center justify-center relative overflow-hidden group">
+                {product.images && product.images.length > 0 ? (
+                  <OptimizedImage
+                    src={product.images[selectedImageIndex]?.url || product.images[0].url}
+                    alt={product.name}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    priority={true}
+                  />
+                ) : (
+                  <BookOpen className="h-16 w-16 sm:h-24 sm:w-24 text-gray-400" />
+                )}
+                
+                {/* Badges */}
+                <div className="absolute top-3 sm:top-4 left-3 sm:left-4 flex flex-col gap-2">
+                  {product.is_new && (
+                    <Badge className="bg-success text-success-foreground text-xs">
+                      New
+                    </Badge>
+                  )}
+                  {product.is_featured && (
+                    <Badge className="bg-accent text-accent-foreground text-xs">
+                      Featured
+                    </Badge>
+                  )}
+                  {getDiscountPercentage() > 0 && (
+                    <Badge variant="destructive" className="text-xs">
+                      -{getDiscountPercentage()}%
+                    </Badge>
+                  )}
+                </div>
               </div>
-              <span className="font-medium">{product.rating || 'N/A'}</span>
-            </div>
-            <span className="text-muted-foreground">(reviews)</span>
-          </div>
 
-          {/* Price */}
-          <div className="flex items-center space-x-4">
-            <span className="text-3xl font-bold text-foreground">{currencySymbol}{product.price}</span>
-            {product.compare_price && product.compare_price > product.price && (
-              <>
-                <span className="text-xl text-muted-foreground line-through">{currencySymbol}{product.compare_price}</span>
-                <Badge variant="secondary">
-                  {Math.round((1 - product.price / product.compare_price) * 100)}% off
-                </Badge>
-              </>
-            )}
-          </div>
-
-          {/* Stock Status */}
-          <div className="flex items-center space-x-2">
-            {product.in_stock ? (
-              <div className="flex items-center space-x-2 text-success">
-                <div className="w-2 h-2 bg-success rounded-full"></div>
-                <span>In Stock {product.stock_quantity ? `(${product.stock_quantity} available)` : ''}</span>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-2 text-destructive">
-                <div className="w-2 h-2 bg-destructive rounded-full"></div>
-                <span>Out of Stock</span>
-              </div>
-            )}
-          </div>
-
-          {/* Quantity and Add to Cart */}
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center border border-border rounded-lg">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleQuantityChange(quantity - 1)}
-                disabled={quantity <= 1}
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
-              <span className="px-4 py-2 text-center min-w-[3rem]">{quantity}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleQuantityChange(quantity + 1)}
-                disabled={quantity >= (product.stock_quantity || 0)}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <Button
-              size="lg"
-              onClick={handleAddToCart}
-              disabled={!product.in_stock || addingToCart}
-              className="flex-1"
-            >
-              {addingToCart ? (
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-              ) : (
-                <ShoppingCart className="h-5 w-5 mr-2" />
+              {/* Image Thumbnails */}
+              {product.images && product.images.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto">
+                  {product.images.map((image, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImageIndex(index)}
+                      className={`flex-shrink-0 w-16 h-20 sm:w-20 sm:h-24 bg-gray-50 rounded-lg overflow-hidden border-2 transition-colors ${
+                        selectedImageIndex === index ? 'border-primary' : 'border-transparent'
+                      }`}
+                    >
+                      <OptimizedImage
+                        src={image.url}
+                        alt={`${product.name} ${index + 1}`}
+                        width={80}
+                        height={100}
+                        className="object-cover w-full h-full"
+                      />
+                    </button>
+                  ))}
+                </div>
               )}
-              {addingToCart ? 'Adding...' : 'Add to Cart'}
-            </Button>
-          </div>
+            </div>
 
-          {/* Action Buttons */}
-          <div className="flex space-x-4">
-            <Button variant="outline" size="lg" className="flex-1">
-              Buy Now
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setIsWishlisted(!isWishlisted)}
-              className={isWishlisted ? 'text-red-500 border-red-500' : ''}
-            >
-              <Heart className={`h-5 w-5 ${isWishlisted ? 'fill-current' : ''}`} />
-            </Button>
-            <Button variant="outline">
-              <Share2 className="h-5 w-5" />
-            </Button>
-          </div>
-
-          {/* Features */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="flex items-center space-x-2">
-                  <Truck className="h-4 w-4 text-primary" />
-                  <span>Free delivery on orders above ₹499</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RotateCcw className="h-4 w-4 text-primary" />
-                  <span>30-day return policy</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Shield className="h-4 w-4 text-primary" />
-                  <span>Secure payment</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Award className="h-4 w-4 text-primary" />
-                  <span>Authentic books</span>
-                </div>
+            {/* Product Info - Mobile Optimized */}
+            <div className="space-y-4 sm:space-y-6">
+              <div>
+                <Badge variant="outline" className="mb-2 text-xs">{product.category?.name || 'Book'}</Badge>
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mb-2 leading-tight">{product.name}</h1>
+                <p className="text-sm sm:text-base lg:text-lg text-muted-foreground">by {product.brand || 'Unknown Author'}</p>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Product Details */}
-          <Card>
-            <CardContent className="p-4 space-y-2 text-sm">
-              <div className="grid grid-cols-2 gap-2">
-                <span className="text-muted-foreground">SKU:</span>
-                <span>{product.sku || 'N/A'}</span>
-                <span className="text-muted-foreground">Brand:</span>
-                <span>{product.brand || 'N/A'}</span>
-                <span className="text-muted-foreground">Weight:</span>
-                <span>{product.weight ? `${product.weight}g` : 'N/A'}</span>
-                <span className="text-muted-foreground">Stock:</span>
-                <span>{product.manage_stock ? `${product.stock_quantity || 0} units` : 'Not tracked'}</span>
-                <span className="text-muted-foreground">Status:</span>
-                <span>{product.status}</span>
+              {/* Rating - Compact on mobile */}
+              <div className="flex items-center space-x-3 sm:space-x-4">
+                <div className="flex items-center space-x-1">
+                  <div className="flex">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className={`h-4 w-4 sm:h-5 sm:w-5 ${i < Math.floor(product.rating || 4.5) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
+                    ))}
+                  </div>
+                  <span className="text-sm sm:text-base font-medium">{product.rating || '4.5'}</span>
+                </div>
+                <span className="text-xs sm:text-sm text-muted-foreground">(150+ reviews)</span>
               </div>
-            </CardContent>
-          </Card>
+
+              {/* Price - Mobile optimized */}
+              <div className="space-y-2">
+                <div className="flex items-baseline space-x-2 sm:space-x-4">
+                  <span className="text-2xl sm:text-3xl font-bold text-foreground">{currencySymbol}{product.price}</span>
+                  {product.compare_price && product.compare_price > product.price && (
+                    <span className="text-lg sm:text-xl text-muted-foreground line-through">{currencySymbol}{product.compare_price}</span>
+                  )}
+                </div>
+                {getDiscountPercentage() > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="secondary" className="text-xs">
+                      {getDiscountPercentage()}% off
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      You save {currencySymbol}{(product.compare_price || 0) - product.price}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Stock Status */}
+              <div className="flex items-center space-x-2">
+                {product.in_stock ? (
+                  <div className="flex items-center space-x-2 text-success">
+                    <div className="w-2 h-2 bg-success rounded-full"></div>
+                    <span className="text-sm">{isMobile ? 'In Stock' : `In Stock ${product.stock_quantity ? `(${product.stock_quantity} available)` : ''}`}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2 text-destructive">
+                    <div className="w-2 h-2 bg-destructive rounded-full"></div>
+                    <span className="text-sm">Out of Stock</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop Quantity and Actions */}
+              {!isMobile && (
+                <>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center border border-border rounded-lg">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleQuantityChange(quantity - 1)}
+                        disabled={quantity <= 1}
+                        className="h-10 w-10 p-0"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <span className="px-4 py-2 text-center min-w-[3rem]">{quantity}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleQuantityChange(quantity + 1)}
+                        disabled={quantity >= (product.stock_quantity || 99)}
+                        className="h-10 w-10 p-0"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      onClick={handleAddToCart}
+                      disabled={!product.in_stock || addingToCart}
+                      className="flex-1"
+                    >
+                      {addingToCart ? (
+                        <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                      ) : (
+                        <ShoppingCart className="h-4 w-4 mr-1.5" />
+                      )}
+                      <span className="hidden min-[360px]:inline">{addingToCart ? 'Adding...' : 'Add to Cart'}</span>
+                      <span className="min-[360px]:hidden">{addingToCart ? '...' : 'Cart'}</span>
+                    </Button>
+                  </div>
+
+                  <div className="flex space-x-3">
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="flex-1 bg-primary hover:bg-primary/90"
+                      onClick={handleBuyNow}
+                      disabled={!product.in_stock || buyingNow}
+                    >
+                      {buyingNow ? (
+                        <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                      ) : (
+                        <Zap className="h-4 w-4 mr-1.5" />
+                      )}
+                      <span className="hidden min-[360px]:inline">{buyingNow ? 'Processing...' : 'Buy Now'}</span>
+                      <span className="min-[360px]:hidden">{buyingNow ? '...' : 'Buy'}</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleWishlistToggle}
+                      className={`${isWishlisted ? 'text-red-500 border-red-500 bg-red-50' : ''}`}
+                    >
+                      <Heart className={`h-4 w-4 ${isWishlisted ? 'fill-current' : ''}`} />
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleShare}>
+                      <Share2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {/* Features */}
+              <Card>
+                <CardContent className="p-3 sm:p-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
+                    <div className="flex items-center space-x-2">
+                      <Truck className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
+                      <span>Free delivery on orders above ₹499</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RotateCcw className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
+                      <span>30-day return policy</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
+                      <span>100% secure payment</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Award className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
+                      <span>Authentic books guaranteed</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Mobile Quick Info */}
+              {isMobile && (
+                <Card>
+                  <CardContent className="p-3 space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">SKU:</span>
+                      <span>{product.sku || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Author:</span>
+                      <span>{product.brand || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Category:</span>
+                      <span>{product.category?.name || 'N/A'}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
 
       {/* Tabs Section */}
       <div className="mb-16">
@@ -454,6 +636,120 @@ export default function ProductDetailPage() {
           </div>
         </div>
       )}
+
+        {/* Mobile Optimized Related Products */}
+        {relatedProducts.length > 0 && (
+          <div className="px-3 sm:px-4 lg:px-8 mb-8">
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4 sm:mb-6">You May Also Like</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
+              {relatedProducts.slice(0, isMobile ? 4 : 5).map((relatedProduct) => (
+                <ProductCard
+                  key={relatedProduct.id}
+                  product={relatedProduct}
+                  variant={isMobile ? "minimal" : "compact"}
+                  showCategory={false}
+                  showAuthor={!isMobile}
+                  showRating={!isMobile}
+                  showWishlist={!isMobile}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Sticky Bottom Bar - Fully Responsive */}
+        <div className="block md:hidden">
+          <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-border mobile-bottom-bar">
+            <div className="container max-w-md mx-auto px-3 py-3">
+              {/* Price Display Row */}
+              <div className="flex items-center justify-between mb-3 pb-2 border-b border-border/30">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-lg font-bold text-foreground">{currencySymbol}{product.price}</span>
+                  {product.compare_price && product.compare_price > product.price && (
+                    <span className="text-sm text-muted-foreground line-through">{currencySymbol}{product.compare_price}</span>
+                  )}
+                </div>
+                {getDiscountPercentage() > 0 && (
+                  <Badge variant="destructive" className="text-xs font-medium">
+                    Save {getDiscountPercentage()}%
+                  </Badge>
+                )}
+              </div>
+
+              {/* Action Buttons Row */}
+              <div className="flex items-center gap-2">
+                {/* Compact Quantity Selector */}
+                <div className="flex items-center border border-border rounded-lg bg-background overflow-hidden shadow-sm">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleQuantityChange(quantity - 1)}
+                    disabled={quantity <= 1}
+                    className="h-10 w-9 p-0 hover:bg-muted/50 disabled:opacity-50"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <div className="flex items-center justify-center h-10 px-3 text-sm font-semibold min-w-[2.5rem] bg-muted/30 border-x border-border">
+                    {quantity}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleQuantityChange(quantity + 1)}
+                    disabled={quantity >= (product.stock_quantity || 99)}
+                    className="h-10 w-9 p-0 hover:bg-muted/50 disabled:opacity-50"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Add to Cart Button */}
+                <Button
+                  onClick={handleAddToCart}
+                  disabled={!product.in_stock || addingToCart}
+                  size="xs"
+                  className="flex-1 text-xs font-medium shadow-sm"
+                  variant="outline"
+                >
+                  {addingToCart ? (
+                    <div className="flex items-center justify-center">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="ml-2 hidden min-[400px]:inline">Adding...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center">
+                      <ShoppingCart className="h-4 w-4" />
+                      <span className="ml-2 hidden min-[400px]:inline">Add to Cart</span>
+                      <span className="ml-2 min-[400px]:hidden">Cart</span>
+                    </div>
+                  )}
+                </Button>
+
+                {/* Buy Now Button */}
+                <Button
+                  onClick={handleBuyNow}
+                  disabled={!product.in_stock || buyingNow}
+                  size="xs"
+                  className="flex-1 text-xs font-medium bg-primary hover:bg-primary/90 shadow-sm"
+                >
+                  {buyingNow ? (
+                    <div className="flex items-center justify-center">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="ml-2 hidden min-[400px]:inline">Processing...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center">
+                      <Zap className="h-4 w-4" />
+                      <span className="ml-2 hidden min-[400px]:inline">Buy Now</span>
+                      <span className="ml-2 min-[400px]:hidden">Buy</span>
+                    </div>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
