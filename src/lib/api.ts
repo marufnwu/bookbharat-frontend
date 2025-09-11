@@ -187,7 +187,7 @@ class ApiClient {
   }
 
   async searchProducts(query: string, filters?: any) {
-    return this.get('/products/search', { params: { q: query, ...filters } });
+    return this.get('/products/search', { params: { query: query, ...filters } });
   }
 
   async getFeaturedProducts() {
@@ -195,7 +195,7 @@ class ApiClient {
   }
 
   async getProductSuggestions(query: string) {
-    return this.get('/products/suggestions', { params: { q: query } });
+    return this.get('/products/suggestions', { params: { query: query } });
   }
 
   async getProductFilters() {
@@ -250,6 +250,94 @@ class ApiClient {
 
   async getAvailableCoupons() {
     return this.get('/coupons/available');
+  }
+
+  // Wishlist API methods
+  async getWishlist() {
+    return this.get('/wishlist');
+  }
+
+  async addToWishlist(productId: number) {
+    return this.post('/wishlist', { product_id: productId });
+  }
+
+  async removeFromWishlist(wishlistItemId: number) {
+    return this.delete(`/wishlist/${wishlistItemId}`);
+  }
+
+  async moveWishlistToCart(wishlistItemId: number) {
+    return this.post('/wishlist/move-to-cart', { wishlist_item_id: wishlistItemId });
+  }
+
+  async checkWishlistItem(productId: number) {
+    return this.post('/wishlist/check', { product_id: productId });
+  }
+
+  async clearWishlist() {
+    return this.delete('/wishlist/clear/all');
+  }
+
+  async getWishlistStats() {
+    return this.get('/wishlist/stats');
+  }
+
+  // Review API methods
+  async getProductReviews(productId: number, params?: any) {
+    return this.get(`/reviews/product/${productId}`, { params });
+  }
+
+  async createReview(data: { product_id: number; rating: number; title?: string; comment: string }) {
+    return this.post('/reviews', data);
+  }
+
+  async getUserReviews() {
+    return this.get('/reviews/my-reviews');
+  }
+
+  async updateReview(reviewId: number, data: { rating: number; title?: string; comment: string }) {
+    return this.put(`/reviews/${reviewId}`, data);
+  }
+
+  async deleteReview(reviewId: number) {
+    return this.delete(`/reviews/${reviewId}`);
+  }
+
+  async getEligibleProducts() {
+    return this.get('/reviews/eligible-products');
+  }
+
+  async getUserReviewStats() {
+    return this.get('/reviews/my-stats');
+  }
+
+  async reportReview(reviewId: number, reason: string) {
+    return this.post(`/reviews/${reviewId}/report`, { reason });
+  }
+
+  // Contact API methods
+  async submitContactForm(data: { name: string; email: string; subject: string; category: string; message: string }) {
+    return this.post('/contact/submit', data);
+  }
+
+  async getContactCategories() {
+    return this.get('/contact/categories');
+  }
+
+  // Newsletter API methods
+  async subscribeToNewsletter(data: { email: string; name?: string; preferences?: string[]; source?: string }) {
+    return this.post('/newsletter/subscribe', data);
+  }
+
+  async unsubscribeFromNewsletter(data: { email: string; token?: string }) {
+    return this.post('/newsletter/unsubscribe', data);
+  }
+
+  async updateNewsletterPreferences(data: { email: string; preferences: string[]; name?: string }) {
+    return this.put('/newsletter/preferences', data);
+  }
+
+  async getNewsletterStatus(email: string) {
+    return this.get('/newsletter/status', { params: { email } });
   }
 
   // Order API methods
@@ -580,6 +668,32 @@ class ApiClient {
   async refundPayment(paymentId: number, data: { amount?: number; reason?: string }) {
     return this.post(`/payment/refund/${paymentId}`, data);
   }
+
+  // Static Pages API methods
+  async getStaticPages() {
+    return this.get('/pages');
+  }
+
+  async getStaticPage(slug: string) {
+    return this.get(`/pages/${slug}`);
+  }
+
+  // FAQ API methods
+  async getFaqs(params?: { category?: string; search?: string }) {
+    return this.get('/faqs', { params });
+  }
+
+  async getFaqCategories() {
+    return this.get('/faqs/categories');
+  }
+
+  async getFaq(id: number) {
+    return this.get(`/faqs/${id}`);
+  }
+
+  async searchFaqs(query: string) {
+    return this.get('/faqs/search', { params: { q: query } });
+  }
 }
 
 // Create and export a singleton instance
@@ -623,6 +737,39 @@ export const cartApi = {
   applyCoupon: apiClient.applyCoupon.bind(apiClient),
   removeCoupon: apiClient.removeCoupon.bind(apiClient),
   getAvailableCoupons: apiClient.getAvailableCoupons.bind(apiClient),
+};
+
+export const wishlistApi = {
+  getWishlist: apiClient.getWishlist.bind(apiClient),
+  addToWishlist: apiClient.addToWishlist.bind(apiClient),
+  removeFromWishlist: apiClient.removeFromWishlist.bind(apiClient),
+  moveWishlistToCart: apiClient.moveWishlistToCart.bind(apiClient),
+  checkWishlistItem: apiClient.checkWishlistItem.bind(apiClient),
+  clearWishlist: apiClient.clearWishlist.bind(apiClient),
+  getWishlistStats: apiClient.getWishlistStats.bind(apiClient),
+};
+
+export const reviewApi = {
+  getProductReviews: apiClient.getProductReviews.bind(apiClient),
+  createReview: apiClient.createReview.bind(apiClient),
+  getUserReviews: apiClient.getUserReviews.bind(apiClient),
+  updateReview: apiClient.updateReview.bind(apiClient),
+  deleteReview: apiClient.deleteReview.bind(apiClient),
+  getEligibleProducts: apiClient.getEligibleProducts.bind(apiClient),
+  getUserReviewStats: apiClient.getUserReviewStats.bind(apiClient),
+  reportReview: apiClient.reportReview.bind(apiClient),
+};
+
+export const contactApi = {
+  submitContactForm: apiClient.submitContactForm.bind(apiClient),
+  getContactCategories: apiClient.getContactCategories.bind(apiClient),
+};
+
+export const newsletterApi = {
+  subscribe: apiClient.subscribeToNewsletter.bind(apiClient),
+  unsubscribe: apiClient.unsubscribeFromNewsletter.bind(apiClient),
+  updatePreferences: apiClient.updateNewsletterPreferences.bind(apiClient),
+  getStatus: apiClient.getNewsletterStatus.bind(apiClient),
 };
 
 export const orderApi = {
@@ -736,4 +883,16 @@ export const paymentApi = {
   cashfreeCallback: apiClient.cashfreeCallback.bind(apiClient),
   getPaymentStatus: apiClient.getPaymentStatus.bind(apiClient),
   refundPayment: apiClient.refundPayment.bind(apiClient),
+};
+
+export const staticPagesApi = {
+  getPages: apiClient.getStaticPages.bind(apiClient),
+  getPage: apiClient.getStaticPage.bind(apiClient),
+};
+
+export const faqApi = {
+  getFaqs: apiClient.getFaqs.bind(apiClient),
+  getFaqCategories: apiClient.getFaqCategories.bind(apiClient),
+  getFaq: apiClient.getFaq.bind(apiClient),
+  searchFaqs: apiClient.searchFaqs.bind(apiClient),
 };

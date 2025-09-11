@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,70 +12,63 @@ import {
   ShoppingCart,
   X,
   Share2,
-  Filter
+  Filter,
+  Loader2
 } from 'lucide-react';
+import { useWishlistStore } from '@/stores/wishlist';
+import { useCartStore } from '@/stores/cart';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 
 export default function WishlistPage() {
-  const [wishlistItems, setWishlistItems] = useState([
-    {
-      id: 1,
-      product: {
-        id: 1,
-        title: "The Psychology of Money",
-        author: "Morgan Housel",
-        price: 399,
-        originalPrice: 599,
-        rating: 4.8,
-        reviews: 1247,
-        category: "Business & Finance",
-        inStock: true,
-        isOnSale: true
-      },
-      dateAdded: "2024-01-15"
-    },
-    {
-      id: 2,
-      product: {
-        id: 2,
-        title: "Atomic Habits",
-        author: "James Clear",
-        price: 449,
-        originalPrice: 699,
-        rating: 4.9,
-        reviews: 2156,
-        category: "Self Help",
-        inStock: true,
-        isOnSale: true
-      },
-      dateAdded: "2024-01-12"
-    },
-    {
-      id: 3,
-      product: {
-        id: 3,
-        title: "The Midnight Library",
-        author: "Matt Haig",
-        price: 349,
-        originalPrice: 499,
-        rating: 4.7,
-        reviews: 856,
-        category: "Fiction",
-        inStock: false,
-        isOnSale: false
-      },
-      dateAdded: "2024-01-10"
+  const { 
+    wishlistItems, 
+    isLoading, 
+    getWishlist, 
+    removeFromWishlist, 
+    moveToCart,
+    getTotalItems 
+  } = useWishlistStore();
+  const { addToCart } = useCartStore();
+
+  useEffect(() => {
+    getWishlist();
+  }, [getWishlist]);
+
+  const handleRemoveFromWishlist = (itemId: number) => {
+    removeFromWishlist(itemId);
+  };
+
+  const handleMoveToCart = async (item: any) => {
+    try {
+      await addToCart(item.product, 1);
+      await removeFromWishlist(item.id);
+    } catch (error) {
+      console.error('Failed to move to cart:', error);
     }
-  ]);
-
-  const removeFromWishlist = (itemId: number) => {
-    setWishlistItems(prev => prev.filter(item => item.id !== itemId));
   };
 
-  const moveAllToCart = () => {
-    const inStockItems = wishlistItems.filter(item => item.product.inStock);
-    // Add to cart logic here
-    console.log('Moving to cart:', inStockItems);
+  const handleMoveAllToCart = async () => {
+    const inStockItems = wishlistItems.filter(item => item.product.stock_quantity > 0);
+    for (const item of inStockItems) {
+      try {
+        await addToCart(item.product, 1);
+        await removeFromWishlist(item.id);
+      } catch (error) {
+        console.error('Failed to move item to cart:', error);
+      }
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-md mx-auto text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading your wishlist...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (wishlistItems.length === 0) {
     return (
@@ -109,7 +102,7 @@ export default function WishlistPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-foreground">My Wishlist</h1>
-          <p className="text-muted-foreground">{wishlistItems.length} items saved</p>
+          <p className="text-muted-foreground">{getTotalItems()} items saved</p>
         </div>
         
         <div className="flex items-center space-x-4">
@@ -117,7 +110,7 @@ export default function WishlistPage() {
             <Share2 className="h-4 w-4 mr-2" />
             Share Wishlist
           </Button>
-          <Button onClick={moveAllToCart} disabled={!wishlistItems.some(item => item.product.inStock)}>
+          <Button onClick={handleMoveAllToCart} disabled={!wishlistItems.some(item => item.product.stock_quantity > 0)} className="min-w-[140px]">
             <ShoppingCart className="h-4 w-4 mr-2" />
             Add All to Cart
           </Button>
@@ -131,10 +124,10 @@ export default function WishlistPage() {
           All Items
         </Button>
         <Button variant="ghost" size="sm">
-          In Stock ({wishlistItems.filter(item => item.product.inStock).length})
+          In Stock ({wishlistItems.filter(item => item.product.stock_quantity > 0).length})
         </Button>
         <Button variant="ghost" size="sm">
-          On Sale ({wishlistItems.filter(item => item.product.isOnSale).length})
+          On Sale ({wishlistItems.filter(item => item.product.sale_price && item.product.sale_price < item.product.price).length})
         </Button>
       </div>
 
@@ -146,8 +139,20 @@ export default function WishlistPage() {
               <div className="flex space-x-4">
                 {/* Product Image */}
                 <div className="flex-shrink-0">
-                  <div className="w-24 h-32 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <BookOpen className="h-10 w-10 text-gray-400" />
+                  <div className="w-24 h-32 bg-gray-100 rounded-lg overflow-hidden">
+                    {item.product.image_url ? (
+                      <OptimizedImage
+                        src={item.product.image_url}
+                        alt={item.product.name}
+                        width={96}
+                        height={128}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BookOpen className="h-10 w-10 text-gray-400" />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -156,50 +161,52 @@ export default function WishlistPage() {
                   <div className="flex items-start justify-between">
                     <div className="space-y-2">
                       <Badge variant="outline" className="text-xs">
-                        {item.product.category}
+                        {item.product.category?.name || 'Uncategorized'}
                       </Badge>
                       <Link href={`/products/${item.product.id}`}>
                         <h3 className="font-semibold text-foreground hover:text-primary transition-colors">
-                          {item.product.title}
+                          {item.product.name}
                         </h3>
                       </Link>
                       <p className="text-sm text-muted-foreground">
-                        by {item.product.author}
+                        {item.product.short_description}
                       </p>
                       
                       <div className="flex items-center space-x-1">
                         <div className="flex">
                           {[...Array(5)].map((_, i) => (
-                            <Star key={i} className={`h-4 w-4 ${i < Math.floor(item.product.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
+                            <Star key={i} className={`h-4 w-4 ${i < Math.floor(item.product.average_rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
                           ))}
                         </div>
-                        <span className="text-sm text-muted-foreground">({item.product.reviews})</span>
+                        <span className="text-sm text-muted-foreground">({item.product.reviews_count || 0})</span>
                       </div>
 
                       <div className="flex items-center space-x-2">
-                        <span className="text-lg font-bold text-foreground">₹{item.product.price}</span>
-                        <span className="text-sm text-muted-foreground line-through">₹{item.product.originalPrice}</span>
-                        {item.product.isOnSale && (
-                          <Badge variant="success" size="sm">
-                            {Math.round((1 - item.product.price / item.product.originalPrice) * 100)}% off
-                          </Badge>
+                        <span className="text-lg font-bold text-foreground">₹{item.product.sale_price || item.product.price}</span>
+                        {item.product.sale_price && (
+                          <>
+                            <span className="text-sm text-muted-foreground line-through">₹{item.product.price}</span>
+                            <Badge variant="secondary" size="sm">
+                              {Math.round((1 - item.product.sale_price / item.product.price) * 100)}% off
+                            </Badge>
+                          </>
                         )}
                       </div>
 
                       <div className="flex items-center space-x-4">
-                        {item.product.inStock ? (
-                          <div className="flex items-center space-x-2 text-success text-sm">
-                            <div className="w-2 h-2 bg-success rounded-full"></div>
-                            <span>In Stock</span>
+                        {item.product.stock_quantity > 0 ? (
+                          <div className="flex items-center space-x-2 text-green-600 text-sm">
+                            <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                            <span>In Stock ({item.product.stock_quantity})</span>
                           </div>
                         ) : (
-                          <div className="flex items-center space-x-2 text-destructive text-sm">
-                            <div className="w-2 h-2 bg-destructive rounded-full"></div>
+                          <div className="flex items-center space-x-2 text-red-600 text-sm">
+                            <div className="w-2 h-2 bg-red-600 rounded-full"></div>
                             <span>Out of Stock</span>
                           </div>
                         )}
                         <span className="text-sm text-muted-foreground">
-                          Added {new Date(item.dateAdded).toLocaleDateString()}
+                          Added {new Date(item.created_at).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
@@ -209,7 +216,7 @@ export default function WishlistPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => removeFromWishlist(item.id)}
+                        onClick={() => handleRemoveFromWishlist(item.id)}
                         className="text-muted-foreground hover:text-destructive self-end"
                       >
                         <X className="h-4 w-4" />
@@ -219,10 +226,10 @@ export default function WishlistPage() {
 
                   {/* Action Buttons */}
                   <div className="flex items-center space-x-3 mt-4">
-                    {item.product.inStock ? (
-                      <Button>
+                    {item.product.stock_quantity > 0 ? (
+                      <Button onClick={() => handleMoveToCart(item)}>
                         <ShoppingCart className="h-4 w-4 mr-2" />
-                        Add to Cart
+                        Move to Cart
                       </Button>
                     ) : (
                       <Button variant="outline" disabled>

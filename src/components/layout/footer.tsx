@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
+import { toast } from 'sonner';
 import { 
   Facebook, 
   Twitter, 
@@ -12,10 +14,46 @@ import {
   CreditCard,
   Truck,
   Shield,
-  RotateCcw
+  RotateCcw,
+  Loader2
 } from 'lucide-react';
+import { newsletterApi } from '@/lib/api';
 
 export function Footer() {
+  const [email, setEmail] = useState('');
+  const [isSubscribing, setIsSubscribing] = useState(false);
+
+  const handleNewsletterSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email) {
+      toast.error('Please enter your email address');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    setIsSubscribing(true);
+    
+    try {
+      const response = await newsletterApi.subscribe({ 
+        email,
+        preferences: ['books', 'offers', 'news'] 
+      });
+      
+      toast.success(response.message || 'Successfully subscribed to newsletter!');
+      setEmail('');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to subscribe. Please try again.';
+      toast.error(errorMessage);
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
+
   const footerLinks = {
     company: [
       { name: 'About Us', href: '/about' },
@@ -202,16 +240,27 @@ export function Footer() {
                 Subscribe to our newsletter for the latest books and exclusive offers.
               </p>
             </div>
-            <div className="flex w-full md:w-auto">
+            <form onSubmit={handleNewsletterSubscribe} className="flex w-full md:w-auto">
               <input
                 type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
-                className="flex-1 md:w-64 px-3 py-2 border border-border rounded-l-lg bg-input focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                disabled={isSubscribing}
+                className="flex-1 md:w-64 px-3 py-2 border border-border rounded-l-lg bg-input focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
               />
-              <button className="bg-primary text-primary-foreground px-4 py-2 rounded-r-lg hover:bg-primary/90 transition-colors">
-                Subscribe
+              <button 
+                type="submit"
+                disabled={isSubscribing}
+                className="bg-primary text-primary-foreground px-4 py-2 rounded-r-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[100px]"
+              >
+                {isSubscribing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Subscribe'
+                )}
               </button>
-            </div>
+            </form>
           </div>
         </div>
       </div>

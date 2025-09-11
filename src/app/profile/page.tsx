@@ -29,6 +29,7 @@ import {
   X,
   Loader2
 } from 'lucide-react';
+import AddressManager from '@/components/AddressManager';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -381,42 +382,7 @@ export default function ProfilePage() {
           )}
 
           {activeTab === 'addresses' && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Saved Addresses</CardTitle>
-                  <Button size="sm">Add New Address</Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {userData.addresses.map((address) => (
-                    <div key={address.id} className="border border-border rounded-lg p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <div className="flex items-center space-x-2">
-                            <h4 className="font-medium">{address.type}</h4>
-                            {address.isDefault && (
-                              <Badge variant="outline" size="sm">Default</Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {address.address}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {address.city}, {address.state} - {address.pincode}
-                          </p>
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button variant="ghost" size="sm">Edit</Button>
-                          <Button variant="ghost" size="sm" className="text-destructive">Delete</Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <AddressManager title="Saved Addresses" showTitle={false} />
           )}
 
           {activeTab === 'settings' && (

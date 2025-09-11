@@ -5,7 +5,8 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useConfig } from '@/contexts/ConfigContext';
-import { productApi, categoryApi } from '@/lib/api';
+import { productApi, categoryApi, newsletterApi } from '@/lib/api';
+import { toast } from 'sonner';
 import { useCartStore } from '@/stores/cart';
 import { Product, Category } from '@/types';
 import CategoryProductSection from '@/components/CategoryProductSection';
@@ -37,6 +38,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [addingToCart, setAddingToCart] = useState<number | null>(null);
   const [featuredBooksLoading, setFeaturedBooksLoading] = useState(false);
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [isSubscribingNewsletter, setIsSubscribingNewsletter] = useState(false);
 
   // Load essential content first (hero, categories)
   useEffect(() => {
@@ -97,6 +100,37 @@ export default function Home() {
       // Show error message
     } finally {
       setAddingToCart(null);
+    }
+  };
+
+  const handleNewsletterSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newsletterEmail) {
+      toast.error('Please enter your email address');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newsletterEmail)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    setIsSubscribingNewsletter(true);
+    
+    try {
+      const response = await newsletterApi.subscribe({ 
+        email: newsletterEmail,
+        preferences: ['books', 'offers', 'news'] 
+      });
+      
+      toast.success(response.message || 'Successfully subscribed to newsletter!');
+      setNewsletterEmail('');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to subscribe. Please try again.';
+      toast.error(errorMessage);
+    } finally {
+      setIsSubscribingNewsletter(false);
     }
   };
 
@@ -435,16 +469,23 @@ export default function Home() {
             <p className="text-muted-foreground mb-8">
               {homepageConfig.newsletter.subtitle}
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+            <form onSubmit={handleNewsletterSubscribe} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
               <input
                 type="email"
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
                 placeholder={homepageConfig.newsletter.placeholder}
-                className="flex-1 px-4 py-3 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+                disabled={isSubscribingNewsletter}
+                className="flex-1 px-4 py-3 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
               />
-              <Button>
-                {homepageConfig.newsletter.button_text}
+              <Button type="submit" disabled={isSubscribingNewsletter} className="flex items-center justify-center min-w-[120px]">
+                {isSubscribingNewsletter ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  homepageConfig.newsletter.button_text
+                )}
               </Button>
-            </div>
+            </form>
             <p className="text-sm text-muted-foreground mt-4">
               {homepageConfig.newsletter.privacy_text}
             </p>

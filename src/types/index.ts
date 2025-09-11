@@ -209,6 +209,63 @@ export interface OrderItem {
   total: number;
 }
 
+// Wishlist Types
+export interface WishlistItem {
+  id: number;
+  user_id: number;
+  product_id: number;
+  product: Product;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WishlistStats {
+  total_items: number;
+  total_value: number;
+  in_stock_items: number;
+  out_of_stock_items: number;
+  on_sale_items: number;
+}
+
+// Review Types
+export interface Review {
+  id: number;
+  user_id: number;
+  product_id: number;
+  rating: number;
+  title?: string;
+  comment: string;
+  is_verified_purchase: boolean;
+  helpful_votes: number;
+  status: 'pending' | 'approved' | 'rejected';
+  user: {
+    id: number;
+    name: string;
+    avatar?: string;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReviewStats {
+  total_reviews: number;
+  average_rating: number;
+  rating_breakdown: {
+    5: number;
+    4: number;
+    3: number;
+    2: number;
+    1: number;
+  };
+}
+
+export interface ReviewForm {
+  product_id: number;
+  rating: number;
+  title?: string;
+  comment: string;
+}
+
 // Address Types
 export interface Address {
   id?: number;

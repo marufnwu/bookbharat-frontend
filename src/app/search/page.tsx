@@ -47,7 +47,12 @@ export default function SearchPage() {
     category: searchParams.get('category') || '',
     priceMin: searchParams.get('price_min') || '',
     priceMax: searchParams.get('price_max') || '',
-    sortBy: searchParams.get('sort') || 'relevance'
+    sortBy: searchParams.get('sort') || 'relevance',
+    rating: searchParams.get('rating') || '',
+    availability: searchParams.get('availability') || '',
+    author: searchParams.get('author') || '',
+    language: searchParams.get('language') || '',
+    discount: searchParams.get('discount') || ''
   });
 
   const currencySymbol = siteConfig?.payment?.currency_symbol || '₹';
@@ -92,6 +97,11 @@ export default function SearchPage() {
       if (filters.category) params.category_id = filters.category;
       if (filters.priceMin) params.price_min = filters.priceMin;
       if (filters.priceMax) params.price_max = filters.priceMax;
+      if (filters.rating) params.rating = filters.rating;
+      if (filters.availability) params.availability = filters.availability;
+      if (filters.author) params.author = filters.author;
+      if (filters.language) params.language = filters.language;
+      if (filters.discount) params.discount = filters.discount;
       if (filters.sortBy && filters.sortBy !== 'relevance') params.sort = filters.sortBy;
 
       const response = await productApi.searchProducts(searchQuery, params);
@@ -388,6 +398,91 @@ export default function SearchPage() {
                 </div>
               </div>
 
+              {/* Rating Filter */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Rating
+                </label>
+                <select
+                  className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background"
+                  value={filters.rating}
+                  onChange={(e) => handleFilterChange({ rating: e.target.value })}
+                >
+                  <option value="">Any Rating</option>
+                  <option value="4">4★ and above</option>
+                  <option value="3">3★ and above</option>
+                  <option value="2">2★ and above</option>
+                  <option value="1">1★ and above</option>
+                </select>
+              </div>
+
+              {/* Availability Filter */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Availability
+                </label>
+                <select
+                  className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background"
+                  value={filters.availability}
+                  onChange={(e) => handleFilterChange({ availability: e.target.value })}
+                >
+                  <option value="">All Items</option>
+                  <option value="in_stock">In Stock</option>
+                  <option value="out_of_stock">Out of Stock</option>
+                </select>
+              </div>
+
+              {/* Author Filter */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Author
+                </label>
+                <Input
+                  placeholder="Enter author name"
+                  value={filters.author}
+                  onChange={(e) => handleFilterChange({ author: e.target.value })}
+                />
+              </div>
+
+              {/* Language Filter */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Language
+                </label>
+                <select
+                  className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background"
+                  value={filters.language}
+                  onChange={(e) => handleFilterChange({ language: e.target.value })}
+                >
+                  <option value="">All Languages</option>
+                  <option value="english">English</option>
+                  <option value="hindi">Hindi</option>
+                  <option value="bengali">Bengali</option>
+                  <option value="tamil">Tamil</option>
+                  <option value="telugu">Telugu</option>
+                  <option value="marathi">Marathi</option>
+                  <option value="gujarati">Gujarati</option>
+                </select>
+              </div>
+
+              {/* Discount Filter */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Discount
+                </label>
+                <select
+                  className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background"
+                  value={filters.discount}
+                  onChange={(e) => handleFilterChange({ discount: e.target.value })}
+                >
+                  <option value="">Any Discount</option>
+                  <option value="10">10% or more</option>
+                  <option value="20">20% or more</option>
+                  <option value="30">30% or more</option>
+                  <option value="50">50% or more</option>
+                </select>
+              </div>
+
               {/* Sort By */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
@@ -413,7 +508,12 @@ export default function SearchPage() {
                     category: '',
                     priceMin: '',
                     priceMax: '',
-                    sortBy: 'relevance'
+                    sortBy: 'relevance',
+                    rating: '',
+                    availability: '',
+                    author: '',
+                    language: '',
+                    discount: ''
                   });
                   updateURL({ q: searchQuery });
                 }}

@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { contactApi } from '@/lib/api';
+import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -56,13 +58,29 @@ export default function ContactPage() {
   const onSubmit = async (data: ContactForm) => {
     try {
       setIsSubmitting(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      console.log('Contact form submitted:', data);
-      reset();
-      // Show success message
-    } catch (error) {
+      
+      const response = await contactApi.submitContactForm(data);
+      
+      if (response.success) {
+        reset();
+        toast({
+          title: "Message sent successfully!",
+          description: response.message || "We have received your message and will respond within 24 hours.",
+        });
+      } else {
+        toast({
+          title: "Failed to send message",
+          description: response.message || "Please try again or contact us directly.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
       console.error('Failed to submit contact form:', error);
+      toast({
+        title: "Error",
+        description: "Unable to send message. Please try again later.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }

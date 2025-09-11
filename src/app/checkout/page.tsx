@@ -718,8 +718,16 @@ export default function CheckoutPage() {
       if (response?.success || response?.data?.id) {
         await cartApi.clearCart();
         const orderId = response.data?.id || response.order?.id;
+        const paymentMethod = data.paymentMethod;
+        
         if (orderId) {
-          router.push(`/orders/success?order_id=${orderId}`);
+          // For COD orders, go directly to success page
+          if (paymentMethod === 'cod' || paymentMethod === 'cod_with_advance') {
+            router.push(`/orders/success?order_id=${orderId}`);
+          } else {
+            // For online payments, redirect to payment status checker
+            router.push(`/payment/status?order_id=${orderId}`);
+          }
         } else {
           router.push('/orders/success');
         }

@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth';
 import { useCartStore } from '@/stores/cart';
+import { productApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { 
   Search, 
@@ -14,13 +16,22 @@ import {
   Heart,
   Phone,
   Mail,
-  Trash2
+  Trash2,
+  BookOpen,
+  TrendingUp,
+  Clock
 } from 'lucide-react';
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [mounted, setMounted] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   const { isAuthenticated, user, logout } = useAuthStore();
   const cartStore = useCartStore();
   const { getTotalItems, getCart, cart, removeItem, getSubtotal } = cartStore;
@@ -45,6 +56,72 @@ export function Header() {
   useEffect(() => {
     console.log('📱 Header totalItems changed:', totalItems);
   }, [totalItems]);
+
+  // Search functionality
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (searchQuery.trim().length >= 2) {
+        setIsSearchLoading(true);
+        try {
+          const response = await productApi.getProductSuggestions(searchQuery);
+          if (response.success) {
+            setSearchSuggestions(response.data.slice(0, 5)); // Limit to 5 suggestions
+            setShowSuggestions(true);
+          }
+        } catch (error) {
+          console.error('Failed to fetch suggestions:', error);
+        } finally {
+          setIsSearchLoading(false);
+        }
+      } else {
+        setSearchSuggestions([]);
+        setShowSuggestions(false);
+      }
+    };
+
+    const timeoutId = setTimeout(fetchSuggestions, 300); // Debounce
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  // Handle clicks outside search to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSearch = (query: string) => {
+    if (query.trim()) {
+      setShowSuggestions(false);
+      router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+    }
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSearch(searchQuery);
+  };
+
+  const handleSuggestionClick = (suggestion: any) => {
+    if (suggestion.type === 'product') {
+      router.push(`/products/${suggestion.slug || suggestion.id}`);
+    } else {
+      handleSearch(suggestion.title || suggestion.name);
+    }
+    setShowSuggestions(false);
+    setSearchQuery('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setShowSuggestions(false);
+    }
+  };
 
   const navigation = [
     { name: 'Home', href: '/' },
@@ -95,20 +172,82 @@ export function Header() {
             </Link>
           </div>
 
-          {/* Search bar */}
-          <div className="flex-1 max-w-2xl mx-8">
-            <div className="relative">
+          {/* Enhanced Search bar */}
+          <div className="flex-1 max-w-2xl mx-8" ref={searchContainerRef}>
+            <form onSubmit={handleSearchSubmit} className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-muted-foreground" />
               </div>
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search for books, authors, categories..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-border rounded-lg bg-input focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                onKeyDown={handleKeyDown}
+                onFocus={() => searchSuggestions.length > 0 && setShowSuggestions(true)}
+                className="block w-full pl-10 pr-12 py-2 border border-border rounded-lg bg-input focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                autoComplete="off"
               />
-            </div>
+              {isSearchLoading && (
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                </div>
+              )}
+
+              {/* Search Suggestions */}
+              {showSuggestions && searchSuggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+                  {searchSuggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      className="w-full px-4 py-3 text-left hover:bg-muted transition-colors border-b border-border last:border-b-0 flex items-center space-x-3"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                    >
+                      <div className="flex-shrink-0">
+                        {suggestion.type === 'product' ? (
+                          <BookOpen className="h-4 w-4 text-primary" />
+                        ) : suggestion.type === 'category' ? (
+                          <TrendingUp className="h-4 w-4 text-accent" />
+                        ) : (
+                          <Search className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {suggestion.title || suggestion.name}
+                        </p>
+                        {suggestion.author && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            by {suggestion.author}
+                          </p>
+                        )}
+                        {suggestion.category && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            in {suggestion.category}
+                          </p>
+                        )}
+                      </div>
+                      {suggestion.price && (
+                        <div className="text-sm font-semibold text-primary">
+                          ₹{suggestion.price}
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                  <div className="px-4 py-2 text-center border-t border-border">
+                    <button
+                      type="button"
+                      className="text-sm text-primary hover:underline"
+                      onClick={() => handleSearch(searchQuery)}
+                    >
+                      See all results for "{searchQuery}"
+                    </button>
+                  </div>
+                </div>
+              )}
+            </form>
           </div>
 
           {/* Right side actions */}

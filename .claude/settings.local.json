@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//d/bookbharat-v2/bookbharat-backend/**)",
+      "Bash(find:*)",
+      "Read(//d/bookbharat-v2/**)",
+      "Bash(tree:*)",
+      "Bash(sed:*)",
+      "Bash(git checkout:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx next build:*)",
+      "Bash(npm run dev:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
