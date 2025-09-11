@@ -1,0 +1,264 @@
+/* Mobile Button Size Overrides */
+
+/* Override default button sizes for mobile devices */
+@media (max-width: 767px) {
+  /* Default button adjustments */
+  button,
+  [role="button"],
+  .btn {
+    font-size: 0.875rem; /* 14px */
+    padding: 0.5rem 0.75rem; /* 8px 12px */
+  }
+
+  /* Small buttons for mobile */
+  .btn-sm,
+  button[size="sm"] {
+    height: 32px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
+
+  /* Extra small buttons */
+  .btn-xs {
+    height: 28px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  /* Medium buttons */
+  .btn-md {
+    height: 36px;
+    padding: 0 16px;
+    font-size: 14px;
+  }
+
+  /* Large buttons - still reasonable on mobile */
+  .btn-lg {
+    height: 40px;
+    padding: 0 20px;
+    font-size: 14px;
+  }
+
+  /* Icon buttons */
+  .btn-icon {
+    padding: 0;
+    width: 32px;
+    height: 32px;
+  }
+
+  .btn-icon-sm {
+    width: 28px;
+    height: 28px;
+  }
+
+  .btn-icon-lg {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Shadcn UI Button component overrides */
+  .h-10 {
+    height: 36px; /* Reduce from 40px */
+  }
+
+  .h-9 {
+    height: 32px; /* Reduce from 36px */
+  }
+
+  .h-8 {
+    height: 28px; /* Reduce from 32px */
+  }
+
+  .px-8 {
+    padding-left: 1rem; /* Reduce from 32px */
+    padding-right: 1rem;
+  }
+
+  .px-4 {
+    padding-left: 0.75rem; /* Reduce from 16px */
+    padding-right: 0.75rem;
+  }
+
+  .px-3 {
+    padding-left: 0.625rem; /* Reduce from 12px */
+    padding-right: 0.625rem;
+  }
+
+  .py-2 {
+    padding-top: 0.375rem; /* Reduce from 8px */
+    padding-bottom: 0.375rem;
+  }
+
+  /* Text size adjustments */
+  .text-sm {
+    font-size: 0.75rem; /* 12px on mobile */
+  }
+
+  .text-base {
+    font-size: 0.875rem; /* 14px on mobile */
+  }
+
+  .text-lg {
+    font-size: 1rem; /* 16px on mobile */
+  }
+
+  /* Specific component button overrides */
+  
+  /* Product card buttons */
+  .product-card button {
+    height: 28px;
+    font-size: 11px;
+    padding: 0 8px;
+  }
+
+  /* Cart buttons */
+  .cart-actions button {
+    height: 32px;
+    font-size: 12px;
+  }
+
+  /* Form submit buttons */
+  form button[type="submit"] {
+    height: 36px;
+    font-size: 14px;
+  }
+
+  /* Navigation buttons */
+  nav button {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  /* Modal/Dialog buttons */
+  [role="dialog"] button {
+    height: 32px;
+    font-size: 12px;
+    padding: 0 12px;
+  }
+
+  /* Floating action buttons */
+  .fab {
+    width: 48px;
+    height: 48px;
+  }
+
+  .fab-mini {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Button groups */
+  .btn-group button {
+    height: 32px;
+    font-size: 12px;
+  }
+
+  /* Pagination buttons */
+  .pagination button {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  /* Toggle buttons */
+  .toggle-btn {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  /* Chip/Tag buttons */
+  .chip,
+  .tag {
+    height: 24px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  /* Dropdown trigger buttons */
+  [data-state="open"] > button,
+  [aria-haspopup="true"] {
+    height: 32px;
+    font-size: 12px;
+  }
+
+  /* Social login buttons */
+  .social-login-btn {
+    height: 36px;
+    font-size: 13px;
+  }
+
+  /* Quick action buttons */
+  .quick-action {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* Mini action buttons */
+  .mini-action {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Badge-like buttons */
+  .badge-btn {
+    height: 20px;
+    padding: 0 6px;
+    font-size: 10px;
+  }
+
+  /* Ensure minimum touch target */
+  button,
+  [role="button"] {
+    min-height: 28px; /* Reduced from 44px for mobile */
+    min-width: 28px;
+  }
+
+  /* For critical actions, maintain larger touch targets */
+  .touch-target-lg {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Compact mode for lists */
+  .compact-mode button {
+    height: 24px;
+    font-size: 11px;
+    padding: 0 6px;
+  }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 374px) {
+  button,
+  [role="button"] {
+    font-size: 0.75rem; /* 12px */
+  }
+
+  .btn-sm {
+    height: 28px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  .btn-lg {
+    height: 36px;
+    padding: 0 16px;
+    font-size: 13px;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .btn-sm {
+    height: 36px;
+    padding: 0 16px;
+    font-size: 13px;
+  }
+
+  .btn-lg {
+    height: 44px;
+    padding: 0 24px;
+    font-size: 15px;
+  }
+}

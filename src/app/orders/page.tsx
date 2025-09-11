@@ -24,6 +24,7 @@ import {
   XCircle,
   Loader2
 } from 'lucide-react';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState('');

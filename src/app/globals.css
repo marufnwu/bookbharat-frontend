@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @import '../styles/hero-animations.css';
+@import '../styles/mobile-optimizations.css';
 
 /* Performance optimizations */
 * {

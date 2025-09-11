@@ -47,7 +47,7 @@ class ApiClient {
       return config;
     });
 
-
+    // Response interceptor for error handling
     // Response interceptor for error handling
     this.client.interceptors.response.use(
       (response) => response,
@@ -63,14 +63,322 @@ class ApiClient {
             if (!currentPath.startsWith('/auth/')) {
               // Store current path for redirect after login
               const returnUrl = encodeURIComponent(currentPath + window.location.search);
-              window.location.href = `/auth/login?redirect=${returnUrl}`;
+              window.location.href = ;
             }
           }
         }
         return Promise.reject(error);
       }
     );
-  }
+    // Response interceptor for error handling
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          // Handle unauthorized access - clear auth state
+          if (typeof window !== 'undefined') {
+            // Use auth store to properly clear state
+            authStore.handleUnauthorized();
+            
+            // Only redirect to login if not already there
+            const currentPath = window.location.pathname;
+            if (!currentPath.startsWith('/auth/')) {
+              // Store current path for redirect after login
+              const returnUrl = encodeURIComponent(currentPath + window.location.search);
+              window.location.href = ;
+            }
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+    // Response interceptor for error handling
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          // Handle unauthorized access - clear auth state
+          if (typeof window !== 'undefined') {
+            // Use auth store to properly clear state
+            authStore.handleUnauthorized();
+            
+            // Only redirect to login if not already there
+            const currentPath = window.location.pathname;
+            if (!currentPath.startsWith('/auth/')) {
+              // Store current path for redirect after login
+              const returnUrl = encodeURIComponent(currentPath + window.location.search);
+              window.location.href = ;
+            }
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+    // Response interceptor for error handling
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          // Handle unauthorized access - clear auth state
+          if (typeof window !== 'undefined') {
+            // Use auth store to properly clear state
+            authStore.handleUnauthorized();
+            
+            // Only redirect to login if not already there
+            const currentPath = window.location.pathname;
+            if (!currentPath.startsWith('/auth/')) {
+              // Store current path for redirect after login
+              const returnUrl = encodeURIComponent(currentPath + window.location.search);
+              window.location.href = ;
+            }
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+    // Response interceptor for error handling
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          // Handle unauthorized access - clear auth state
+          if (typeof window !== 'undefined') {
+            // Use auth store to properly clear state
+            authStore.handleUnauthorized();
+            
+            // Only redirect to login if not already there
+            const currentPath = window.location.pathname;
+            if (!currentPath.startsWith('/auth/')) {
+              // Store current path for redirect after login
+              const returnUrl = encodeURIComponent(currentPath + window.location.search);
+              window.location.href = ;
+            }
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+    // Response interceptor for error handling
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          // Handle unauthorized access - clear auth state
+          if (typeof window !== 'undefined') {
+            // Use auth store to properly clear state
+            authStore.handleUnauthorized();
+            
+            // Only redirect to login if not already there
+            const currentPath = window.location.pathname;
+            if (!currentPath.startsWith('/auth/')) {
+              // Store current path for redirect after login
+              const returnUrl = encodeURIComponent(currentPath + window.location.search);
+              window.location.href = ;
+            }
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+    // Response interceptor for error handling
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          // Handle unauthorized access - clear auth state
+          if (typeof window !== 'undefined') {
+            // Use auth store to properly clear state
+            authStore.handleUnauthorized();
+            
+            // Only redirect to login if not already there
+            const currentPath = window.location.pathname;
+            if (!currentPath.startsWith('/auth/')) {
+              // Store current path for redirect after login
+              const returnUrl = encodeURIComponent(currentPath + window.location.search);
+              window.location.href = ;
+            }
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+    // Response interceptor for error handling
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          // Handle unauthorized access - clear auth state
+          if (typeof window !== 'undefined') {
+            // Use auth store to properly clear state
+            authStore.handleUnauthorized();
+            
+            // Only redirect to login if not already there
+            const currentPath = window.location.pathname;
+            if (!currentPath.startsWith('/auth/')) {
+              // Store current path for redirect after login
+              const returnUrl = encodeURIComponent(currentPath + window.location.search);
+              window.location.href = ;
+            }
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+    // Response interceptor for error handling
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          // Handle unauthorized access - clear auth state
+          if (typeof window !== 'undefined') {
+            // Use auth store to properly clear state
+            authStore.handleUnauthorized();
+            
+            // Only redirect to login if not already there
+            const currentPath = window.location.pathname;
+            if (!currentPath.startsWith('/auth/')) {
+              // Store current path for redirect after login
+              const returnUrl = encodeURIComponent(currentPath + window.location.search);
+              window.location.href = ;
+            }
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+    // Response interceptor for error handling
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          // Handle unauthorized access - clear auth state
+          if (typeof window !== 'undefined') {
+            // Use auth store to properly clear state
+            authStore.handleUnauthorized();
+            
+            // Only redirect to login if not already there
+            const currentPath = window.location.pathname;
+            if (!currentPath.startsWith('/auth/')) {
+              // Store current path for redirect after login
+              const returnUrl = encodeURIComponent(currentPath + window.location.search);
+              window.location.href = ;
+            }
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+    // Response interceptor for error handling
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          // Handle unauthorized access - clear auth state
+          if (typeof window !== 'undefined') {
+            // Use auth store to properly clear state
+            authStore.handleUnauthorized();
+            
+            // Only redirect to login if not already there
+            const currentPath = window.location.pathname;
+            if (!currentPath.startsWith('/auth/')) {
+              // Store current path for redirect after login
+              const returnUrl = encodeURIComponent(currentPath + window.location.search);
+              window.location.href = ;
+            }
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+    // Response interceptor for error handling
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          // Handle unauthorized access - clear auth state
+          if (typeof window !== 'undefined') {
+            // Use auth store to properly clear state
+            authStore.handleUnauthorized();
+            
+            // Only redirect to login if not already there
+            const currentPath = window.location.pathname;
+            if (!currentPath.startsWith('/auth/')) {
+              // Store current path for redirect after login
+              const returnUrl = encodeURIComponent(currentPath + window.location.search);
+              window.location.href = ;
+            }
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+    // Response interceptor for error handling
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          // Handle unauthorized access - clear auth state
+          if (typeof window !== 'undefined') {
+            // Use auth store to properly clear state
+            authStore.handleUnauthorized();
+            
+            // Only redirect to login if not already there
+            const currentPath = window.location.pathname;
+            if (!currentPath.startsWith('/auth/')) {
+              // Store current path for redirect after login
+              const returnUrl = encodeURIComponent(currentPath + window.location.search);
+              window.location.href = ;
+            }
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+    // Response interceptor for error handling
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          // Handle unauthorized access - clear auth state
+          if (typeof window !== 'undefined') {
+            // Use auth store to properly clear state
+            authStore.handleUnauthorized();
+            
+            // Only redirect to login if not already there
+            const currentPath = window.location.pathname;
+            if (!currentPath.startsWith('/auth/')) {
+              // Store current path for redirect after login
+              const returnUrl = encodeURIComponent(currentPath + window.location.search);
+              window.location.href = ;
+            }
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+    // Response interceptor for error handling
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          // Handle unauthorized access - clear auth state
+          if (typeof window !== 'undefined') {
+            // Use auth store to properly clear state
+            authStore.handleUnauthorized();
+            
+            // Only redirect to login if not already there
+            const currentPath = window.location.pathname;
+            if (!currentPath.startsWith('/auth/')) {
+              // Store current path for redirect after login
+              const returnUrl = encodeURIComponent(currentPath + window.location.search);
+              window.location.href = ;
+            }
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+
   // Session ID management for guest cart functionality
   private getOrCreateSessionId(): string {
     const sessionKey = 'guest_session_id';
@@ -738,7 +1046,6 @@ export const authApi = {
   getUser: apiClient.getUser.bind(apiClient),
   updateProfile: apiClient.updateProfile.bind(apiClient),
   changePassword: apiClient.changePassword.bind(apiClient),
-  getProfile: apiClient.getUser.bind(apiClient),
   revokeAllTokens: apiClient.revokeAllTokens.bind(apiClient),
 };
 

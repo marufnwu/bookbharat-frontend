@@ -12,6 +12,7 @@ import { Product, Category } from '@/types';
 import CategoryProductSection from '@/components/CategoryProductSection';
 import HeroSection from '@/components/hero/HeroSection';
 import ProductCard from '@/components/ui/product-card';
+import { CategoriesSection } from '@/components/home/CategoriesSection';
 import { 
   BookOpen, 
   TrendingUp, 
@@ -318,42 +319,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Mobile-Optimized Categories Section */}
+      {/* Categories Section - Improved Design */}
       {categories.length > 0 && (
-        <section className="py-8 md:py-12 bg-muted/20">
-          <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
-            <div className="text-center mb-6 md:mb-8">
-              <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-foreground">Browse Categories</h2>
-              {!isMobile && (
-                <p className="text-muted-foreground mt-2">Find books in your favorite genres</p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6 gap-3 md:gap-4">
-              {categories.slice(0, isMobile ? 6 : categories.length).map((category, index) => {
-                const IconComponent = getCategoryIcon(index);
-                return (
-                  <Link key={category.id} href={`/categories/${category.slug || category.id}`}>
-                    <Card className="group hover:shadow-md transition-all duration-200 hover:scale-105 h-full border-0 shadow-sm">
-                      <CardContent className="p-3 md:p-4 text-center h-full flex flex-col justify-center">
-                        <div className={`inline-flex rounded-full p-2 md:p-3 ${getCategoryColor(index)} mb-2 md:mb-3`}>
-                          <IconComponent className="h-4 w-4 md:h-5 md:w-5" />
-                        </div>
-                        <h3 className="font-medium text-foreground text-xs md:text-sm mb-1 line-clamp-2">{category.name}</h3>
-                        {!isMobile && (
-                          <p className="text-muted-foreground text-xs">
-                            {category.products_count || 0} books
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </section>
+        <CategoriesSection categories={categories} className="bg-muted/20" />
       )}
+
 
       {/* Category Product Sections - Now with proper lazy loading */}
       {categories.length > 0 && homepageConfig?.featured_sections?.find(

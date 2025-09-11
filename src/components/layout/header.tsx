@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/stores/auth';
+import { useHydratedAuth } from '@/stores/auth';
 import { useCartStore } from '@/stores/cart';
 import { productApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,7 @@ export function Header() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const { isAuthenticated, user, logout } = useHydratedAuth();
   const cartStore = useCartStore();
   const { getTotalItems, getCart, cart, removeItem, getSubtotal } = cartStore;
 

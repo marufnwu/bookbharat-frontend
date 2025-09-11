@@ -30,9 +30,8 @@ import {
   ShoppingCart
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 
-export default function ImprovedCartPage() {
+export default function MobileResponsiveCartPage() {
   const { siteConfig } = useConfig();
   const [promoCode, setPromoCode] = useState('');
   const [applyingPromo, setApplyingPromo] = useState(false);
@@ -41,9 +40,6 @@ export default function ImprovedCartPage() {
   const [expandedSummary, setExpandedSummary] = useState(false);
   const [updating, setUpdating] = useState<number | null>(null);
   const [removing, setRemoving] = useState<number | null>(null);
-  const [clearingCart, setClearingCart] = useState(false);
-  const [removingCoupon, setRemovingCoupon] = useState(false);
-  const [initialLoad, setInitialLoad] = useState(true);
   
   const { 
     cart, 
@@ -59,11 +55,7 @@ export default function ImprovedCartPage() {
   } = useCartStore();
 
   useEffect(() => {
-    const loadCart = async () => {
-      await getCart();
-      setInitialLoad(false);
-    };
-    loadCart();
+    getCart();
     getAvailableCoupons();
   }, [getCart, getAvailableCoupons]);
 
@@ -76,10 +68,8 @@ export default function ImprovedCartPage() {
     try {
       setUpdating(itemId);
       await updateQuantity(itemId, newQuantity);
-      toast.success('Quantity updated');
     } catch (error) {
       console.error('Failed to update quantity:', error);
-      toast.error('Failed to update quantity');
     } finally {
       setUpdating(null);
     }
@@ -89,27 +79,10 @@ export default function ImprovedCartPage() {
     try {
       setRemoving(itemId);
       await removeItem(itemId);
-      toast.success('Item removed from cart');
     } catch (error) {
       console.error('Failed to remove item:', error);
-      toast.error('Failed to remove item');
     } finally {
       setRemoving(null);
-    }
-  };
-
-  const handleClearCart = async () => {
-    if (!confirm('Are you sure you want to clear your cart?')) return;
-    
-    try {
-      setClearingCart(true);
-      await clearCart();
-      toast.success('Cart cleared');
-    } catch (error) {
-      console.error('Failed to clear cart:', error);
-      toast.error('Failed to clear cart');
-    } finally {
-      setClearingCart(false);
     }
   };
 
@@ -121,30 +94,15 @@ export default function ImprovedCartPage() {
       await applyCoupon(promoCode.toUpperCase());
       setPromoCode('');
       setShowPromoInput(false);
-      toast.success('Promo code applied successfully!');
     } catch (error: any) {
       console.error('Failed to apply coupon:', error);
-      toast.error(error?.response?.data?.message || 'Invalid promo code');
+      alert(error?.response?.data?.message || 'Failed to apply coupon');
     } finally {
       setApplyingPromo(false);
     }
   };
 
-  const handleRemoveCoupon = async () => {
-    try {
-      setRemovingCoupon(true);
-      await removeCoupon();
-      toast.success('Coupon removed');
-    } catch (error) {
-      console.error('Failed to remove coupon:', error);
-      toast.error('Failed to remove coupon');
-    } finally {
-      setRemovingCoupon(false);
-    }
-  };
-
-  // Only show loading skeleton on initial load
-  if (initialLoad && isLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background p-4">
         <div className="animate-pulse space-y-4">
@@ -201,17 +159,7 @@ export default function ImprovedCartPage() {
   }, 0);
 
   return (
-    <div className="min-h-screen bg-background relative">
-      {/* Loading Overlay - Only shows during API calls */}
-      {isLoading && !initialLoad && (
-        <div className="fixed inset-0 bg-background/50 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-card p-4 rounded-lg shadow-lg flex items-center gap-3">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <span className="text-sm">Updating cart...</span>
-          </div>
-        </div>
-      )}
-
+    <div className="min-h-screen bg-background">
       {/* Mobile Header */}
       <div className="md:hidden sticky top-0 z-30 bg-background border-b">
         <div className="flex items-center justify-between p-4">
@@ -219,15 +167,10 @@ export default function ImprovedCartPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleClearCart}
-            disabled={clearingCart}
+            onClick={() => clearCart()}
             className="text-destructive"
           >
-            {clearingCart ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              'Clear'
-            )}
+            Clear
           </Button>
         </div>
       </div>
@@ -252,31 +195,17 @@ export default function ImprovedCartPage() {
               </h1>
               <Button
                 variant="outline"
-                onClick={handleClearCart}
-                disabled={clearingCart}
+                onClick={() => clearCart()}
                 className="text-destructive hover:text-destructive"
               >
-                {clearingCart ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Clearing...
-                  </>
-                ) : (
-                  'Clear Cart'
-                )}
+                Clear Cart
               </Button>
             </div>
 
             {/* Cart Items */}
             <div className="space-y-3">
               {cart.items.map((item) => (
-                <Card 
-                  key={item.id} 
-                  className={cn(
-                    "overflow-hidden transition-opacity",
-                    removing === item.id && "opacity-50"
-                  )}
-                >
+                <Card key={item.id} className="overflow-hidden">
                   <CardContent className="p-3 md:p-6">
                     <div className="flex gap-3">
                       {/* Product Image */}
@@ -458,15 +387,10 @@ export default function ImprovedCartPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={handleRemoveCoupon}
-                      disabled={removingCoupon}
+                      onClick={() => removeCoupon()}
                       className="h-6 w-6 text-red-500 hover:text-red-700"
                     >
-                      {removingCoupon ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <X className="h-3 w-3" />
-                      )}
+                      <X className="h-3 w-3" />
                     </Button>
                   </div>
                   <p className="text-sm text-green-600 mt-1">
@@ -492,7 +416,6 @@ export default function ImprovedCartPage() {
                     value={promoCode}
                     onChange={(e) => setPromoCode(e.target.value)}
                     className="flex-1 px-3 py-2 border rounded-lg text-sm"
-                    disabled={applyingPromo}
                   />
                   <Button 
                     onClick={applyPromoCode} 
@@ -633,18 +556,13 @@ export default function ImprovedCartPage() {
                       value={promoCode}
                       onChange={(e) => setPromoCode(e.target.value)}
                       className="flex-1 px-3 py-2 border rounded text-sm"
-                      disabled={applyingPromo}
                     />
                     <Button 
                       onClick={applyPromoCode}
                       disabled={applyingPromo || !promoCode.trim()}
                       size="sm"
                     >
-                      {applyingPromo ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        'Apply'
-                      )}
+                      Apply
                     </Button>
                   </div>
                 )}
@@ -664,15 +582,10 @@ export default function ImprovedCartPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={handleRemoveCoupon}
-                  disabled={removingCoupon}
+                  onClick={() => removeCoupon()}
                   className="h-6 w-6"
                 >
-                  {removingCoupon ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <X className="h-3 w-3" />
-                  )}
+                  <X className="h-3 w-3" />
                 </Button>
               </div>
             )}

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { authApi } from '@/lib/api';
-import { useAuthStore } from '@/stores/auth';
+import { useHydratedAuth } from '@/stores/auth';
 import { Eye, EyeOff, BookOpen, Loader2 } from 'lucide-react';
 
 const loginSchema = z.object({
@@ -25,7 +25,7 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirect') || '/';
-  const { login, isLoading } = useAuthStore();
+  const { login, isLoading } = useHydratedAuth();
 
   const {
     register,

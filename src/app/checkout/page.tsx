@@ -15,10 +15,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useConfig } from '@/contexts/ConfigContext';
 import { useCartStore } from '@/stores/cart';
-import { useAuthStore } from '@/stores/auth';
+import { useHydratedAuth } from '@/stores/auth';
 import { cartApi, orderApi, shippingApi, addressApi, paymentApi } from '@/lib/api';
 import { Cart, Order, Address } from '@/types';
 import AddressManager from '@/components/AddressManager';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { 
   BookOpen,
   CreditCard,
@@ -107,7 +108,7 @@ export default function CheckoutPage() {
   const [applyCouponLoading, setApplyCouponLoading] = useState(false);
   const { siteConfig } = useConfig();
   const { cart, getCart, applyCoupon, removeCoupon, isLoading: cartLoading } = useCartStore();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated } = useHydratedAuth();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
@@ -796,6 +797,7 @@ export default function CheckoutPage() {
   }
 
   return (
+    <ProtectedRoute>
     <div className="bg-gradient-to-br from-primary/5 via-background to-accent/5 min-h-screen">
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
@@ -1631,5 +1633,6 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

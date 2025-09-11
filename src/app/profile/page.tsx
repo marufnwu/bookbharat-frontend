@@ -30,6 +30,7 @@ import {
   Loader2
 } from 'lucide-react';
 import AddressManager from '@/components/AddressManager';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 const profileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -152,6 +153,7 @@ export default function ProfilePage() {
   ];
 
   return (
+    <ProtectedRoute>
     <div className="container mx-auto px-4 py-8">
       {/* Breadcrumb */}
       <nav className="text-sm text-muted-foreground mb-6">
@@ -440,8 +442,10 @@ export default function ProfilePage() {
               </Card>
             </div>
           )}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      );
+    </ProtectedRoute>
   );
 }

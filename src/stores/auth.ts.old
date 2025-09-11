@@ -21,8 +21,6 @@ interface AuthState {
   setToken: (token: string) => void;
   setHasHydrated: (state: boolean) => void;
   clearAuth: () => void;
-  checkAuth: () => Promise<void>;
-  handleUnauthorized: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -92,7 +90,18 @@ export const useAuthStore = create<AuthState>()(
         if (typeof window !== 'undefined') {
           localStorage.removeItem('auth_token');
           localStorage.removeItem('auth-store');
-          sessionStorage.clear();
+          // Force clear the zustand persist storage
+          try {
+            const storage = window.localStorage;
+            const keys = Object.keys(storage);
+            keys.forEach(key => {
+              if (key.startsWith('auth')) {
+                storage.removeItem(key);
+              }
+            });
+          } catch (e) {
+            console.error('Error clearing auth storage:', e);
+          }
         }
 
         // Call logout API (non-blocking)
@@ -136,44 +145,6 @@ export const useAuthStore = create<AuthState>()(
           localStorage.removeItem('auth-store');
         }
       },
-
-      // Verify auth token with backend
-      checkAuth: async () => {
-        const state = get();
-        
-        // Only check if we think we're authenticated
-        if (state.isAuthenticated && state.token) {
-          try {
-            // Make a request to verify the token is still valid
-            const response = await authApi.getProfile();
-            
-            // If successful, update user data
-            if (response.success && response.data) {
-              set({ user: response.data });
-            }
-          } catch (error: any) {
-            // If we get a 401 or any auth error, clear auth state
-            if (error?.response?.status === 401 || error?.response?.status === 403) {
-              get().clearAuth();
-            }
-          }
-        }
-      },
-
-      // Handle 401 responses from API
-      handleUnauthorized: () => {
-        const state = get();
-        if (state.isAuthenticated) {
-          // Clear auth state immediately
-          get().clearAuth();
-          
-          // Optionally show a notification
-          if (typeof window !== 'undefined') {
-            // You could trigger a toast notification here
-            console.log('Session expired. Please login again.');
-          }
-        }
-      },
     }),
     {
       name: 'auth-store',
@@ -207,11 +178,6 @@ export const useAuthStore = create<AuthState>()(
             }
             
             state.setHasHydrated(true);
-            
-            // Check auth validity with backend after hydration
-            if (state.isAuthenticated && state.token) {
-              state.checkAuth();
-            }
           }
         };
       },
@@ -222,18 +188,5 @@ export const useAuthStore = create<AuthState>()(
 // Hook to ensure hydration is complete before using auth state
 export const useHydratedAuth = () => {
   const state = useAuthStore();
-  // Always return all methods from the actual store
-  return state.hasHydrated 
-    ? state 
-    : { 
-        ...state, 
-        isAuthenticated: false, 
-        user: null,
-        // Include all methods even when not hydrated
-        checkAuth: state.checkAuth,
-        handleUnauthorized: state.handleUnauthorized
-      };
+  return state.hasHydrated ? state : { ...state, isAuthenticated: false, user: null };
 };
-
-// Export a singleton instance for use in non-React contexts (like axios interceptors)
-export const authStore = useAuthStore.getState();

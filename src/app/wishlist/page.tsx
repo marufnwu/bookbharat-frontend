@@ -16,6 +16,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useWishlistStore } from '@/stores/wishlist';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useCartStore } from '@/stores/cart';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 
@@ -90,6 +91,7 @@ export default function WishlistPage() {
   }
 
   return (
+    <ProtectedRoute>
     <div className="container mx-auto px-4 py-8">
       {/* Breadcrumb */}
       <nav className="text-sm text-muted-foreground mb-6">
