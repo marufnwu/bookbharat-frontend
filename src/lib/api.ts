@@ -644,6 +644,27 @@ class ApiClient {
     return this.post('/addresses/validate', data);
   }
 
+  // Hero Configuration API methods
+  async getHeroConfigs() {
+    return this.get('/hero');
+  }
+
+  async getActiveHeroConfig() {
+    return this.get('/hero/active');
+  }
+
+  async getHeroConfig(variant: string) {
+    return this.get(`/hero/${variant}`);
+  }
+
+  async updateHeroConfig(variant: string, data: any) {
+    return this.put(`/hero/${variant}`, data);
+  }
+
+  async setActiveHeroVariant(variant: string) {
+    return this.post('/hero/set-active', { variant });
+  }
+
   // Payment API methods
   async getPaymentMethods(amount?: number) {
     return this.get('/payment/methods', { params: amount ? { amount } : undefined });
@@ -789,6 +810,14 @@ export const shippingApi = {
   calculateCartShipping: apiClient.calculateCartShipping.bind(apiClient),
   getDeliveryOptions: apiClient.getDeliveryOptions.bind(apiClient),
   getInsurancePlans: apiClient.getInsurancePlans.bind(apiClient),
+};
+
+export const heroApi = {
+  getHeroConfigs: apiClient.getHeroConfigs.bind(apiClient),
+  getActiveHeroConfig: apiClient.getActiveHeroConfig.bind(apiClient),
+  getHeroConfig: apiClient.getHeroConfig.bind(apiClient),
+  updateHeroConfig: apiClient.updateHeroConfig.bind(apiClient),
+  setActiveHeroVariant: apiClient.setActiveHeroVariant.bind(apiClient),
 };
 
 export const adminApi = {

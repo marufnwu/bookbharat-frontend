@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import '../styles/hero-animations.css';
+
 :root {
   /* Light theme colors - HSL values */
   --background: 0 0% 100%;

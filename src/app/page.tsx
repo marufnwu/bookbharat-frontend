@@ -5,11 +5,13 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useConfig } from '@/contexts/ConfigContext';
-import { productApi, categoryApi, newsletterApi } from '@/lib/api';
+import { productApi, categoryApi, newsletterApi, heroApi } from '@/lib/api';
 import { toast } from 'sonner';
 import { useCartStore } from '@/stores/cart';
 import { Product, Category } from '@/types';
 import CategoryProductSection from '@/components/CategoryProductSection';
+import HeroSection from '@/components/hero/HeroSection';
+import ProductCard from '@/components/ui/product-card';
 import { 
   BookOpen, 
   TrendingUp, 
@@ -36,10 +38,10 @@ export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [addingToCart, setAddingToCart] = useState<number | null>(null);
   const [featuredBooksLoading, setFeaturedBooksLoading] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [isSubscribingNewsletter, setIsSubscribingNewsletter] = useState(false);
+  const [heroConfig, setHeroConfig] = useState<any>(null);
 
   // Load essential content first (hero, categories)
   useEffect(() => {
@@ -47,11 +49,18 @@ export default function Home() {
       try {
         setLoading(true);
         
-        // Load only categories first for faster initial render
-        const categoriesResponse = await categoryApi.getCategories();
+        // Load hero config and categories in parallel
+        const [heroResponse, categoriesResponse] = await Promise.all([
+          heroApi.getActiveHeroConfig(),
+          categoryApi.getCategories()
+        ]);
+
+        if (heroResponse.success) {
+          setHeroConfig(heroResponse.data);
+        }
 
         if (categoriesResponse.success) {
-          setCategories(categoriesResponse.data.slice(0, 6)); // Show more categories since we're not loading all products
+          setCategories(categoriesResponse.data.slice(0, 6));
         }
       } catch (err) {
         console.error('Failed to load initial data:', err);
@@ -86,22 +95,6 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, []);
 
-  const addToCart = async (productId: number) => {
-    try {
-      setAddingToCart(productId);
-      // Find the product to pass to the store
-      const product = featuredBooks.find(p => p.id === productId);
-      if (product) {
-        await addToCartStore(product, 1);
-        console.log('Added to cart successfully');
-      }
-    } catch (error) {
-      console.error('Failed to add to cart:', error);
-      // Show error message
-    } finally {
-      setAddingToCart(null);
-    }
-  };
 
   const handleNewsletterSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -214,84 +207,37 @@ export default function Home() {
     return colors[index % colors.length];
   };
 
+  // Default hero config fallback
+  const defaultHeroConfig = {
+    variant: 'classic' as const,
+    title: siteConfig?.site.name || 'BookBharat',
+    subtitle: siteConfig?.site.description || 'Your Knowledge Partner for Life',
+    primaryCta: {
+      text: 'Explore Books',
+      href: '/products'
+    },
+    secondaryCta: {
+      text: 'Browse Categories',
+      href: '/categories'
+    },
+    stats: [
+      { label: 'Books', value: '500K+', icon: 'book' },
+      { label: 'Happy Readers', value: '100K+', icon: 'users' },
+      { label: 'Rating', value: '4.8★', icon: 'star' }
+    ],
+    featuredProducts: featuredBooks
+  };
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-primary/10 via-background to-accent/5 py-16 md:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8">
-              <div className="space-y-4">
-                <h1 className="text-4xl md:text-6xl font-bold text-foreground leading-tight">
-                  {heroData.title.split(' ').map((word, index) => (
-                    <span key={index}>
-                      {index === 1 ? (
-                        <span className="text-primary">{word}</span>
-                      ) : (
-                        word
-                      )}
-                      {index < heroData.title.split(' ').length - 1 ? ' ' : ''}
-                      {index === 1 && <br />}
-                    </span>
-                  ))}
-                </h1>
-                <p className="text-xl text-muted-foreground max-w-lg">
-                  {heroData.subtitle}
-                </p>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" asChild>
-                  <Link href="/products">
-                    {homepageConfig?.hero_section?.cta_primary?.text || 'Explore Books'} 
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-                <Button variant="outline" size="lg" asChild>
-                  <Link href="/categories">
-                    {homepageConfig?.hero_section?.cta_secondary?.text || 'Browse Categories'}
-                  </Link>
-                </Button>
-              </div>
-
-              <div className="flex items-center space-x-8 pt-4">
-                {(heroData.stats || []).map((stat, index) => (
-                  <div key={index} className="text-center">
-                    <div className="text-2xl font-bold text-primary">{stat.value}</div>
-                    <div className="text-sm text-muted-foreground">{stat.label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="relative">
-              <div className="relative bg-white rounded-2xl shadow-2xl p-8 transform rotate-2">
-                <div className="grid grid-cols-2 gap-4">
-                  {featuredBooks.slice(0, 4).map((book, index) => (
-                    <div key={book.id} className={`${index % 2 === 0 ? 'mt-4' : '-mt-4'}`}>
-                      <div className="bg-gray-200 rounded-lg aspect-[3/4] flex items-center justify-center overflow-hidden">
-                        {book.images && book.images.length > 0 ? (
-                          <Image
-                            src={book.images[0].url}
-                            alt={book.name}
-                            fill
-                            className="object-cover"
-                          />
-                        ) : (
-                          <BookOpen className="h-8 w-8 text-gray-400" />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="absolute top-4 left-4 bg-accent text-accent-foreground px-3 py-1 rounded-full text-sm font-medium">
-                New Arrivals
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HeroSection 
+        config={{
+          ...defaultHeroConfig,
+          ...heroConfig,
+          featuredProducts: featuredBooks
+        }} 
+      />
 
       {/* Features Section */}
       <section className="py-16 bg-muted/30">
@@ -338,66 +284,19 @@ export default function Home() {
               </div>
             </div>
           ) : featuredBooks.length > 0 ? (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {featuredBooks.map((book) => (
-                <Card key={book.id} className="group hover:shadow-lg transition-shadow duration-300">
-                  <CardContent className="p-4">
-                    <div className="aspect-[3/4] bg-gray-100 rounded-lg mb-4 relative overflow-hidden">
-                      {book.images && book.images.length > 0 ? (
-                        <Image
-                          src={book.images[0].url}
-                          alt={book.name}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center h-full">
-                          <BookOpen className="h-12 w-12 text-gray-400" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-sm text-primary font-medium">{book.category?.name || 'Book'}</p>
-                      <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
-                        <Link href={`/products/${book.slug || book.id}`}>
-                          {book.name}
-                        </Link>
-                      </h3>
-                      <p className="text-sm text-muted-foreground">by {book.brand || 'Unknown Author'}</p>
-                      <div className="flex items-center space-x-1">
-                        <div className="flex">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
-                          ))}
-                        </div>
-                        <span className="text-sm text-muted-foreground">(4.5)</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="space-x-2">
-                          <span className="text-lg font-bold text-foreground">
-                            {siteConfig?.payment?.currency_symbol || '₹'}{book.price}
-                          </span>
-                          {book.compare_price && book.compare_price > book.price && (
-                            <span className="text-sm text-muted-foreground line-through">
-                              {siteConfig?.payment?.currency_symbol || '₹'}{book.compare_price}
-                            </span>
-                          )}
-                        </div>
-                        <Button 
-                          size="sm" 
-                          onClick={() => addToCart(book.id)}
-                          disabled={addingToCart === book.id}
-                        >
-                          {addingToCart === book.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <ShoppingCart className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <ProductCard 
+                  key={book.id}
+                  product={book}
+                  variant="compact"
+                  showCategory={true}
+                  showAuthor={true}
+                  showRating={true}
+                  showDiscount={true}
+                  showWishlist={true}
+                  showAddToCart={true}
+                />
               ))}
             </div>
           ) : null}
@@ -406,25 +305,27 @@ export default function Home() {
 
       {/* Categories Section */}
       {categories.length > 0 && (
-        <section className="py-16 bg-muted/30">
+        <section className="py-12 bg-muted/20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-foreground">Browse by Category</h2>
+            <div className="text-center mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold text-foreground">Browse by Category</h2>
               <p className="text-muted-foreground mt-2">Find books in your favorite genres</p>
             </div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {categories.map((category, index) => {
                 const IconComponent = getCategoryIcon(index);
                 return (
                   <Link key={category.id} href={`/categories/${category.slug || category.id}`}>
-                    <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105">
-                      <CardContent className="p-6 text-center">
-                        <div className={`inline-flex rounded-full p-4 ${getCategoryColor(index)} mb-4`}>
-                          <IconComponent className="h-8 w-8" />
+                    <Card className="group hover:shadow-md transition-all duration-200 hover:-translate-y-1 h-full">
+                      <CardContent className="p-4 text-center h-full flex flex-col justify-between">
+                        <div>
+                          <div className={`inline-flex rounded-full p-3 ${getCategoryColor(index)} mb-3`}>
+                            <IconComponent className="h-5 w-5" />
+                          </div>
+                          <h3 className="font-medium text-foreground text-sm mb-1 line-clamp-2">{category.name}</h3>
                         </div>
-                        <h3 className="font-semibold text-foreground mb-2">{category.name}</h3>
-                        <p className="text-muted-foreground text-sm">
+                        <p className="text-muted-foreground text-xs">
                           {category.products_count || 0} books
                         </p>
                       </CardContent>
