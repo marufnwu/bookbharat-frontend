@@ -30,7 +30,13 @@ interface BundleData {
   total_original_price: number;
   savings: number;
   discount_percentage: number;
+  discount_amount?: number;
   product_count: number;
+  discount_rule?: {
+    name: string;
+    description: string;
+    type: 'percentage' | 'fixed';
+  };
 }
 
 interface FrequentlyBoughtTogetherProps {
@@ -105,8 +111,18 @@ export default function FrequentlyBoughtTogether({ productId, mainProduct }: Fre
   };
 
   const calculateBundlePrice = () => {
-    if (!bundleData) return { total: 0, savings: 0, bundlePrice: 0, discountPercentage: 0 };
+    // If we have bundle data from backend and all products are selected, use it
+    if (bundleData && selectedProducts.size === products.length) {
+      return {
+        total: bundleData.total_price,
+        bundlePrice: bundleData.bundle_price,
+        savings: bundleData.savings,
+        discountPercentage: bundleData.discount_percentage,
+        discountRule: bundleData.discount_rule
+      };
+    }
     
+    // Otherwise calculate based on selected products
     let total = parseFloat(String(mainProduct.price));
     const selectedProductsList = products.filter(p => selectedProducts.has(p.id));
     
@@ -114,13 +130,20 @@ export default function FrequentlyBoughtTogether({ productId, mainProduct }: Fre
       total += parseFloat(String(product.price));
     });
 
-    // Dynamic discount based on number of products
+    // Use backend discount percentage if available, otherwise use frontend defaults
     const productCount = selectedProductsList.length + 1; // +1 for main product
     let discountPercentage = 0;
     
-    if (productCount === 2) discountPercentage = 5;
-    else if (productCount === 3) discountPercentage = 10;
-    else if (productCount >= 4) discountPercentage = 15;
+    if (bundleData && bundleData.discount_percentage) {
+      // Scale discount based on selected vs total products
+      const selectionRatio = (selectedProductsList.length + 1) / (products.length + 1);
+      discountPercentage = bundleData.discount_percentage * selectionRatio;
+    } else {
+      // Fallback to static discounts
+      if (productCount === 2) discountPercentage = 5;
+      else if (productCount === 3) discountPercentage = 10;
+      else if (productCount >= 4) discountPercentage = 15;
+    }
 
     const bundlePrice = total * (1 - discountPercentage / 100);
     const savings = total - bundlePrice;
@@ -129,7 +152,8 @@ export default function FrequentlyBoughtTogether({ productId, mainProduct }: Fre
       total,
       bundlePrice: Math.round(bundlePrice * 100) / 100,
       savings: Math.round(savings * 100) / 100,
-      discountPercentage
+      discountPercentage: Math.round(discountPercentage * 100) / 100,
+      discountRule: bundleData?.discount_rule
     };
   };
 
@@ -281,9 +305,16 @@ export default function FrequentlyBoughtTogether({ productId, mainProduct }: Fre
           </button>
 
           {bundle.savings > 0 && (
-            <p className="text-sm text-green-600 text-center mt-2">
-              Save ₹{bundle.savings.toFixed(2)} with this bundle!
-            </p>
+            <div className="mt-2 space-y-1">
+              <p className="text-sm text-green-600 text-center">
+                Save ₹{bundle.savings.toFixed(2)} with this bundle!
+              </p>
+              {bundle.discountRule && (
+                <p className="text-xs text-gray-600 text-center">
+                  {bundle.discountRule.description || `${bundle.discountRule.name} applied`}
+                </p>
+              )}
+            </div>
           )}
         </div>
       </div>
