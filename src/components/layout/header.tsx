@@ -1,4 +1,5 @@
 'use client';
+import { MobileHeader } from './MobileHeader';
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
@@ -80,6 +81,7 @@ export function Header() {
     };
 
     const timeoutId = setTimeout(fetchSuggestions, 300); // Debounce
+
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
@@ -92,6 +94,7 @@ export function Header() {
     };
 
     document.addEventListener('mousedown', handleClickOutside);
+
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
@@ -99,6 +102,12 @@ export function Header() {
     if (query.trim()) {
       setShowSuggestions(false);
       router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+      }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      setShowSuggestions(false);
     }
   };
 
@@ -108,19 +117,13 @@ export function Header() {
   };
 
   const handleSuggestionClick = (suggestion: any) => {
-    if (suggestion.type === 'product') {
+    if (suggestion.type === "product") {
       router.push(`/products/${suggestion.slug || suggestion.id}`);
     } else {
       handleSearch(suggestion.title || suggestion.name);
     }
     setShowSuggestions(false);
-    setSearchQuery('');
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      setShowSuggestions(false);
-    }
+    setSearchQuery("");
   };
 
   const navigation = [
@@ -132,6 +135,23 @@ export function Header() {
     { name: 'About', href: '/about' },
     { name: 'Contact', href: '/contact' },
   ];
+
+  // Show mobile header for small screens
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
+
+  // Return mobile header for mobile devices
+  if (isMobile && mounted) {
+    return <MobileHeader />;
+  }
 
   return (
     <header className="bg-background border-b border-border sticky top-0 z-50">

@@ -9,6 +9,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { ProductCard } from '@/components/ui/product-card';
+import FrequentlyBoughtTogether from '@/components/product/FrequentlyBoughtTogether';
+import RelatedProducts from '@/components/product/RelatedProducts';
 import { productApi } from '@/lib/api';
 import { useCartStore } from '@/stores/cart';
 import { useWishlistStore } from '@/stores/wishlist';
@@ -498,8 +500,13 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
+      {/* Frequently Bought Together Section */}
+      <div className="px-3 sm:px-4 lg:px-8">
+        <FrequentlyBoughtTogether productId={params.id as string} mainProduct={product} />
+      </div>
+
       {/* Tabs Section */}
-      <div className="mb-16">
+      <div className="mb-16 px-3 sm:px-4 lg:px-8">
         <div className="border-b border-border">
           <div className="flex space-x-8">
             {['description', 'specifications'].map((tab) => (
@@ -554,8 +561,13 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* Related Products */}
-      {relatedProducts.length > 0 && (
+      {/* Related Products Section using the new component */}
+      <div className="px-3 sm:px-4 lg:px-8">
+        <RelatedProducts productId={params.id as string} categoryId={product.category?.id} />
+      </div>
+
+      {/* Old Related Products - Remove this section as it's replaced by the new component */}
+      {false && relatedProducts.length > 0 && (
         <div>
           <h2 className="text-2xl font-bold text-foreground mb-8">Related Products</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">

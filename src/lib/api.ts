@@ -218,6 +218,14 @@ class ApiClient {
     return this.get('/products/by-categories', { params });
   }
 
+  async getRelatedProducts(productId: number | string) {
+    return this.get(`/products/${productId}/related`);
+  }
+
+  async getFrequentlyBoughtTogether(productId: number | string) {
+    return this.get(`/products/${productId}/frequently-bought-together`);
+  }
+
   // Category API methods
   async getCategories() {
     return this.get('/categories');
@@ -751,6 +759,8 @@ export const productApi = {
   getProductFilters: apiClient.getProductFilters.bind(apiClient),
   getProductsByCategory: apiClient.getProductsByCategory.bind(apiClient),
   getProductsByCategories: apiClient.getProductsByCategories.bind(apiClient),
+  getRelatedProducts: apiClient.getRelatedProducts.bind(apiClient),
+  getFrequentlyBoughtTogether: apiClient.getFrequentlyBoughtTogether.bind(apiClient),
 };
 
 export const categoryApi = {

@@ -4,6 +4,33 @@ const nextConfig: NextConfig = {
   // App directory is stable in Next.js 13+, no need for experimental flag
   pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
   
+  // Image configuration
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '8000',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.amazonaws.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.cloudinary.com',
+        pathname: '/**',
+      }
+    ],
+  },
+  
   // Development optimizations
   experimental: {
     optimizePackageImports: [

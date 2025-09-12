@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" fill="none">
+  <rect width="300" height="400" fill="#f3f4f6"/>
+  <g transform="translate(150, 200)">
+    <path d="M-40 -30 L-40 30 Q-40 40 -30 40 L30 40 Q40 40 40 30 L40 -30 Q40 -40 30 -40 L-30 -40 Q-40 -40 -40 -30 Z" stroke="#9ca3af" stroke-width="2" fill="none"/>
+    <path d="M-35 -25 L-35 25" stroke="#9ca3af" stroke-width="1.5"/>
+    <path d="M-30 -35 L30 -35" stroke="#9ca3af" stroke-width="1.5"/>
+    <path d="M-25 -20 L25 -20" stroke="#9ca3af" stroke-width="1"/>
+    <path d="M-25 -10 L25 -10" stroke="#9ca3af" stroke-width="1"/>
+    <path d="M-25 0 L25 0" stroke="#9ca3af" stroke-width="1"/>
+    <path d="M-25 10 L15 10" stroke="#9ca3af" stroke-width="1"/>
+  </g>
+  <text x="150" y="270" text-anchor="middle" fill="#6b7280" font-family="system-ui" font-size="14">No Image</text>
+</svg>
