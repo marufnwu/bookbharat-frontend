@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { ProductCard } from '@/components/ui/product-card';
+import { CompactProductCard } from './CompactProductCard';
 import { productApi } from '@/lib/api';
 
 interface Product {
@@ -11,10 +11,13 @@ interface Product {
   slug: string;
   price: number;
   compare_price?: number;
-  images?: Array<{ image_path: string; is_primary?: boolean }>;
+  images?: Array<{ image_path: string; image_url?: string; url?: string; is_primary?: boolean }>;
   category?: { name: string };
   rating?: number;
   total_reviews?: number;
+  author?: string;
+  brand?: string;
+  in_stock?: boolean;
 }
 
 interface RelatedProductsProps {
@@ -45,29 +48,50 @@ export default function RelatedProducts({ productId, categoryId }: RelatedProduc
   };
 
   const scrollLeft = () => {
-    setCurrentIndex(prev => Math.max(0, prev - 1));
+    setCurrentIndex(prev => Math.max(0, prev - getScrollStep()));
   };
 
   const scrollRight = () => {
+    const scrollStep = getScrollStep();
     const maxIndex = Math.max(0, products.length - getVisibleCount());
-    setCurrentIndex(prev => Math.min(maxIndex, prev + 1));
+    setCurrentIndex(prev => Math.min(maxIndex, prev + scrollStep));
   };
 
   const getVisibleCount = () => {
     if (typeof window === 'undefined') return 4;
-    if (window.innerWidth < 640) return 1;
-    if (window.innerWidth < 768) return 2;
-    if (window.innerWidth < 1024) return 3;
-    return 4;
+    if (window.innerWidth < 640) return 2; // Show 2 on mobile
+    if (window.innerWidth < 768) return 3;
+    if (window.innerWidth < 1024) return 4;
+    if (window.innerWidth < 1280) return 5;
+    return 6;
   };
+
+  const getScrollStep = () => {
+    if (typeof window === 'undefined') return 2;
+    if (window.innerWidth < 640) return 2; // Scroll 2 at a time on mobile
+    return 3;
+  };
+
+  useEffect(() => {
+    const handleResize = () => {
+      // Reset index if it's out of bounds after resize
+      const maxIndex = Math.max(0, products.length - getVisibleCount());
+      if (currentIndex > maxIndex) {
+        setCurrentIndex(maxIndex);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [currentIndex, products.length]);
 
   if (loading) {
     return (
-      <div className="my-8">
-        <h2 className="text-xl font-semibold mb-6">Related Products</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-gray-100 rounded-lg h-64 animate-pulse" />
+      <div className="my-6 lg:my-8">
+        <h2 className="text-lg lg:text-xl font-semibold mb-4 lg:mb-6">You May Also Like</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 lg:gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-gray-100 rounded-lg aspect-[3/5] animate-pulse" />
           ))}
         </div>
       </div>
@@ -83,32 +107,34 @@ export default function RelatedProducts({ productId, categoryId }: RelatedProduc
   const canScrollRight = currentIndex < products.length - visibleCount;
 
   return (
-    <div className="my-8">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold">You May Also Like</h2>
-        <div className="flex gap-2">
-          <button
-            onClick={scrollLeft}
-            disabled={!canScrollLeft}
-            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            aria-label="Previous products"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button
-            onClick={scrollRight}
-            disabled={!canScrollRight}
-            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            aria-label="Next products"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
+    <div className="my-6 lg:my-8">
+      <div className="flex justify-between items-center mb-4 lg:mb-6">
+        <h2 className="text-lg lg:text-xl font-semibold">You May Also Like</h2>
+        {products.length > visibleCount && (
+          <div className="flex gap-2">
+            <button
+              onClick={scrollLeft}
+              disabled={!canScrollLeft}
+              className="p-1.5 lg:p-2 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              aria-label="Previous products"
+            >
+              <ChevronLeft className="w-4 h-4 lg:w-5 lg:h-5" />
+            </button>
+            <button
+              onClick={scrollRight}
+              disabled={!canScrollRight}
+              className="p-1.5 lg:p-2 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              aria-label="Next products"
+            >
+              <ChevronRight className="w-4 h-4 lg:w-5 lg:h-5" />
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="relative overflow-hidden">
         <div 
-          className="flex transition-transform duration-300 ease-in-out gap-4"
+          className="flex transition-transform duration-300 ease-in-out gap-3 lg:gap-4"
           style={{
             transform: `translateX(-${currentIndex * (100 / visibleCount)}%)`
           }}
@@ -118,29 +144,33 @@ export default function RelatedProducts({ productId, categoryId }: RelatedProduc
               key={product.id}
               className="flex-shrink-0"
               style={{
-                width: `${100 / visibleCount}%`,
-                paddingRight: '1rem'
+                width: `calc(${100 / visibleCount}% - ${visibleCount > 2 ? '0.75rem' : '0.375rem'})`,
               }}
             >
-              <ProductCard product={product} />
+              <CompactProductCard product={product} />
             </div>
           ))}
         </div>
       </div>
 
       {/* Mobile Dots Indicator */}
-      <div className="flex justify-center gap-2 mt-4 sm:hidden">
-        {products.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => setCurrentIndex(index)}
-            className={`w-2 h-2 rounded-full transition-colors ${
-              index === currentIndex ? 'bg-primary' : 'bg-gray-300'
-            }`}
-            aria-label={`Go to product ${index + 1}`}
-          />
-        ))}
-      </div>
+      {products.length > visibleCount && (
+        <div className="flex justify-center gap-1.5 mt-4 sm:hidden">
+          {Array.from({ length: Math.ceil(products.length / 2) }).map((_, index) => {
+            const dotIndex = index * 2;
+            return (
+              <button
+                key={index}
+                onClick={() => setCurrentIndex(dotIndex)}
+                className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                  Math.floor(currentIndex / 2) === index ? 'bg-primary' : 'bg-gray-300'
+                }`}
+                aria-label={`Go to products ${dotIndex + 1}-${dotIndex + 2}`}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

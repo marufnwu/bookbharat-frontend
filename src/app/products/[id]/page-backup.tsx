@@ -68,8 +68,6 @@ export default function ImprovedProductDetailPage() {
   const [pincode, setPincode] = useState('');
   const [checkingPincode, setCheckingPincode] = useState(false);
   const [deliveryAvailable, setDeliveryAvailable] = useState<boolean | null>(null);
-  const [showLightbox, setShowLightbox] = useState(false);
-  const [lightboxImageIndex, setLightboxImageIndex] = useState(0);
 
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 });
@@ -257,7 +255,7 @@ export default function ImprovedProductDetailPage() {
       {/* Breadcrumb */}
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-3">
-          <nav className="flex items-center flex-wrap gap-2 text-sm text-gray-600">
+          <nav className="flex items-center space-x-2 text-sm text-gray-600">
             <Link href="/" className="hover:text-primary transition-colors">Home</Link>
             <ChevronRight className="h-4 w-4" />
             <Link href="/products" className="hover:text-primary transition-colors">Products</Link>
@@ -272,23 +270,19 @@ export default function ImprovedProductDetailPage() {
       </div>
 
       {/* Main Product Section */}
-      <div className="container mx-auto px-4 py-4 lg:py-8">
-        <div className="grid lg:grid-cols-2 gap-6 lg:gap-12">
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
           {/* Image Gallery Section */}
           <div className="space-y-4">
             {/* Main Image */}
-            <div className="relative bg-white rounded-xl lg:rounded-2xl shadow-lg overflow-hidden group">
+            <div className="relative bg-white rounded-2xl shadow-lg overflow-hidden group">
               <div className="relative aspect-[3/4]">
                 <div
                   ref={imageContainerRef}
-                  className="relative w-full h-full cursor-pointer lg:cursor-zoom-in overflow-hidden"
+                  className="relative w-full h-full cursor-zoom-in overflow-hidden"
                   onMouseMove={handleImageMouseMove}
                   onMouseEnter={() => setIsImageZoomed(true)}
                   onMouseLeave={() => setIsImageZoomed(false)}
-                  onClick={() => {
-                    setLightboxImageIndex(selectedImageIndex);
-                    setShowLightbox(true);
-                  }}
                 >
                   <Image
                     src={getProductImage(selectedImageIndex)}
@@ -296,67 +290,56 @@ export default function ImprovedProductDetailPage() {
                     fill
                     className="object-contain transition-transform duration-300"
                     style={{
-                      transform: isImageZoomed && window.innerWidth > 1024 ? `scale(1.5)` : 'scale(1)',
+                      transform: isImageZoomed ? `scale(1.5)` : 'scale(1)',
                       transformOrigin: `${mousePosition.x}% ${mousePosition.y}%`
                     }}
                     priority
                   />
                   
-                  {/* Zoom Indicator - Desktop */}
-                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none hidden lg:block">
+                  {/* Zoom Indicator */}
+                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                     <ZoomIn className="h-5 w-5 text-gray-700" />
-                  </div>
-                  
-                  {/* Mobile Expand Indicator */}
-                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full p-2 lg:hidden">
-                    <ZoomIn className="h-4 w-4 text-gray-700" />
                   </div>
                 </div>
 
                 {/* Discount Badge */}
                 {getDiscountPercentage() > 0 && (
                   <div className="absolute top-4 left-4 z-10">
-                    <div className="bg-red-500 text-white px-2 lg:px-3 py-1 lg:py-1.5 rounded-full text-xs lg:text-sm font-bold flex items-center gap-1">
+                    <div className="bg-red-500 text-white px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-1">
                       <Percent className="h-3 w-3" />
                       {getDiscountPercentage()}% OFF
                     </div>
                   </div>
                 )}
 
-                {/* Navigation Arrows - Mobile Swipe Indicators */}
+                {/* Navigation Arrows */}
                 {product.images && product.images.length > 1 && (
                   <>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedImageIndex(prev => prev > 0 ? prev - 1 : product.images!.length - 1);
-                      }}
-                      className="absolute left-2 lg:left-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm rounded-full p-1.5 lg:p-2 shadow-lg lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-10"
+                      onClick={() => setSelectedImageIndex(prev => prev > 0 ? prev - 1 : product.images!.length - 1)}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
                     >
-                      <ChevronLeft className="h-4 w-4 lg:h-5 lg:w-5" />
+                      <ChevronLeft className="h-5 w-5" />
                     </button>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedImageIndex(prev => prev < product.images!.length - 1 ? prev + 1 : 0);
-                      }}
-                      className="absolute right-2 lg:right-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm rounded-full p-1.5 lg:p-2 shadow-lg lg:opacity-0 lg:group-hover:opacity-100 transition-opacity z-10"
+                      onClick={() => setSelectedImageIndex(prev => prev < product.images!.length - 1 ? prev + 1 : 0)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
                     >
-                      <ChevronRight className="h-4 w-4 lg:h-5 lg:w-5" />
+                      <ChevronRight className="h-5 w-5" />
                     </button>
                   </>
                 )}
               </div>
             </div>
 
-            {/* Thumbnail Gallery - Horizontal scroll on mobile */}
+            {/* Thumbnail Gallery */}
             {product.images && product.images.length > 1 && (
-              <div className="flex lg:grid lg:grid-cols-5 gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
+              <div className="grid grid-cols-5 gap-2">
                 {product.images.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImageIndex(index)}
-                    className={`relative aspect-[3/4] min-w-[80px] lg:min-w-0 rounded-lg overflow-hidden border-2 transition-all ${
+                    className={`relative aspect-[3/4] rounded-lg overflow-hidden border-2 transition-all ${
                       selectedImageIndex === index 
                         ? 'border-primary shadow-md ring-2 ring-primary/20' 
                         : 'border-gray-200 hover:border-gray-300'
@@ -373,29 +356,29 @@ export default function ImprovedProductDetailPage() {
               </div>
             )}
 
-            {/* Trust Badges - 2x2 on mobile */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-4">
+            {/* Trust Badges */}
+            <div className="grid grid-cols-4 gap-3 pt-4">
               {[
-                { icon: Truck, text: 'Free Delivery', bgColor: 'bg-blue-50', iconColor: 'text-blue-600' },
-                { icon: Shield, text: 'Secure Pay', bgColor: 'bg-green-50', iconColor: 'text-green-600' },
-                { icon: Award, text: '100% Authentic', bgColor: 'bg-purple-50', iconColor: 'text-purple-600' },
-                { icon: RotateCcw, text: 'Easy Returns', bgColor: 'bg-orange-50', iconColor: 'text-orange-600' }
+                { icon: Truck, color: 'blue', text: 'Free Delivery', bgColor: 'bg-blue-50', iconColor: 'text-blue-600' },
+                { icon: Shield, color: 'green', text: 'Secure Payment', bgColor: 'bg-green-50', iconColor: 'text-green-600' },
+                { icon: Award, color: 'purple', text: '100% Authentic', bgColor: 'bg-purple-50', iconColor: 'text-purple-600' },
+                { icon: RotateCcw, color: 'orange', text: 'Easy Returns', bgColor: 'bg-orange-50', iconColor: 'text-orange-600' }
               ].map((item, index) => (
                 <div key={index} className="text-center group cursor-pointer">
-                  <div className={`${item.bgColor} rounded-xl p-2.5 lg:p-3 mb-1.5 lg:mb-2 group-hover:scale-105 transition-transform`}>
-                    <item.icon className={`h-5 w-5 lg:h-6 lg:w-6 ${item.iconColor} mx-auto`} />
+                  <div className={`${item.bgColor} rounded-xl p-3 mb-2 group-hover:scale-105 transition-transform`}>
+                    <item.icon className={`h-6 w-6 ${item.iconColor} mx-auto`} />
                   </div>
-                  <p className="text-[10px] lg:text-xs text-gray-600">{item.text}</p>
+                  <p className="text-xs text-gray-600">{item.text}</p>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Product Information Section */}
-          <div className="space-y-4 lg:space-y-6">
+          <div className="space-y-6">
             {/* Title and Category */}
             <div>
-              <div className="flex items-center flex-wrap gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-3">
                 <Badge variant="secondary" className="text-xs px-2 py-1">
                   {product.category?.name || 'Book'}
                 </Badge>
@@ -413,25 +396,25 @@ export default function ImprovedProductDetailPage() {
                 )}
               </div>
               
-              <h1 className="text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 mb-2 lg:mb-3">
+              <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
                 {product.name}
               </h1>
               
-              <p className="text-base lg:text-lg text-gray-600">
+              <p className="text-lg text-gray-600">
                 by <span className="font-semibold text-gray-800 hover:text-primary cursor-pointer">
                   {product.brand || product.author || 'Unknown Author'}
                 </span>
               </p>
             </div>
 
-            {/* Rating and Stats - Stack on mobile */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 pb-4 border-b">
+            {/* Rating and Stats */}
+            <div className="flex items-center gap-6 pb-4 border-b">
               <div className="flex items-center gap-2">
                 <div className="flex">
                   {[...Array(5)].map((_, i) => (
                     <Star 
                       key={i} 
-                      className={`h-4 lg:h-5 w-4 lg:w-5 ${
+                      className={`h-5 w-5 ${
                         i < Math.floor(product.rating || 4.5) 
                           ? 'text-yellow-400 fill-current' 
                           : 'text-gray-300'
@@ -439,54 +422,52 @@ export default function ImprovedProductDetailPage() {
                     />
                   ))}
                 </div>
-                <span className="font-bold text-base lg:text-lg">{product.rating || '4.5'}</span>
+                <span className="font-bold text-lg">{product.rating || '4.5'}</span>
               </div>
               
-              <div className="flex items-center gap-4 text-gray-600">
-                <div className="flex items-center gap-1.5">
-                  <Users className="h-3.5 lg:h-4 w-3.5 lg:w-4" />
-                  <span className="text-xs lg:text-sm font-medium">
-                    {product.total_reviews || 150}+ Reviews
-                  </span>
-                </div>
-                
-                <div className="flex items-center gap-1.5">
-                  <Eye className="h-3.5 lg:h-4 w-3.5 lg:w-4" />
-                  <span className="text-xs lg:text-sm font-medium">
-                    {Math.floor(Math.random() * 50) + 20} viewing
-                  </span>
-                </div>
+              <div className="flex items-center gap-2 text-gray-600">
+                <Users className="h-4 w-4" />
+                <span className="text-sm font-medium">
+                  {product.total_reviews || 150}+ Reviews
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-2 text-gray-600">
+                <Eye className="h-4 w-4" />
+                <span className="text-sm font-medium">
+                  {Math.floor(Math.random() * 50) + 20} viewing now
+                </span>
               </div>
             </div>
 
             {/* Price Section */}
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 lg:p-5">
-              <div className="flex items-baseline gap-2 lg:gap-3 mb-2">
-                <span className="text-3xl lg:text-4xl font-bold text-gray-900">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-5">
+              <div className="flex items-baseline gap-3 mb-2">
+                <span className="text-4xl font-bold text-gray-900">
                   {currencySymbol}{parseFloat(String(product.price)).toFixed(2)}
                 </span>
                 {product.compare_price && product.compare_price > product.price && (
                   <>
-                    <span className="text-lg lg:text-xl text-gray-400 line-through">
+                    <span className="text-xl text-gray-400 line-through">
                       {currencySymbol}{parseFloat(String(product.compare_price)).toFixed(2)}
                     </span>
-                    <Badge className="bg-green-500 text-white px-2 py-1 text-xs">
+                    <Badge className="bg-green-500 text-white px-2 py-1">
                       Save {currencySymbol}{(parseFloat(String(product.compare_price)) - parseFloat(String(product.price))).toFixed(2)}
                     </Badge>
                   </>
                 )}
               </div>
               
-              <p className="text-xs lg:text-sm text-gray-600">Inclusive of all taxes</p>
+              <p className="text-sm text-gray-600">Inclusive of all taxes</p>
               
               {/* Stock Status */}
               <div className="mt-3">
                 {product.in_stock ? (
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-                    <span className="text-sm lg:text-base font-medium text-green-700">In Stock</span>
+                    <span className="font-medium text-green-700">In Stock</span>
                     {product.stock_quantity && product.stock_quantity < 10 && (
-                      <span className="text-orange-600 text-xs lg:text-sm font-medium">
+                      <span className="text-orange-600 text-sm font-medium">
                         • Only {product.stock_quantity} left!
                       </span>
                     )}
@@ -494,41 +475,39 @@ export default function ImprovedProductDetailPage() {
                 ) : (
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 bg-red-500 rounded-full" />
-                    <span className="text-sm lg:text-base font-medium text-red-600">Out of Stock</span>
+                    <span className="font-medium text-red-600">Out of Stock</span>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Offers Section - Collapsible on mobile */}
-            <details className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl overflow-hidden">
-              <summary className="p-4 cursor-pointer">
-                <div className="flex items-center gap-2">
-                  <Gift className="h-4 lg:h-5 w-4 lg:w-5 text-orange-600 inline" />
-                  <h3 className="font-semibold text-gray-900 inline text-sm lg:text-base">Available Offers</h3>
-                </div>
-              </summary>
-              <div className="px-4 pb-4 space-y-2">
+            {/* Offers Section */}
+            <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Gift className="h-5 w-5 text-orange-600" />
+                <h3 className="font-semibold text-gray-900">Available Offers</h3>
+              </div>
+              <div className="space-y-2">
                 <div className="flex items-start gap-2">
                   <Badge className="bg-green-100 text-green-700 text-xs shrink-0">BANK</Badge>
-                  <p className="text-xs lg:text-sm text-gray-700">
+                  <p className="text-sm text-gray-700">
                     10% instant discount on HDFC Bank Credit Cards, up to ₹500
                   </p>
                 </div>
                 <div className="flex items-start gap-2">
                   <Badge className="bg-blue-100 text-blue-700 text-xs shrink-0">SHIPPING</Badge>
-                  <p className="text-xs lg:text-sm text-gray-700">
+                  <p className="text-sm text-gray-700">
                     Free delivery on orders above ₹499
                   </p>
                 </div>
               </div>
-            </details>
+            </div>
 
             {/* Pincode Check */}
             <div className="bg-gray-50 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-3">
-                <MapPin className="h-4 lg:h-5 w-4 lg:w-5 text-gray-600" />
-                <span className="font-semibold text-gray-900 text-sm lg:text-base">Delivery Options</span>
+                <MapPin className="h-5 w-5 text-gray-600" />
+                <span className="font-semibold text-gray-900">Delivery Options</span>
               </div>
               <div className="flex gap-2">
                 <input
@@ -536,28 +515,28 @@ export default function ImprovedProductDetailPage() {
                   placeholder="Enter pincode"
                   value={pincode}
                   onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className="flex-1 px-3 lg:px-4 py-2 lg:py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
                 <Button
                   onClick={checkPincodeDelivery}
                   disabled={checkingPincode}
-                  className="px-4 lg:px-6 h-9 lg:h-10"
+                  className="px-6"
                 >
                   {checkingPincode ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Check'}
                 </Button>
               </div>
               
               {deliveryAvailable !== null && (
-                <div className={`mt-3 p-2.5 lg:p-3 rounded-lg ${deliveryAvailable ? 'bg-green-50' : 'bg-red-50'}`}>
+                <div className={`mt-3 p-3 rounded-lg ${deliveryAvailable ? 'bg-green-50' : 'bg-red-50'}`}>
                   {deliveryAvailable ? (
                     <div className="flex items-center gap-2 text-green-700">
-                      <Check className="h-3.5 lg:h-4 w-3.5 lg:w-4" />
-                      <span className="text-xs lg:text-sm font-medium">Delivery available! Expected in 3-5 days</span>
+                      <Check className="h-4 w-4" />
+                      <span className="text-sm font-medium">Delivery available! Expected in 3-5 days</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-red-700">
-                      <X className="h-3.5 lg:h-4 w-3.5 lg:w-4" />
-                      <span className="text-xs lg:text-sm font-medium">Sorry, delivery not available to this pincode</span>
+                      <X className="h-4 w-4" />
+                      <span className="text-sm font-medium">Sorry, delivery not available to this pincode</span>
                     </div>
                   )}
                 </div>
@@ -567,85 +546,82 @@ export default function ImprovedProductDetailPage() {
             {/* Quantity and Actions */}
             <div className="space-y-4">
               <div className="flex items-center gap-4">
-                <span className="font-medium text-gray-700 text-sm lg:text-base">Quantity:</span>
+                <span className="font-medium text-gray-700">Quantity:</span>
                 <div className="flex items-center border-2 border-gray-200 rounded-lg overflow-hidden">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="p-2 lg:p-3 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                    className="p-3 hover:bg-gray-100 transition-colors disabled:opacity-50"
                     disabled={quantity <= 1}
                   >
-                    <Minus className="h-3.5 lg:h-4 w-3.5 lg:w-4" />
+                    <Minus className="h-4 w-4" />
                   </button>
-                  <span className="px-4 lg:px-6 py-2 lg:py-3 min-w-[50px] lg:min-w-[60px] text-center font-semibold text-sm lg:text-base border-x-2 border-gray-200">
+                  <span className="px-6 py-3 min-w-[60px] text-center font-semibold border-x-2 border-gray-200">
                     {quantity}
                   </span>
                   <button
                     onClick={() => setQuantity(Math.min(product.stock_quantity || 99, quantity + 1))}
-                    className="p-2 lg:p-3 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                    className="p-3 hover:bg-gray-100 transition-colors disabled:opacity-50"
                     disabled={quantity >= (product.stock_quantity || 99)}
                   >
-                    <Plus className="h-3.5 lg:h-4 w-3.5 lg:w-4" />
+                    <Plus className="h-4 w-4" />
                   </button>
                 </div>
               </div>
 
-              {/* Action Buttons - Stack on mobile */}
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex gap-3">
                 <Button
-                  className="flex-1 h-12 lg:h-14 text-sm lg:text-base font-semibold bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg"
+                  className="flex-1 h-14 text-base font-semibold bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg"
                   onClick={handleAddToCart}
                   disabled={!product.in_stock || addingToCart}
                 >
                   {addingToCart ? (
-                    <Loader2 className="h-4 lg:h-5 w-4 lg:w-5 animate-spin" />
+                    <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     <>
-                      <ShoppingCart className="h-4 lg:h-5 w-4 lg:w-5 mr-2" />
+                      <ShoppingCart className="h-5 w-5 mr-2" />
                       Add to Cart
                     </>
                   )}
                 </Button>
                 
                 <Button
-                  className="flex-1 h-12 lg:h-14 text-sm lg:text-base font-semibold bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg"
+                  className="flex-1 h-14 text-base font-semibold bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg"
                   onClick={handleBuyNow}
                   disabled={!product.in_stock || buyingNow}
                 >
                   {buyingNow ? (
-                    <Loader2 className="h-4 lg:h-5 w-4 lg:w-5 animate-spin" />
+                    <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     <>
-                      <Zap className="h-4 lg:h-5 w-4 lg:w-5 mr-2" />
+                      <Zap className="h-5 w-5 mr-2" />
                       Buy Now
                     </>
                   )}
                 </Button>
                 
-                <div className="flex gap-3 sm:gap-0">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-12 lg:h-14 w-12 lg:w-14 border-2 flex-1 sm:flex-none"
-                    onClick={handleWishlistToggle}
-                  >
-                    <Heart className={`h-4 lg:h-5 w-4 lg:w-5 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`} />
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-12 lg:h-14 w-12 lg:w-14 border-2 flex-1 sm:flex-none"
-                    onClick={handleShare}
-                  >
-                    <Share2 className="h-4 lg:h-5 w-4 lg:w-5" />
-                  </Button>
-                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-14 w-14 border-2"
+                  onClick={handleWishlistToggle}
+                >
+                  <Heart className={`h-5 w-5 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`} />
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-14 w-14 border-2"
+                  onClick={handleShare}
+                >
+                  <Share2 className="h-5 w-5" />
+                </Button>
               </div>
             </div>
 
-            {/* Key Features - 2x2 grid on mobile */}
-            <div className="bg-blue-50 rounded-xl p-4 lg:p-5">
-              <h3 className="font-semibold text-gray-900 mb-3 text-sm lg:text-base">Why Choose This Product?</h3>
+            {/* Key Features */}
+            <div className="bg-blue-50 rounded-xl p-5">
+              <h3 className="font-semibold text-gray-900 mb-3">Why Choose This Product?</h3>
               <div className="grid grid-cols-2 gap-3">
                 {[
                   { icon: Package, text: 'Premium Quality' },
@@ -653,11 +629,11 @@ export default function ImprovedProductDetailPage() {
                   { icon: CreditCard, text: 'Secure Payment' },
                   { icon: RotateCcw, text: '7-Day Return' }
                 ].map((feature, index) => (
-                  <div key={index} className="flex items-center gap-2 lg:gap-3">
-                    <div className="bg-white rounded-lg p-1.5 lg:p-2">
-                      <feature.icon className="h-3.5 lg:h-4 w-3.5 lg:w-4 text-blue-600" />
+                  <div key={index} className="flex items-center gap-3">
+                    <div className="bg-white rounded-lg p-2">
+                      <feature.icon className="h-4 w-4 text-blue-600" />
                     </div>
-                    <span className="text-xs lg:text-sm text-gray-700 font-medium">{feature.text}</span>
+                    <span className="text-sm text-gray-700 font-medium">{feature.text}</span>
                   </div>
                 ))}
               </div>
@@ -666,14 +642,14 @@ export default function ImprovedProductDetailPage() {
         </div>
 
         {/* Product Description Tabs */}
-        <div className="mt-8 lg:mt-12 bg-white rounded-xl lg:rounded-2xl shadow-sm overflow-hidden">
-          <div className="border-b overflow-x-auto">
-            <div className="flex min-w-max">
+        <div className="mt-12 bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="border-b">
+            <div className="flex">
               {['description', 'specifications', 'reviews'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setSelectedTab(tab)}
-                  className={`px-4 lg:px-6 py-3 lg:py-4 text-xs lg:text-sm font-semibold capitalize transition-all relative whitespace-nowrap ${
+                  className={`px-6 py-4 text-sm font-semibold capitalize transition-all relative ${
                     selectedTab === tab
                       ? 'text-primary bg-primary/5 border-b-2 border-primary'
                       : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
@@ -681,7 +657,7 @@ export default function ImprovedProductDetailPage() {
                 >
                   {tab}
                   {tab === 'reviews' && (
-                    <span className="ml-2 text-xs bg-gray-200 text-gray-600 px-1.5 lg:px-2 py-0.5 rounded-full">
+                    <span className="ml-2 text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
                       {product.total_reviews || 0}
                     </span>
                   )}
@@ -690,10 +666,10 @@ export default function ImprovedProductDetailPage() {
             </div>
           </div>
 
-          <div className="p-4 lg:p-6">
+          <div className="p-6">
             {selectedTab === 'description' && (
               <div className="space-y-4">
-                <div className={`prose max-w-none text-gray-600 text-sm lg:text-base ${!showFullDescription ? 'line-clamp-5' : ''}`}>
+                <div className={`prose max-w-none text-gray-600 ${!showFullDescription ? 'line-clamp-5' : ''}`}>
                   <p className="leading-relaxed">
                     {product.description || product.short_description || 'No description available.'}
                   </p>
@@ -701,12 +677,12 @@ export default function ImprovedProductDetailPage() {
                 {product.description && product.description.length > 300 && (
                   <button
                     onClick={() => setShowFullDescription(!showFullDescription)}
-                    className="text-primary font-medium text-xs lg:text-sm flex items-center gap-1 hover:underline"
+                    className="text-primary font-medium text-sm flex items-center gap-1 hover:underline"
                   >
                     {showFullDescription ? (
-                      <>Show less <ChevronUp className="h-3.5 lg:h-4 w-3.5 lg:w-4" /></>
+                      <>Show less <ChevronUp className="h-4 w-4" /></>
                     ) : (
-                      <>Read more <ChevronDown className="h-3.5 lg:h-4 w-3.5 lg:w-4" /></>
+                      <>Read more <ChevronDown className="h-4 w-4" /></>
                     )}
                   </button>
                 )}
@@ -714,7 +690,7 @@ export default function ImprovedProductDetailPage() {
             )}
 
             {selectedTab === 'specifications' && (
-              <div className="grid md:grid-cols-2 gap-4 lg:gap-6">
+              <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-3">
                   {[
                     ['SKU', product.sku || 'N/A'],
@@ -724,7 +700,7 @@ export default function ImprovedProductDetailPage() {
                     ['Stock', product.manage_stock ? `${product.stock_quantity || 0} units` : 'Available'],
                     ['Status', product.status],
                   ].map(([label, value]) => (
-                    <div key={label} className="flex justify-between py-2 border-b text-sm lg:text-base">
+                    <div key={label} className="flex justify-between py-2 border-b">
                       <span className="text-gray-600">{label}:</span>
                       <span className="font-medium text-gray-900">{value}</span>
                     </div>
@@ -735,12 +711,12 @@ export default function ImprovedProductDetailPage() {
 
             {selectedTab === 'reviews' && (
               <div className="space-y-4">
-                <div className="text-center py-8 lg:py-12">
-                  <div className="inline-flex items-center justify-center w-14 h-14 lg:w-16 lg:h-16 bg-gray-100 rounded-full mb-4">
-                    <Star className="h-7 lg:h-8 w-7 lg:w-8 text-gray-400" />
+                <div className="text-center py-12">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                    <Star className="h-8 w-8 text-gray-400" />
                   </div>
-                  <p className="text-gray-500 mb-4 text-sm lg:text-base">No reviews yet. Be the first to review this product!</p>
-                  <Button className="h-9 lg:h-10 text-sm lg:text-base">Write a Review</Button>
+                  <p className="text-gray-500 mb-4">No reviews yet. Be the first to review this product!</p>
+                  <Button>Write a Review</Button>
                 </div>
               </div>
             )}
@@ -748,78 +724,15 @@ export default function ImprovedProductDetailPage() {
         </div>
 
         {/* Frequently Bought Together */}
-        <div className="mt-6 lg:mt-8">
+        <div className="mt-8">
           <FrequentlyBoughtTogether productId={params.id as string} mainProduct={product} />
         </div>
 
         {/* Related Products */}
-        <div className="mt-6 lg:mt-8">
+        <div className="mt-8">
           <RelatedProducts productId={params.id as string} categoryId={product.category?.id} />
         </div>
       </div>
-
-      {/* Lightbox Modal */}
-      {showLightbox && product.images && (
-        <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4" onClick={() => setShowLightbox(false)}>
-          <button
-            className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors z-50"
-            onClick={() => setShowLightbox(false)}
-          >
-            <X className="h-6 lg:h-8 w-6 lg:w-8" />
-          </button>
-          
-          <div className="relative max-w-5xl w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-            {/* Previous Button */}
-            {product.images.length > 1 && (
-              <button
-                onClick={() => setLightboxImageIndex(prev => prev > 0 ? prev - 1 : product.images!.length - 1)}
-                className="absolute left-2 lg:left-8 bg-white/10 backdrop-blur-sm text-white rounded-full p-2 lg:p-3 hover:bg-white/20 transition-colors z-50"
-              >
-                <ChevronLeft className="h-5 lg:h-6 w-5 lg:w-6" />
-              </button>
-            )}
-            
-            {/* Main Lightbox Image */}
-            <div className="relative w-full h-[60vh] lg:h-[80vh]">
-              <Image
-                src={getProductImage(lightboxImageIndex)}
-                alt={product.name}
-                fill
-                className="object-contain"
-                sizes="(max-width: 768px) 100vw, 80vw"
-                priority
-              />
-            </div>
-            
-            {/* Next Button */}
-            {product.images.length > 1 && (
-              <button
-                onClick={() => setLightboxImageIndex(prev => prev < product.images!.length - 1 ? prev + 1 : 0)}
-                className="absolute right-2 lg:right-8 bg-white/10 backdrop-blur-sm text-white rounded-full p-2 lg:p-3 hover:bg-white/20 transition-colors z-50"
-              >
-                <ChevronRight className="h-5 lg:h-6 w-5 lg:w-6" />
-              </button>
-            )}
-            
-            {/* Thumbnail Strip */}
-            {product.images.length > 1 && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 p-2 lg:p-3 bg-black/50 backdrop-blur-sm rounded-lg">
-                {product.images.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setLightboxImageIndex(index)}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      lightboxImageIndex === index
-                        ? 'bg-white w-6 lg:w-8'
-                        : 'bg-white/50 hover:bg-white/70'
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
