@@ -10,7 +10,8 @@
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
       "Bash(npx next build:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(npx eslint:*)"
     ],
     "deny": [],
     "ask": []

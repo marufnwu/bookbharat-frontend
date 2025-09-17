@@ -159,11 +159,11 @@ export default function CategoryPage() {
           <h3 className="text-lg font-semibold mb-4">Browse by Topic</h3>
           <div className="flex flex-wrap gap-3">
             {category.children.map((child) => (
-              <Badge key={child.id} variant="outline" className="px-4 py-2 cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors" asChild>
-                <Link href={`/categories/${child.slug}`}>
+              <Link key={child.id} href={`/categories/${child.slug}`}>
+                <Badge variant="outline" className="px-4 py-2 cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors">
                   {child.name}
-                </Link>
-              </Badge>
+                </Badge>
+              </Link>
             ))}
           </div>
         </div>

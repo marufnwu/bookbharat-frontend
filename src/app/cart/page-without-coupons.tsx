@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useConfig } from '@/contexts/ConfigContext';
 import { useCartStore } from '@/stores/cart';
@@ -16,22 +16,19 @@ import {
   Trash2,
   ShoppingBag,
   Loader2,
-  X,
-  CheckCircle,
   ShoppingCart
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { BundleDiscountDisplay } from '@/components/cart/BundleDiscountDisplay';
+import { OrderSummaryCard } from '@/components/cart/OrderSummaryCard';
 import { useCartSummary } from '@/hooks/useCartSummary';
 
 export default function ImprovedCartPage() {
   const { siteConfig } = useConfig();
-  const [promoCode, setPromoCode] = useState('');
-  const [applyingPromo, setApplyingPromo] = useState(false);
   const [updating, setUpdating] = useState<number | null>(null);
   const [removing, setRemoving] = useState<number | null>(null);
   const [clearingCart, setClearingCart] = useState(false);
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [removingCoupon, setRemovingCoupon] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
   
@@ -102,19 +99,17 @@ export default function ImprovedCartPage() {
     }
   };
 
-  const applyPromoCode = async () => {
-    if (!promoCode.trim()) return;
-    
+  const handleApplyCoupon = async (code: string) => {
     try {
-      setApplyingPromo(true);
-      await applyCoupon(promoCode.toUpperCase());
-      setPromoCode('');
-      toast.success('Promo code applied successfully!');
+      setApplyingCoupon(true);
+      await applyCoupon(code);
+      toast.success('Coupon applied successfully!');
     } catch (error: any) {
       console.error('Failed to apply coupon:', error);
       toast.error(error?.response?.data?.message || 'Invalid promo code');
+      throw error; // Re-throw to let OrderSummaryCard handle it
     } finally {
-      setApplyingPromo(false);
+      setApplyingCoupon(false);
     }
   };
 
@@ -126,6 +121,7 @@ export default function ImprovedCartPage() {
     } catch (error) {
       console.error('Failed to remove coupon:', error);
       toast.error('Failed to remove coupon');
+      throw error; // Re-throw to let OrderSummaryCard handle it
     } finally {
       setRemovingCoupon(false);
     }
@@ -330,233 +326,56 @@ export default function ImprovedCartPage() {
           </div>
 
           {/* Order Summary - Desktop Sidebar */}
-          <div className="hidden lg:block space-y-6">
-            {/* Applied Coupon */}
-            {cartSummary.couponCode && cartSummary.couponDiscount > 0 && (
-              <Card className="border-green-200 bg-green-50">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      <div>
-                        <span className="font-semibold text-green-800">Coupon Applied</span>
-                        <Badge variant="secondary" className="ml-2 bg-green-200 text-green-800">
-                          {cartSummary.couponCode}
-                        </Badge>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleRemoveCoupon}
-                      disabled={removingCoupon}
-                      className="h-6 w-6 text-green-600 hover:text-green-800"
-                    >
-                      {removingCoupon ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <X className="h-3 w-3" />
-                      )}
-                    </Button>
-                  </div>
-                  <p className="text-sm text-green-600 mt-1">
-                    Saved {cartSummary.currencySymbol}{cartSummary.couponDiscount.toFixed(2)}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Bundle Discount */}
-            <BundleDiscountDisplay
-              bundleDiscount={cartSummary.bundleDiscount}
-              bundleDetails={cartSummary.bundleDetails}
-              discountMessage={cartSummary.discountMessage}
-              currencySymbol={cartSummary.currencySymbol}
-              variant="desktop"
+          <div className="hidden lg:block">
+            <OrderSummaryCard
+              summary={{
+                subtotal: cartSummary.subtotal,
+                couponDiscount: cartSummary.couponDiscount,
+                bundleDiscount: cartSummary.bundleDiscount,
+                discountedSubtotal: cartSummary.discountedSubtotal,
+                shippingCost: 0, // Free shipping shown in cart
+                tax: cartSummary.tax,
+                total: cartSummary.total,
+                currencySymbol: cartSummary.currencySymbol,
+                couponCode: cartSummary.couponCode,
+                bundleDetails: cartSummary.bundleDetails,
+                discountMessage: cartSummary.discountMessage,
+                itemCount: cart.total_items
+              }}
+              onApplyCoupon={handleApplyCoupon}
+              onRemoveCoupon={handleRemoveCoupon}
+              applyCouponLoading={applyingCoupon}
+              removeCouponLoading={removingCoupon}
+              variant="cart"
+              showCheckoutButton={true}
             />
-
-            {/* Promo Code */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center">
-                  Apply Coupon
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Enter coupon code"
-                    value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                    className="flex-1 px-3 py-2 border border-input rounded-md text-sm"
-                    disabled={applyingPromo}
-                  />
-                  <Button 
-                    onClick={applyPromoCode} 
-                    disabled={applyingPromo || !promoCode.trim()}
-                    size="sm"
-                  >
-                    {applyingPromo ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      'Apply'
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Order Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Order Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Subtotal ({cart.total_items} items)</span>
-                    <span>{cartSummary.currencySymbol}{cartSummary.subtotal.toFixed(2)}</span>
-                  </div>
-                  {cartSummary.couponDiscount > 0 && (
-                    <div className="flex justify-between text-sm text-green-600">
-                      <span>Coupon discount</span>
-                      <span>-{cartSummary.currencySymbol}{cartSummary.couponDiscount.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {cartSummary.bundleDiscount > 0 && (
-                    <div className="flex justify-between text-sm text-blue-600">
-                      <span>Bundle discount</span>
-                      <span>-{cartSummary.currencySymbol}{cartSummary.bundleDiscount.toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-sm">
-                    <span>Shipping</span>
-                    <span className="text-muted-foreground">Calculated at checkout</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Tax (GST 18%)</span>
-                    <span>{cartSummary.currencySymbol}{cartSummary.tax.toFixed(2)}</span>
-                  </div>
-                </div>
-                
-                <hr />
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-bold">Total</span>
-                  <span className="text-xl font-bold text-primary">
-                    {cartSummary.currencySymbol}{cartSummary.total.toFixed(2)}
-                  </span>
-                </div>
-
-                <Button className="w-full" size="lg" asChild>
-                  <Link href="/checkout">
-                    <ShoppingCart className="h-5 w-5 mr-2" />
-                    Proceed to Checkout
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
 
       {/* Mobile Sticky Bottom Summary */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 z-40">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center justify-between text-sm">
-              <span>Subtotal:</span>
-              <span>{cartSummary.currencySymbol}{cartSummary.subtotal.toFixed(2)}</span>
-            </div>
-            {(cartSummary.couponDiscount > 0 || cartSummary.bundleDiscount > 0) && (
-              <div className="flex items-center justify-between text-xs text-green-600">
-                <span>Discount:</span>
-                <span>-{cartSummary.currencySymbol}{(cartSummary.couponDiscount + cartSummary.bundleDiscount).toFixed(2)}</span>
-              </div>
-            )}
-            <div className="flex items-center justify-between text-base font-bold border-t pt-1 mt-1">
-              <span>Total:</span>
-              <span className="text-primary">{cartSummary.currencySymbol}{cartSummary.total.toFixed(2)}</span>
-            </div>
-          </div>
-          <Button asChild className="flex-shrink-0 px-6">
-            <Link href="/checkout">
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Checkout
-            </Link>
-          </Button>
-        </div>
-        
-        {/* Mobile Coupon Section */}
-        {(!cartSummary.couponCode || cartSummary.couponDiscount === 0) && (
-          <div className="mt-3 pt-3 border-t border-border">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Coupon code"
-                value={promoCode}
-                onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                className="flex-1 px-3 py-2 border border-input rounded-md text-sm h-9"
-                disabled={applyingPromo}
-              />
-              <Button 
-                onClick={applyPromoCode} 
-                disabled={applyingPromo || !promoCode.trim()}
-                size="sm"
-                className="px-4"
-              >
-                {applyingPromo ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  'Apply'
-                )}
-              </Button>
-            </div>
-          </div>
-        )}
-        
-        {/* Applied Coupon - Mobile */}
-        {cartSummary.couponCode && cartSummary.couponDiscount > 0 && (
-          <div className="mt-3 pt-3 border-t border-border">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-3 h-3 text-green-600" />
-                <span className="text-xs text-green-800 font-medium">Coupon Applied</span>
-                <Badge variant="secondary" className="text-[9px] bg-green-200 text-green-800">
-                  {cartSummary.couponCode}
-                </Badge>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleRemoveCoupon}
-                disabled={removingCoupon}
-                className="h-6 w-6 text-green-600"
-              >
-                {removingCoupon ? (
-                  <Loader2 className="h-2 w-2 animate-spin" />
-                ) : (
-                  <X className="h-2 w-2" />
-                )}
-              </Button>
-            </div>
-          </div>
-        )}
-        
-        {/* Bundle Discount - Mobile */}
-        {cartSummary.bundleDiscount > 0 && (
-          <div className="mt-3 pt-3 border-t border-border">
-            <BundleDiscountDisplay
-              bundleDiscount={cartSummary.bundleDiscount}
-              bundleDetails={cartSummary.bundleDetails}
-              discountMessage={cartSummary.discountMessage}
-              currencySymbol={cartSummary.currencySymbol}
-              variant="mobile"
-            />
-          </div>
-        )}
-      </div>
+      <OrderSummaryCard
+        summary={{
+          subtotal: cartSummary.subtotal,
+          couponDiscount: cartSummary.couponDiscount,
+          bundleDiscount: cartSummary.bundleDiscount,
+          discountedSubtotal: cartSummary.discountedSubtotal,
+          shippingCost: 0,
+          tax: cartSummary.tax,
+          total: cartSummary.total,
+          currencySymbol: cartSummary.currencySymbol,
+          couponCode: cartSummary.couponCode,
+          bundleDetails: cartSummary.bundleDetails,
+          discountMessage: cartSummary.discountMessage,
+          itemCount: cart.total_items
+        }}
+        onApplyCoupon={handleApplyCoupon}
+        onRemoveCoupon={handleRemoveCoupon}
+        applyCouponLoading={applyingCoupon}
+        removeCouponLoading={removingCoupon}
+        variant="mobile"
+        showCheckoutButton={true}
+      />
     </div>
   );
 }

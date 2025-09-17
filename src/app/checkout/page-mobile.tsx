@@ -20,7 +20,6 @@ import { cartApi, orderApi, shippingApi, addressApi, paymentApi } from '@/lib/ap
 import { Cart, Order, Address } from '@/types';
 import AddressManager from '@/components/AddressManager';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { OrderSummaryCard } from '@/components/cart/OrderSummaryCard';
 import { 
   BookOpen,
   CreditCard,
@@ -175,9 +174,7 @@ export default function CheckoutPage() {
   };
 
   const isStep3Valid = () => {
-    const isValid = formValues.paymentMethod && formValues.paymentMethod.trim() !== '';
-    console.log('🔍 Step 3 validation - Payment Method:', formValues.paymentMethod, 'Is Valid:', isValid);
-    return isValid;
+    return formValues.paymentMethod && formValues.paymentMethod.trim() !== '';
   };
 
   // Get current step validity
@@ -256,15 +253,6 @@ export default function CheckoutPage() {
           if (defaultShipping.postal_code && defaultShipping.postal_code.length === 6) {
             calculateShipping(defaultShipping.postal_code);
           }
-        }
-        
-        // Auto-select default billing address
-        const defaultBilling = userAddresses.find(
-          (addr: Address) => addr.type === 'billing' && addr.is_default
-        );
-        if (defaultBilling) {
-          setSelectedBillingAddressId(defaultBilling.id);
-          setSelectedBillingAddress(defaultBilling);
         }
       }
     } catch (error) {
@@ -478,13 +466,12 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleApplyCoupon = async (code?: string) => {
-    const codeToApply = code || couponCode;
-    if (!codeToApply.trim()) return;
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
     
     try {
       setApplyCouponLoading(true);
-      await applyCoupon(codeToApply);
+      await applyCoupon(couponCode);
       setShowCouponField(false);
       setCouponCode('');
     } catch (error) {
@@ -503,25 +490,6 @@ export default function CheckoutPage() {
   };
 
   const validateStep1 = () => {
-    if (isAuthenticated) {
-      // For authenticated users, just check address selection and email
-      if (!selectedShippingAddress) {
-        setError('Please select a delivery address');
-        return false;
-      }
-      
-      const formData = getValues();
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!formData.email || !emailRegex.test(formData.email)) {
-        setError('Please enter a valid email address for order confirmation');
-        return false;
-      }
-      
-      setError(null);
-      return true;
-    }
-    
-    // For guest users, validate all form fields
     const requiredFields = ['email', 'firstName', 'lastName', 'phone', 'pincode', 'area', 'address', 'city', 'district', 'state'];
     const formData = getValues();
     const missingFields = requiredFields.filter(field => !formData[field] || formData[field].trim() === '');
@@ -564,18 +532,6 @@ export default function CheckoutPage() {
   const validateStep2 = () => {
     if (sameAsBilling) return true;
     
-    if (isAuthenticated) {
-      // For authenticated users, just check billing address selection
-      if (!selectedBillingAddress) {
-        setError('Please select a billing address');
-        return false;
-      }
-      
-      setError(null);
-      return true;
-    }
-    
-    // For guest users, validate all billing form fields
     const requiredFields = ['billing_firstName', 'billing_lastName', 'billing_phone', 'billing_pincode', 'billing_area', 'billing_address', 'billing_city', 'billing_district', 'billing_state'];
     const formData = getValues();
     const missingFields = requiredFields.filter(field => !formData[field] || formData[field].trim() === '');
@@ -657,9 +613,7 @@ export default function CheckoutPage() {
   const couponDiscount = cart?.summary?.coupon_discount || 0;
   const activeCouponCode = cart?.summary?.coupon_code || null;
   const discountedSubtotal = cart?.summary?.discounted_subtotal || (subtotal - couponDiscount);
-  const hasValidShippingAddress = isAuthenticated ? 
-    selectedShippingAddress?.postal_code && selectedShippingAddress?.state && selectedShippingAddress?.city :
-    getValues('pincode') && getValues('state') && getValues('city');
+  const hasValidShippingAddress = getValues('pincode') && getValues('state') && getValues('city');
   const calculatedShippingCost = hasValidShippingAddress ? (shippingCost || 0) : 0;
   const tax = cart?.summary?.tax_amount || Math.round(discountedSubtotal * 0.18);
   const total = discountedSubtotal + calculatedShippingCost + tax;
@@ -693,16 +647,7 @@ export default function CheckoutPage() {
   const selectedPaymentMethod = watch('paymentMethod');
 
   const onSubmit = async (data: CheckoutForm) => {
-    console.log('🚀 Place Order clicked, form data:', data);
-    console.log('🛒 Cart:', cart);
-    console.log('👤 Is Authenticated:', isAuthenticated);
-    console.log('📍 Selected Shipping Address:', selectedShippingAddress);
-    console.log('📍 Selected Billing Address:', selectedBillingAddress);
-    
-    if (!cart) {
-      console.error('❌ No cart found');
-      return;
-    }
+    if (!cart) return;
     
     try {
       setIsProcessing(true);
@@ -717,9 +662,9 @@ export default function CheckoutPage() {
         })),
         customer: {
           email: data.email,
-          first_name: isAuthenticated && selectedShippingAddress ? selectedShippingAddress.first_name : data.firstName,
-          last_name: isAuthenticated && selectedShippingAddress ? selectedShippingAddress.last_name : data.lastName,
-          phone: isAuthenticated && selectedShippingAddress ? selectedShippingAddress.phone : data.phone
+          first_name: data.firstName,
+          last_name: data.lastName,
+          phone: data.phone
         },
         // Send address IDs for authenticated users, address objects for guests
         ...(isAuthenticated && selectedShippingAddress ? {
@@ -769,10 +714,7 @@ export default function CheckoutPage() {
         coupon_discount: couponDiscount
       };
       
-      console.log('📦 Order Data being sent:', orderData);
-      
       const response = await orderApi.createOrder(orderData);
-      console.log('✅ Order API Response:', response);
       
       if (response?.success || response?.data?.id) {
         await cartApi.clearCart();
@@ -803,7 +745,7 @@ export default function CheckoutPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-4 lg:py-8">
+      <div className="container mx-auto px-4 py-8">
         <div className="animate-pulse space-y-6">
           <div className="h-8 bg-muted rounded w-1/4"></div>
           {[...Array(3)].map((_, i) => (
@@ -857,9 +799,9 @@ export default function CheckoutPage() {
   return (
     <ProtectedRoute>
     <div className="bg-gradient-to-br from-primary/5 via-background to-accent/5 min-h-screen">
-      <div className="container mx-auto px-4 py-4 lg:py-8">
+      <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
-        <nav className="text-sm text-muted-foreground mb-4 lg:mb-6">
+        <nav className="text-sm text-muted-foreground mb-6">
           <Link href="/" className="hover:text-primary">Home</Link>
           <span className="mx-2">/</span>
           <Link href="/cart" className="hover:text-primary">Cart</Link>
@@ -868,10 +810,10 @@ export default function CheckoutPage() {
         </nav>
 
         {/* Progress Indicator */}
-        <Card className="mb-6 lg:mb-10">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center text-base lg:text-lg">
-              <CheckCircle className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+        <Card className="mb-10">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <CheckCircle className="h-5 w-5 mr-2" />
               Checkout Progress
             </CardTitle>
           </CardHeader>
@@ -890,7 +832,7 @@ export default function CheckoutPage() {
                 return (
                   <div key={step.id} className="flex flex-col items-center">
                     <div
-                      className={`w-8 h-8 lg:w-10 lg:h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
                         step.completed 
                           ? 'bg-primary text-primary-foreground' 
                           : step.id === currentStep
@@ -901,15 +843,15 @@ export default function CheckoutPage() {
                       }`}
                     >
                       {step.completed ? (
-                        <Check className="h-4 w-4 lg:h-5 lg:w-5" />
+                        <Check className="h-5 w-5" />
                       ) : step.skip ? (
                         <span className="text-xs">Skip</span>
                       ) : (
-                        <Icon className="h-3 w-3 lg:h-4 lg:w-4" />
+                        <Icon className="h-4 w-4" />
                       )}
                     </div>
-                    <div className="mt-2 lg:mt-3 text-center min-w-[80px] lg:min-w-[100px]">
-                      <div className={`text-xs lg:text-sm font-medium transition-colors duration-300 ${
+                    <div className="mt-3 text-center min-w-[100px]">
+                      <div className={`text-sm font-medium transition-colors duration-300 ${
                         step.id === currentStep 
                           ? 'text-primary' 
                           : step.completed 
@@ -938,25 +880,23 @@ export default function CheckoutPage() {
           </CardContent>
         </Card>
 
-        <div className="grid lg:grid-cols-3 gap-4 lg:gap-8">
+        <div className="grid lg:grid-cols-3 gap-8">
           {/* Checkout Form */}
-          <div className="lg:col-span-2 space-y-4 lg:space-y-6">
-            
-
-            <form id="checkout-form" onSubmit={handleSubmit(onSubmit)}>
+          <div className="lg:col-span-2 space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)}>
               
               {/* STEP 1: SHIPPING DETAILS */}
               {currentStep === 1 && (
-                <div className="space-y-4 lg:space-y-6">
+                <div className="space-y-6">
                   
                   {/* Guest Login Prompt */}
                   {!isAuthenticated && (
                     <Card className="border-primary/20 bg-primary/5">
-                      <CardHeader className="pb-3 lg:pb-4">
-                        <div className="flex flex-col space-y-3 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
                           <div className="flex items-center">
-                            <User className="h-4 w-4 lg:h-5 lg:w-5 text-primary mr-2" />
-                            <CardTitle className="text-primary text-sm lg:text-base">Sign In for Faster Checkout</CardTitle>
+                            <User className="h-5 w-5 text-primary mr-2" />
+                            <CardTitle className="text-primary">Sign In for Faster Checkout</CardTitle>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Button variant="outline" size="sm" asChild>
@@ -968,18 +908,18 @@ export default function CheckoutPage() {
                           </div>
                         </div>
                       </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4 text-sm">
+                      <CardContent>
+                        <div className="grid md:grid-cols-3 gap-4 text-sm">
                           <div className="flex items-center text-muted-foreground">
-                            <Check className="h-3 w-3 lg:h-4 lg:w-4 text-primary mr-2 flex-shrink-0" />
+                            <Check className="h-4 w-4 text-primary mr-2 flex-shrink-0" />
                             <span>Save your addresses</span>
                           </div>
                           <div className="flex items-center text-muted-foreground">
-                            <Check className="h-3 w-3 lg:h-4 lg:w-4 text-primary mr-2 flex-shrink-0" />
+                            <Check className="h-4 w-4 text-primary mr-2 flex-shrink-0" />
                             <span>Track your orders</span>
                           </div>
                           <div className="flex items-center text-muted-foreground">
-                            <Check className="h-3 w-3 lg:h-4 lg:w-4 text-primary mr-2 flex-shrink-0" />
+                            <Check className="h-4 w-4 text-primary mr-2 flex-shrink-0" />
                             <span>Faster future checkouts</span>
                           </div>
                         </div>
@@ -990,14 +930,14 @@ export default function CheckoutPage() {
                   {/* Contact Information - Only for guest users */}
                   {!isAuthenticated && (
                     <Card>
-                      <CardHeader className="pb-3 lg:pb-4">
-                        <CardTitle className="flex items-center text-sm lg:text-base">
-                          <Mail className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Mail className="h-5 w-5 mr-2" />
                           Contact Information
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-3 lg:space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                      <CardContent className="space-y-4">
+                        <div className="grid md:grid-cols-2 gap-4">
                           <Input
                             {...register('email')}
                             type="email"
@@ -1015,7 +955,7 @@ export default function CheckoutPage() {
                           />
                         </div>
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                        <div className="grid md:grid-cols-2 gap-4">
                           <Input
                             {...register('phone')}
                             type="tel"
@@ -1044,13 +984,13 @@ export default function CheckoutPage() {
                     />
                   ) : (
                     <Card>
-                      <CardHeader className="pb-3 lg:pb-4">
-                        <CardTitle className="flex items-center text-sm lg:text-base">
-                          <MapPin className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <MapPin className="h-5 w-5 mr-2" />
                           Delivery Address
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-3 lg:space-y-4">
+                      <CardContent className="space-y-4">
                       
                       {/* Pincode Field */}
                       <div className="space-y-2">
@@ -1097,7 +1037,7 @@ export default function CheckoutPage() {
                                 <p className="font-medium text-primary">
                                   ✅ We deliver to {pincodeInfo.city}, {pincodeInfo.state}
                                 </p>
-                                <div className="flex flex-wrap items-center gap-3 lg:gap-4 text-xs text-muted-foreground">
+                                <div className="flex items-center space-x-4 text-xs text-muted-foreground">
                                   <div className="flex items-center">
                                     <Clock className="h-3 w-3 mr-1" />
                                     {estimatedDelivery}
@@ -1122,7 +1062,7 @@ export default function CheckoutPage() {
                       </div>
 
                       {/* Address Fields */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                      <div className="grid md:grid-cols-2 gap-4">
                         <Input
                           {...register('area')}
                           label="Village/City/Area"
@@ -1147,7 +1087,7 @@ export default function CheckoutPage() {
                         required
                       />
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                      <div className="grid md:grid-cols-2 gap-4">
                         <Input
                           {...register('houseNo')}
                           label="House/Flat No. (Optional)"
@@ -1162,7 +1102,7 @@ export default function CheckoutPage() {
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                      <div className="grid md:grid-cols-2 gap-4">
                         <Input
                           {...register('district')}
                           label="District"
@@ -1185,17 +1125,17 @@ export default function CheckoutPage() {
 
                       {/* Shipping Cost Display */}
                       {calculatedShippingCost > 0 && (
-                        <div className="bg-accent p-3 lg:p-4 rounded-lg">
+                        <div className="bg-accent p-4 rounded-lg">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
                               <Truck className="h-4 w-4 text-accent-foreground mr-2" />
                               <div>
-                                <p className="font-medium text-sm lg:text-base">Delivery Charges</p>
-                                <p className="text-xs lg:text-sm text-muted-foreground">Based on your location</p>
+                                <p className="font-medium">Delivery Charges</p>
+                                <p className="text-sm text-muted-foreground">Based on your location</p>
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className="text-lg lg:text-xl font-bold">
+                              <p className="text-xl font-bold">
                                 {currencySymbol}{calculatedShippingCost}
                               </p>
                             </div>
@@ -1208,7 +1148,7 @@ export default function CheckoutPage() {
 
                   {/* Billing Address Option */}
                   <Card>
-                    <CardContent className="p-3 lg:p-4">
+                    <CardContent className="p-4">
                       <div className="flex items-center space-x-3">
                         <input
                           type="checkbox"
@@ -1235,9 +1175,9 @@ export default function CheckoutPage() {
                     </div>
                   )}
 
-                  {/* Navigation - Desktop Only */}
-                  <div className="hidden lg:flex flex-col sm:flex-row gap-3 lg:gap-4 sm:justify-between sm:items-center">
-                    <Button type="button" variant="outline" asChild className="order-2 sm:order-1">
+                  {/* Navigation */}
+                  <div className="flex justify-between items-center">
+                    <Button type="button" variant="outline" asChild>
                       <Link href="/cart">
                         <ChevronLeft className="w-4 h-4 mr-2" />
                         Back to Cart
@@ -1247,7 +1187,6 @@ export default function CheckoutPage() {
                       type="button" 
                       onClick={handleContinueToNext}
                       disabled={!isCurrentStepValid()}
-                      className="order-1 sm:order-2"
                     >
                       Continue to {sameAsBilling ? 'Payment' : 'Billing Address'}
                       <ChevronRight className="w-4 h-4 ml-2" />
@@ -1258,7 +1197,7 @@ export default function CheckoutPage() {
 
               {/* STEP 2: BILLING ADDRESS */}
               {currentStep === 2 && !sameAsBilling && (
-                <div className="space-y-4 lg:space-y-6">
+                <div className="space-y-6">
                   {isAuthenticated ? (
                     <AddressManager
                       selectedAddress={selectedBillingAddress}
@@ -1266,14 +1205,14 @@ export default function CheckoutPage() {
                     />
                   ) : (
                     <Card>
-                      <CardHeader className="pb-3 lg:pb-4">
-                        <CardTitle className="flex items-center text-sm lg:text-base">
-                          <Home className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Home className="h-5 w-5 mr-2" />
                           Billing Address
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-3 lg:space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                      <CardContent className="space-y-4">
+                      <div className="grid md:grid-cols-2 gap-4">
                         <Input
                           {...register('billing_firstName')}
                           label="First Name"
@@ -1299,7 +1238,7 @@ export default function CheckoutPage() {
                         required
                       />
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                      <div className="grid md:grid-cols-2 gap-4">
                         <Input
                           {...register('billing_pincode')}
                           label="Pincode"
@@ -1324,7 +1263,7 @@ export default function CheckoutPage() {
                         required
                       />
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                      <div className="grid md:grid-cols-2 gap-4">
                         <Input
                           {...register('billing_city')}
                           label="City"
@@ -1352,9 +1291,8 @@ export default function CheckoutPage() {
                   </Card>
                   )}
 
-                  {/* Navigation - Desktop Only */}
-                  <div className="hidden lg:flex flex-col sm:flex-row gap-3 lg:gap-4 sm:justify-between sm:items-center">
-                    <Button type="button" variant="outline" onClick={prevStep} className="order-2 sm:order-1">
+                  <div className="flex justify-between items-center">
+                    <Button type="button" variant="outline" onClick={prevStep}>
                       <ChevronLeft className="w-4 h-4 mr-2" />
                       Back to Shipping
                     </Button>
@@ -1362,7 +1300,6 @@ export default function CheckoutPage() {
                       type="button" 
                       onClick={handleContinueToNext}
                       disabled={!isCurrentStepValid()}
-                      className="order-1 sm:order-2"
                     >
                       Continue to Payment
                       <ChevronRight className="w-4 h-4 ml-2" />
@@ -1373,24 +1310,24 @@ export default function CheckoutPage() {
 
               {/* STEP 3: PAYMENT & REVIEW */}
               {currentStep === 3 && (
-                <div className="space-y-4 lg:space-y-6">
+                <div className="space-y-6">
                   
                   {/* Payment Method */}
                   <Card>
-                    <CardHeader className="pb-3 lg:pb-4">
-                      <CardTitle className="flex items-center text-sm lg:text-base">
-                        <CreditCard className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <CreditCard className="h-5 w-5 mr-2" />
                         Payment Method
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3 lg:space-y-4">
-                      <div className="space-y-2 lg:space-y-3">
+                    <CardContent className="space-y-4">
+                      <div className="space-y-3">
                         {paymentMethods.map((method) => {
                           const Icon = method.icon;
                           return (
                             <label
                               key={method.id}
-                              className={`flex items-center p-3 lg:p-4 border rounded-lg cursor-pointer transition-colors ${
+                              className={`flex items-center p-4 border rounded-lg cursor-pointer transition-colors ${
                                 selectedPaymentMethod === method.id
                                   ? 'border-primary bg-primary/5'
                                   : 'border-border hover:bg-muted/50'
@@ -1402,10 +1339,10 @@ export default function CheckoutPage() {
                                 value={method.id}
                                 className="sr-only"
                               />
-                              <Icon className="h-4 w-4 lg:h-5 lg:w-5 mr-3 text-muted-foreground" />
+                              <Icon className="h-5 w-5 mr-3 text-muted-foreground" />
                               <div className="flex-1">
-                                <div className="font-medium text-sm lg:text-base">{method.name}</div>
-                                <div className="text-xs lg:text-sm text-muted-foreground">{method.description}</div>
+                                <div className="font-medium">{method.name}</div>
+                                <div className="text-sm text-muted-foreground">{method.description}</div>
                                 {method.advance_payment && method.advance_payment.required && (
                                   <div className="text-xs mt-1 text-orange-600">
                                     Advance: {currencySymbol}{method.advance_payment.amount.toFixed(2)} 
@@ -1450,16 +1387,15 @@ export default function CheckoutPage() {
                     </div>
                   )}
 
-                  {/* Navigation - Desktop Only */}
-                  <div className="hidden lg:flex flex-col sm:flex-row gap-3 lg:gap-4 sm:justify-between sm:items-center">
-                    <Button type="button" variant="outline" onClick={prevStep} className="order-2 sm:order-1">
+                  {/* Navigation */}
+                  <div className="flex justify-between items-center">
+                    <Button type="button" variant="outline" onClick={prevStep}>
                       <ChevronLeft className="w-4 h-4 mr-2" />
                       Back to {sameAsBilling ? 'Shipping' : 'Billing Address'}
                     </Button>
                     <Button 
                       type="submit" 
                       disabled={isProcessing || !isCurrentStepValid()}
-                      className="order-1 sm:order-2 w-full sm:w-auto"
                     >
                       {isProcessing ? (
                         <>
@@ -1479,53 +1415,177 @@ export default function CheckoutPage() {
             </form>
           </div>
 
-          {/* Order Summary - Desktop and Mobile */}
-          <div className="space-y-4 lg:space-y-6">
-            {/* Mobile Full Summary - Always Visible */}
-            <div className="lg:hidden">
-              <OrderSummaryCard
-                summary={{
-                  ...cart.summary,
-                  subtotal: subtotal,
-                  couponDiscount: couponDiscount,
-                  discountedSubtotal: discountedSubtotal,
-                  shippingCost: calculatedShippingCost,
-                  tax: tax,
-                  total: total,
-                  bundleDiscount: cart.summary?.bundleDiscount || 0,
-                  currencySymbol: currencySymbol,
-                  itemCount: cart?.total_items || 0
-                }}
-                onApplyCoupon={handleApplyCoupon}
-                onRemoveCoupon={handleRemoveCoupon}
-                applyCouponLoading={applyCouponLoading}
-                variant="checkout"
-                calculatingShipping={calculatingShipping}
-              />
-            </div>
+          {/* Order Summary */}
+          <div className="space-y-6">
+            
+            {/* Cart Items */}
+            <Card className="sticky top-4">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center">
+                    <ShoppingBag className="h-5 w-5 mr-2" />
+                    Order Summary
+                  </span>
+                  <Badge variant="secondary">
+                    {cart?.total_items || 0} items
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                
+                {/* Cart Items */}
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {cart.items.map((item) => (
+                    <div key={item.id} className="flex space-x-3 p-3 rounded-lg bg-muted/50">
+                      <div className="w-12 h-16 bg-background rounded flex items-center justify-center overflow-hidden">
+                        {item.product.images && item.product.images.length > 0 ? (
+                          <Image
+                            src={item.product.images[0].url}
+                            alt={item.product.name}
+                            width={48}
+                            height={64}
+                            className="object-cover w-full h-full"
+                          />
+                        ) : (
+                          <BookOpen className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-medium line-clamp-2">{item.product.name}</h4>
+                        <p className="text-xs text-muted-foreground">by {item.product.brand || 'Unknown Author'}</p>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-sm">Qty: {item.quantity}</span>
+                          <span className="font-medium text-sm">{currencySymbol}{item.total}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-            {/* Desktop Summary */}
-            <div className="hidden lg:block">
-              <OrderSummaryCard
-                summary={{
-                  ...cart.summary,
-                  subtotal: subtotal,
-                  couponDiscount: couponDiscount,
-                  discountedSubtotal: discountedSubtotal,
-                  shippingCost: calculatedShippingCost,
-                  tax: tax,
-                  total: total,
-                  bundleDiscount: cart.summary?.bundleDiscount || 0,
-                  currencySymbol: currencySymbol,
-                  itemCount: cart?.total_items || 0
-                }}
-                onApplyCoupon={handleApplyCoupon}
-                onRemoveCoupon={handleRemoveCoupon}
-                applyCouponLoading={applyCouponLoading}
-                variant="checkout"
-                calculatingShipping={calculatingShipping}
-              />
-            </div>
+                <hr />
+
+                {/* Coupon Section */}
+                <div className="space-y-3">
+                  {activeCouponCode ? (
+                    <div className="bg-primary/10 p-3 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <Gift className="h-4 w-4 text-primary mr-2" />
+                          <span className="text-sm font-medium">
+                            Coupon Applied: {activeCouponCode}
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRemoveCoupon}
+                          className="h-6 w-6 p-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {!showCouponField ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowCouponField(true)}
+                          className="w-full border-dashed"
+                        >
+                          <Percent className="h-4 w-4 mr-2" />
+                          Have a coupon code?
+                        </Button>
+                      ) : (
+                        <div className="flex space-x-2">
+                          <Input
+                            value={couponCode}
+                            onChange={(e) => setCouponCode(e.target.value)}
+                            placeholder="Enter coupon code"
+                            className="flex-1"
+                            onKeyPress={(e) => e.key === 'Enter' && handleApplyCoupon()}
+                          />
+                          <Button
+                            type="button"
+                            onClick={handleApplyCoupon}
+                            disabled={applyCouponLoading || !couponCode.trim()}
+                            size="sm"
+                          >
+                            {applyCouponLoading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              'Apply'
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {setShowCouponField(false); setCouponCode('');}}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Price Breakdown */}
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>{currencySymbol}{subtotal.toFixed(2)}</span>
+                  </div>
+                  
+                  {couponDiscount > 0 && (
+                    <div className="flex justify-between text-primary">
+                      <span>Discount ({activeCouponCode})</span>
+                      <span>-{currencySymbol}{couponDiscount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between">
+                    <span className="flex items-center">
+                      Shipping
+                      {calculatingShipping && (
+                        <Loader2 className="h-3 w-3 animate-spin ml-2" />
+                      )}
+                    </span>
+                    <span>
+                      {!hasValidShippingAddress ? (
+                        <span className="text-muted-foreground">TBD</span>
+                      ) : calculatedShippingCost === 0 ? (
+                        <span className="text-primary font-semibold">FREE</span>
+                      ) : (
+                        `${currencySymbol}${calculatedShippingCost.toFixed(2)}`
+                      )}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span>Tax (GST 18%)</span>
+                    <span>{currencySymbol}{tax.toFixed(2)}</span>
+                  </div>
+                  
+                  <hr />
+                  
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Total</span>
+                    <span>{currencySymbol}{total.toFixed(2)}</span>
+                  </div>
+                  
+                  {couponDiscount > 0 && (
+                    <div className="text-center text-sm text-primary bg-primary/10 p-2 rounded">
+                      🎉 You saved {currencySymbol}{couponDiscount.toFixed(2)}!
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Delivery & Security Info */}
             <div className="space-y-4">
@@ -1572,73 +1632,6 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
-
-      {/* Mobile Sticky Bottom Navigation - Buttons Only */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex gap-3">
-            {currentStep > 1 ? (
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={prevStep}
-                size="default"
-                className="flex-1"
-              >
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Back
-              </Button>
-            ) : (
-              <Button 
-                type="button" 
-                variant="outline" 
-                asChild
-                size="default"
-                className="flex-1"
-              >
-                <Link href="/cart">
-                  <ChevronLeft className="w-4 h-4 mr-1" />
-                  Cart
-                </Link>
-              </Button>
-            )}
-            
-            {currentStep === 3 ? (
-              <Button 
-                type="submit" 
-                disabled={isProcessing || !isCurrentStepValid()}
-                size="default"
-                className="flex-1"
-                form="checkout-form"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Lock className="h-4 w-4 mr-1" />
-                    Place Order
-                  </>
-                )}
-              </Button>
-            ) : (
-              <Button 
-                type="button" 
-                onClick={handleContinueToNext}
-                disabled={!isCurrentStepValid()}
-                size="default"
-                className="flex-1"
-              >
-                Continue
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
-
     </div>
     </ProtectedRoute>
   );

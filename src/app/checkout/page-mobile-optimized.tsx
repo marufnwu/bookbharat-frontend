@@ -175,9 +175,7 @@ export default function CheckoutPage() {
   };
 
   const isStep3Valid = () => {
-    const isValid = formValues.paymentMethod && formValues.paymentMethod.trim() !== '';
-    console.log('🔍 Step 3 validation - Payment Method:', formValues.paymentMethod, 'Is Valid:', isValid);
-    return isValid;
+    return formValues.paymentMethod && formValues.paymentMethod.trim() !== '';
   };
 
   // Get current step validity
@@ -256,15 +254,6 @@ export default function CheckoutPage() {
           if (defaultShipping.postal_code && defaultShipping.postal_code.length === 6) {
             calculateShipping(defaultShipping.postal_code);
           }
-        }
-        
-        // Auto-select default billing address
-        const defaultBilling = userAddresses.find(
-          (addr: Address) => addr.type === 'billing' && addr.is_default
-        );
-        if (defaultBilling) {
-          setSelectedBillingAddressId(defaultBilling.id);
-          setSelectedBillingAddress(defaultBilling);
         }
       }
     } catch (error) {
@@ -503,25 +492,6 @@ export default function CheckoutPage() {
   };
 
   const validateStep1 = () => {
-    if (isAuthenticated) {
-      // For authenticated users, just check address selection and email
-      if (!selectedShippingAddress) {
-        setError('Please select a delivery address');
-        return false;
-      }
-      
-      const formData = getValues();
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!formData.email || !emailRegex.test(formData.email)) {
-        setError('Please enter a valid email address for order confirmation');
-        return false;
-      }
-      
-      setError(null);
-      return true;
-    }
-    
-    // For guest users, validate all form fields
     const requiredFields = ['email', 'firstName', 'lastName', 'phone', 'pincode', 'area', 'address', 'city', 'district', 'state'];
     const formData = getValues();
     const missingFields = requiredFields.filter(field => !formData[field] || formData[field].trim() === '');
@@ -564,18 +534,6 @@ export default function CheckoutPage() {
   const validateStep2 = () => {
     if (sameAsBilling) return true;
     
-    if (isAuthenticated) {
-      // For authenticated users, just check billing address selection
-      if (!selectedBillingAddress) {
-        setError('Please select a billing address');
-        return false;
-      }
-      
-      setError(null);
-      return true;
-    }
-    
-    // For guest users, validate all billing form fields
     const requiredFields = ['billing_firstName', 'billing_lastName', 'billing_phone', 'billing_pincode', 'billing_area', 'billing_address', 'billing_city', 'billing_district', 'billing_state'];
     const formData = getValues();
     const missingFields = requiredFields.filter(field => !formData[field] || formData[field].trim() === '');
@@ -657,9 +615,7 @@ export default function CheckoutPage() {
   const couponDiscount = cart?.summary?.coupon_discount || 0;
   const activeCouponCode = cart?.summary?.coupon_code || null;
   const discountedSubtotal = cart?.summary?.discounted_subtotal || (subtotal - couponDiscount);
-  const hasValidShippingAddress = isAuthenticated ? 
-    selectedShippingAddress?.postal_code && selectedShippingAddress?.state && selectedShippingAddress?.city :
-    getValues('pincode') && getValues('state') && getValues('city');
+  const hasValidShippingAddress = getValues('pincode') && getValues('state') && getValues('city');
   const calculatedShippingCost = hasValidShippingAddress ? (shippingCost || 0) : 0;
   const tax = cart?.summary?.tax_amount || Math.round(discountedSubtotal * 0.18);
   const total = discountedSubtotal + calculatedShippingCost + tax;
@@ -693,16 +649,7 @@ export default function CheckoutPage() {
   const selectedPaymentMethod = watch('paymentMethod');
 
   const onSubmit = async (data: CheckoutForm) => {
-    console.log('🚀 Place Order clicked, form data:', data);
-    console.log('🛒 Cart:', cart);
-    console.log('👤 Is Authenticated:', isAuthenticated);
-    console.log('📍 Selected Shipping Address:', selectedShippingAddress);
-    console.log('📍 Selected Billing Address:', selectedBillingAddress);
-    
-    if (!cart) {
-      console.error('❌ No cart found');
-      return;
-    }
+    if (!cart) return;
     
     try {
       setIsProcessing(true);
@@ -717,9 +664,9 @@ export default function CheckoutPage() {
         })),
         customer: {
           email: data.email,
-          first_name: isAuthenticated && selectedShippingAddress ? selectedShippingAddress.first_name : data.firstName,
-          last_name: isAuthenticated && selectedShippingAddress ? selectedShippingAddress.last_name : data.lastName,
-          phone: isAuthenticated && selectedShippingAddress ? selectedShippingAddress.phone : data.phone
+          first_name: data.firstName,
+          last_name: data.lastName,
+          phone: data.phone
         },
         // Send address IDs for authenticated users, address objects for guests
         ...(isAuthenticated && selectedShippingAddress ? {
@@ -769,10 +716,7 @@ export default function CheckoutPage() {
         coupon_discount: couponDiscount
       };
       
-      console.log('📦 Order Data being sent:', orderData);
-      
       const response = await orderApi.createOrder(orderData);
-      console.log('✅ Order API Response:', response);
       
       if (response?.success || response?.data?.id) {
         await cartApi.clearCart();
@@ -942,8 +886,42 @@ export default function CheckoutPage() {
           {/* Checkout Form */}
           <div className="lg:col-span-2 space-y-4 lg:space-y-6">
             
+            {/* Mobile Order Summary Toggle */}
+            <div className="lg:hidden">
+              <details className="group">
+                <summary className="flex cursor-pointer select-none items-center justify-between rounded-lg bg-muted p-4 text-sm font-medium hover:bg-muted/80">
+                  <div className="flex items-center">
+                    <ShoppingBag className="mr-2 h-4 w-4" />
+                    <span>Order Summary ({cart?.total_items || 0} items)</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-bold">{currencySymbol}{total.toFixed(2)}</span>
+                    <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
+                  </div>
+                </summary>
+                <div className="mt-4">
+                  <OrderSummaryCard
+                    summary={{
+                      ...cart.summary,
+                      subtotal: subtotal,
+                      couponDiscount: couponDiscount,
+                      discountedSubtotal: discountedSubtotal,
+                      shippingCost: calculatedShippingCost,
+                      taxAmount: tax,
+                      total: total,
+                      bundleDiscount: cart.summary?.bundleDiscount || 0
+                    }}
+                    onApplyCoupon={handleApplyCoupon}
+                    onRemoveCoupon={handleRemoveCoupon}
+                    applyCouponLoading={applyCouponLoading}
+                    variant="mobile"
+                    calculatingShipping={calculatingShipping}
+                  />
+                </div>
+              </details>
+            </div>
 
-            <form id="checkout-form" onSubmit={handleSubmit(onSubmit)}>
+            <form onSubmit={handleSubmit(onSubmit)}>
               
               {/* STEP 1: SHIPPING DETAILS */}
               {currentStep === 1 && (
@@ -1235,8 +1213,8 @@ export default function CheckoutPage() {
                     </div>
                   )}
 
-                  {/* Navigation - Desktop Only */}
-                  <div className="hidden lg:flex flex-col sm:flex-row gap-3 lg:gap-4 sm:justify-between sm:items-center">
+                  {/* Navigation */}
+                  <div className="flex flex-col sm:flex-row gap-3 lg:gap-4 sm:justify-between sm:items-center">
                     <Button type="button" variant="outline" asChild className="order-2 sm:order-1">
                       <Link href="/cart">
                         <ChevronLeft className="w-4 h-4 mr-2" />
@@ -1352,8 +1330,7 @@ export default function CheckoutPage() {
                   </Card>
                   )}
 
-                  {/* Navigation - Desktop Only */}
-                  <div className="hidden lg:flex flex-col sm:flex-row gap-3 lg:gap-4 sm:justify-between sm:items-center">
+                  <div className="flex flex-col sm:flex-row gap-3 lg:gap-4 sm:justify-between sm:items-center">
                     <Button type="button" variant="outline" onClick={prevStep} className="order-2 sm:order-1">
                       <ChevronLeft className="w-4 h-4 mr-2" />
                       Back to Shipping
@@ -1450,8 +1427,8 @@ export default function CheckoutPage() {
                     </div>
                   )}
 
-                  {/* Navigation - Desktop Only */}
-                  <div className="hidden lg:flex flex-col sm:flex-row gap-3 lg:gap-4 sm:justify-between sm:items-center">
+                  {/* Navigation */}
+                  <div className="flex flex-col sm:flex-row gap-3 lg:gap-4 sm:justify-between sm:items-center">
                     <Button type="button" variant="outline" onClick={prevStep} className="order-2 sm:order-1">
                       <ChevronLeft className="w-4 h-4 mr-2" />
                       Back to {sameAsBilling ? 'Shipping' : 'Billing Address'}
@@ -1479,53 +1456,25 @@ export default function CheckoutPage() {
             </form>
           </div>
 
-          {/* Order Summary - Desktop and Mobile */}
-          <div className="space-y-4 lg:space-y-6">
-            {/* Mobile Full Summary - Always Visible */}
-            <div className="lg:hidden">
-              <OrderSummaryCard
-                summary={{
-                  ...cart.summary,
-                  subtotal: subtotal,
-                  couponDiscount: couponDiscount,
-                  discountedSubtotal: discountedSubtotal,
-                  shippingCost: calculatedShippingCost,
-                  tax: tax,
-                  total: total,
-                  bundleDiscount: cart.summary?.bundleDiscount || 0,
-                  currencySymbol: currencySymbol,
-                  itemCount: cart?.total_items || 0
-                }}
-                onApplyCoupon={handleApplyCoupon}
-                onRemoveCoupon={handleRemoveCoupon}
-                applyCouponLoading={applyCouponLoading}
-                variant="checkout"
-                calculatingShipping={calculatingShipping}
-              />
-            </div>
-
-            {/* Desktop Summary */}
-            <div className="hidden lg:block">
-              <OrderSummaryCard
-                summary={{
-                  ...cart.summary,
-                  subtotal: subtotal,
-                  couponDiscount: couponDiscount,
-                  discountedSubtotal: discountedSubtotal,
-                  shippingCost: calculatedShippingCost,
-                  tax: tax,
-                  total: total,
-                  bundleDiscount: cart.summary?.bundleDiscount || 0,
-                  currencySymbol: currencySymbol,
-                  itemCount: cart?.total_items || 0
-                }}
-                onApplyCoupon={handleApplyCoupon}
-                onRemoveCoupon={handleRemoveCoupon}
-                applyCouponLoading={applyCouponLoading}
-                variant="checkout"
-                calculatingShipping={calculatingShipping}
-              />
-            </div>
+          {/* Order Summary - Desktop Only */}
+          <div className="hidden lg:block space-y-4 lg:space-y-6">
+            <OrderSummaryCard
+              summary={{
+                ...cart.summary,
+                subtotal: subtotal,
+                couponDiscount: couponDiscount,
+                discountedSubtotal: discountedSubtotal,
+                shippingCost: calculatedShippingCost,
+                taxAmount: tax,
+                total: total,
+                bundleDiscount: cart.summary?.bundleDiscount || 0
+              }}
+              onApplyCoupon={handleApplyCoupon}
+              onRemoveCoupon={handleRemoveCoupon}
+              applyCouponLoading={applyCouponLoading}
+              variant="checkout"
+              calculatingShipping={calculatingShipping}
+            />
 
             {/* Delivery & Security Info */}
             <div className="space-y-4">
@@ -1572,73 +1521,6 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
-
-      {/* Mobile Sticky Bottom Navigation - Buttons Only */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex gap-3">
-            {currentStep > 1 ? (
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={prevStep}
-                size="default"
-                className="flex-1"
-              >
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Back
-              </Button>
-            ) : (
-              <Button 
-                type="button" 
-                variant="outline" 
-                asChild
-                size="default"
-                className="flex-1"
-              >
-                <Link href="/cart">
-                  <ChevronLeft className="w-4 h-4 mr-1" />
-                  Cart
-                </Link>
-              </Button>
-            )}
-            
-            {currentStep === 3 ? (
-              <Button 
-                type="submit" 
-                disabled={isProcessing || !isCurrentStepValid()}
-                size="default"
-                className="flex-1"
-                form="checkout-form"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Lock className="h-4 w-4 mr-1" />
-                    Place Order
-                  </>
-                )}
-              </Button>
-            ) : (
-              <Button 
-                type="button" 
-                onClick={handleContinueToNext}
-                disabled={!isCurrentStepValid()}
-                size="default"
-                className="flex-1"
-              >
-                Continue
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
-
     </div>
     </ProtectedRoute>
   );

@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useConfig } from '@/contexts/ConfigContext';
 import { useCartStore } from '@/stores/cart';
+import { BundleDiscountDisplay } from '@/components/cart/BundleDiscountDisplay';
+import { useCartSummary } from '@/hooks/useCartSummary';
 import { Cart, CartItem } from '@/types';
 import { 
   BookOpen, 
@@ -30,8 +32,9 @@ import {
   ShoppingCart
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
-export default function MobileResponsiveCartPage() {
+export default function ImprovedCartPage() {
   const { siteConfig } = useConfig();
   const [promoCode, setPromoCode] = useState('');
   const [applyingPromo, setApplyingPromo] = useState(false);
@@ -40,6 +43,9 @@ export default function MobileResponsiveCartPage() {
   const [expandedSummary, setExpandedSummary] = useState(false);
   const [updating, setUpdating] = useState<number | null>(null);
   const [removing, setRemoving] = useState<number | null>(null);
+  const [clearingCart, setClearingCart] = useState(false);
+  const [removingCoupon, setRemovingCoupon] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
   
   const { 
     cart, 
@@ -54,8 +60,14 @@ export default function MobileResponsiveCartPage() {
     getAvailableCoupons 
   } = useCartStore();
 
+  const cartSummary = useCartSummary(cart, siteConfig?.payment?.currency_symbol || '₹');
+
   useEffect(() => {
-    getCart();
+    const loadCart = async () => {
+      await getCart();
+      setInitialLoad(false);
+    };
+    loadCart();
     getAvailableCoupons();
   }, [getCart, getAvailableCoupons]);
 
@@ -68,8 +80,10 @@ export default function MobileResponsiveCartPage() {
     try {
       setUpdating(itemId);
       await updateQuantity(itemId, newQuantity);
+      toast.success('Quantity updated');
     } catch (error) {
       console.error('Failed to update quantity:', error);
+      toast.error('Failed to update quantity');
     } finally {
       setUpdating(null);
     }
@@ -79,299 +93,252 @@ export default function MobileResponsiveCartPage() {
     try {
       setRemoving(itemId);
       await removeItem(itemId);
+      toast.success('Item removed from cart');
     } catch (error) {
       console.error('Failed to remove item:', error);
+      toast.error('Failed to remove item');
     } finally {
       setRemoving(null);
     }
   };
 
-  const applyPromoCode = async () => {
-    if (!promoCode.trim()) return;
+  const handleClearCart = async () => {
+    if (!cart || cart.items.length === 0) return;
     
     try {
+      setClearingCart(true);
+      await clearCart();
+      toast.success('Cart cleared');
+    } catch (error) {
+      console.error('Failed to clear cart:', error);
+      toast.error('Failed to clear cart');
+    } finally {
+      setClearingCart(false);
+    }
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!promoCode.trim()) {
+      toast.error('Please enter a coupon code');
+      return;
+    }
+
+    try {
       setApplyingPromo(true);
-      await applyCoupon(promoCode.toUpperCase());
+      await applyCoupon(promoCode.trim());
       setPromoCode('');
       setShowPromoInput(false);
+      toast.success('Coupon applied successfully!');
     } catch (error: any) {
       console.error('Failed to apply coupon:', error);
-      alert(error?.response?.data?.message || 'Failed to apply coupon');
+      toast.error(error.message || 'Failed to apply coupon');
     } finally {
       setApplyingPromo(false);
     }
   };
 
-  if (isLoading) {
+  const handleRemoveCoupon = async () => {
+    try {
+      setRemovingCoupon(true);
+      await removeCoupon();
+      toast.success('Coupon removed');
+    } catch (error) {
+      console.error('Failed to remove coupon:', error);
+      toast.error('Failed to remove coupon');
+    } finally {
+      setRemovingCoupon(false);
+    }
+  };
+
+  // Loading state for initial load
+  if (initialLoad && isLoading) {
     return (
-      <div className="min-h-screen bg-background p-4">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/2"></div>
-          {[...Array(2)].map((_, i) => (
-            <div key={i} className="bg-card rounded-lg p-4 space-y-3">
-              <div className="flex gap-3">
-                <div className="bg-muted rounded w-20 h-24"></div>
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-muted rounded w-3/4"></div>
-                  <div className="h-3 bg-muted rounded w-1/2"></div>
-                  <div className="h-4 bg-muted rounded w-1/4"></div>
-                </div>
-              </div>
-            </div>
-          ))}
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading your cart...</p>
         </div>
       </div>
     );
   }
 
-  if (!cart || !cart.items.length) {
+  // Empty cart state
+  if (!cart || !cart.items || cart.items.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4">
-        <ShoppingCart className="h-20 w-20 text-muted-foreground mb-4" />
-        <h1 className="text-xl font-bold mb-2">Your cart is empty</h1>
-        <p className="text-sm text-muted-foreground text-center mb-6">
-          Start adding books to build your library
-        </p>
-        <Button asChild className="w-full max-w-xs">
-          <Link href="/products">
-            <ShoppingBag className="h-4 w-4 mr-2" />
-            Browse Books
-          </Link>
-        </Button>
-      </div>
-    );
-  }
-
-  const currencySymbol = siteConfig?.payment?.currency_symbol || '₹';
-  const subtotal = (cart as any)?.summary?.subtotal || cart.subtotal || 0;
-  const couponDiscount = (cart as any)?.summary?.coupon_discount || 0;
-  const couponCode = (cart as any)?.summary?.coupon_code || null;
-  const couponFreeShipping = (cart as any)?.summary?.coupon_free_shipping || false;
-  const discountedSubtotal = (cart as any)?.summary?.discounted_subtotal || subtotal;
-  const tax = (cart as any)?.summary?.tax_amount || Math.round(discountedSubtotal * 0.18);
-  const total = (cart as any)?.summary?.total || (discountedSubtotal + tax);
-  
-  const savings = cart.items.reduce((sum, item) => {
-    if (item.product.compare_price && item.product.compare_price > item.product.price) {
-      return sum + ((item.product.compare_price - item.product.price) * item.quantity);
-    }
-    return sum;
-  }, 0);
-
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Mobile Header */}
-      <div className="md:hidden sticky top-0 z-30 bg-background border-b">
-        <div className="flex items-center justify-between p-4">
-          <h1 className="text-lg font-bold">Cart ({cart.total_items})</h1>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => clearCart()}
-            className="text-destructive"
-          >
-            Clear
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <ShoppingBag className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-2xl font-semibold mb-2">Your cart is empty</h2>
+          <p className="text-muted-foreground mb-6">
+            Looks like you haven't added any books to your cart yet.
+          </p>
+          <Button asChild className="w-full">
+            <Link href="/products">
+              <BookOpen className="h-4 w-4 mr-2" />
+              Browse Books
+            </Link>
           </Button>
         </div>
       </div>
+    );
+  }
 
-      {/* Desktop Breadcrumb */}
-      <div className="hidden md:block container mx-auto px-4 py-4">
-        <nav className="text-sm text-muted-foreground">
-          <Link href="/" className="hover:text-primary">Home</Link>
-          <span className="mx-2">/</span>
-          <span>Shopping Cart</span>
-        </nav>
-      </div>
+  return (
+    <div className="min-h-screen bg-background relative">
+      {/* Loading Overlay - Only shows during API calls */}
+      {isLoading && !initialLoad && (
+        <div className="fixed inset-0 bg-background/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-card p-4 rounded-lg shadow-lg flex items-center gap-3">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <span className="text-sm">Updating cart...</span>
+          </div>
+        </div>
+      )}
 
-      <div className="container mx-auto px-4 pb-24 md:pb-8">
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Cart Items - Mobile & Desktop */}
+      <div className="container mx-auto px-4 py-6 lg:py-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold">Shopping Cart</h1>
+            <p className="text-muted-foreground mt-1">
+              {cart.total_items} {cart.total_items === 1 ? 'item' : 'items'} in your cart
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={handleClearCart}
+              disabled={clearingCart}
+              className="text-destructive hover:text-destructive"
+            >
+              {clearingCart ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              Clear Cart
+            </Button>
+            <Button asChild>
+              <Link href="/products">
+                <ShoppingBag className="h-4 w-4 mr-2" />
+                Continue Shopping
+              </Link>
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
-            {/* Desktop Header */}
-            <div className="hidden md:flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-bold">
-                Shopping Cart ({cart.total_items} items)
-              </h1>
-              <Button
-                variant="outline"
-                onClick={() => clearCart()}
-                className="text-destructive hover:text-destructive"
-              >
-                Clear Cart
-              </Button>
-            </div>
-
-            {/* Cart Items */}
-            <div className="space-y-3">
-              {cart.items.map((item) => (
-                <Card key={item.id} className="overflow-hidden">
-                  <CardContent className="p-3 md:p-6">
-                    <div className="flex gap-3">
-                      {/* Product Image */}
-                      <div className="flex-shrink-0">
-                        <div className="w-16 h-20 md:w-20 md:h-28 bg-muted rounded overflow-hidden">
-                          {item.product.images?.length > 0 ? (
-                            <Image
-                              src={item.product.images[0].url}
-                              alt={item.product.name}
-                              width={80}
-                              height={112}
-                              className="object-cover w-full h-full"
-                            />
-                          ) : (
-                            <div className="flex items-center justify-center h-full">
-                              <BookOpen className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground" />
-                            </div>
-                          )}
-                        </div>
+            {cart.items.map((item) => (
+              <Card key={item.id} className="p-4 lg:p-6">
+                <div className="flex flex-col md:flex-row gap-4">
+                  {/* Product Image */}
+                  <div className="relative w-20 h-24 md:w-24 md:h-32 bg-muted rounded-lg overflow-hidden flex-shrink-0 mx-auto md:mx-0">
+                    {item.product.images && item.product.images.length > 0 ? (
+                      <Image
+                        src={item.product.images[0].url || item.product.images[0].image_path || '/book-placeholder.svg'}
+                        alt={item.product.name}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 80px, 96px"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-muted flex items-center justify-center">
+                        <BookOpen className="h-8 w-8 text-muted-foreground" />
                       </div>
+                    )}
+                  </div>
 
-                      {/* Product Details */}
-                      <div className="flex-1 min-w-0">
-                        {/* Title & Remove Button */}
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="flex-1">
-                            <Link href={`/products/${item.product.slug || item.product.id}`}>
-                              <h3 className="font-medium text-sm md:text-base line-clamp-2 hover:text-primary">
-                                {item.product.name}
-                              </h3>
-                            </Link>
-                            <p className="text-xs md:text-sm text-muted-foreground">
-                              by {item.product.brand || 'Unknown'}
-                            </p>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleRemoveItem(item.id)}
-                            disabled={removing === item.id}
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                          >
-                            {removing === item.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
+                  {/* Product Details */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex-1">
+                        <Link href={`/products/${item.product.slug || item.product.id}`}>
+                          <h3 className="font-medium text-sm md:text-base line-clamp-2 hover:text-primary">
+                            {item.product.name}
+                          </h3>
+                        </Link>
+                        <p className="text-xs md:text-sm text-muted-foreground">
+                          by {item.product.brand || 'Unknown'}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleRemoveItem(item.id)}
+                        disabled={removing === item.id}
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      >
+                        {removing === item.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
 
-                        {/* Price */}
-                        <div className="flex items-center gap-2 mb-3">
-                          <span className="text-base md:text-lg font-bold">
-                            {currencySymbol}{item.product.price}
+                    {/* Price */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-base md:text-lg font-bold">
+                        {cartSummary.currencySymbol}{item.product.price}
+                      </span>
+                      {item.product.compare_price > item.product.price && (
+                        <>
+                          <span className="text-xs md:text-sm text-muted-foreground line-through">
+                            {cartSummary.currencySymbol}{item.product.compare_price}
                           </span>
-                          {item.product.compare_price > item.product.price && (
-                            <>
-                              <span className="text-xs md:text-sm text-muted-foreground line-through">
-                                {currencySymbol}{item.product.compare_price}
-                              </span>
-                              <Badge variant="secondary" className="text-[10px] md:text-xs">
-                                {Math.round((1 - item.product.price / item.product.compare_price) * 100)}% off
-                              </Badge>
-                            </>
+                          <Badge variant="secondary" className="text-[10px] md:text-xs">
+                            {Math.round((1 - item.product.price / item.product.compare_price) * 100)}% off
+                          </Badge>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Quantity Controls */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center border rounded-lg">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                          disabled={updating === item.id}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <span className="px-4 py-2 text-center min-w-[3rem]">
+                          {updating === item.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                          ) : (
+                            item.quantity
                           )}
-                        </div>
-
-                        {/* Quantity & Total - Mobile */}
-                        <div className="md:hidden">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center border rounded-md">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                                disabled={updating === item.id}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
-                              <span className="px-3 text-sm min-w-[2rem] text-center">
-                                {updating === item.id ? (
-                                  <Loader2 className="h-3 w-3 animate-spin mx-auto" />
-                                ) : (
-                                  item.quantity
-                                )}
-                              </span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                                disabled={updating === item.id || !item.product.in_stock}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
-                            </div>
-                            <div className="text-sm font-bold">
-                              Total: {currencySymbol}{item.total}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Quantity & Actions - Desktop */}
-                        <div className="hidden md:flex items-center justify-between">
-                          <div className="flex items-center border rounded-lg">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                              disabled={updating === item.id}
-                            >
-                              <Minus className="h-4 w-4" />
-                            </Button>
-                            <span className="px-4 py-2 text-center min-w-[3rem]">
-                              {updating === item.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                              ) : (
-                                item.quantity
-                              )}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                              disabled={updating === item.id || !item.product.in_stock}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <Button variant="ghost" size="sm">
-                              <Heart className="h-4 w-4 mr-2" />
-                              Wishlist
-                            </Button>
-                            <div className="text-lg font-bold">
-                              {currencySymbol}{item.total}
-                            </div>
-                          </div>
-                        </div>
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                          disabled={updating === item.id || !item.product.in_stock}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="text-sm font-bold">
+                        Total: {cartSummary.currencySymbol}{(item.product.price * item.quantity).toFixed(2)}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Continue Shopping - Desktop */}
-            <div className="hidden md:flex justify-between items-center pt-4">
-              <Button variant="outline" asChild>
-                <Link href="/products">
-                  Continue Shopping
-                </Link>
-              </Button>
-              {savings > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  You saved {currencySymbol}{savings} on this order!
-                </p>
-              )}
-            </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
 
           {/* Order Summary - Desktop Sidebar */}
-          <div className="hidden lg:block space-y-6">
+          <div className="space-y-6">
             {/* Applied Coupon */}
-            {couponCode && couponDiscount > 0 && (
+            {cartSummary.couponCode && cartSummary.couponDiscount > 0 && (
               <Card className="border-green-200 bg-green-50">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
@@ -380,25 +347,39 @@ export default function MobileResponsiveCartPage() {
                       <div>
                         <span className="font-semibold text-green-800">Coupon Applied</span>
                         <Badge variant="secondary" className="ml-2 bg-green-200 text-green-800">
-                          {couponCode}
+                          {cartSummary.couponCode}
                         </Badge>
                       </div>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => removeCoupon()}
-                      className="h-6 w-6 text-red-500 hover:text-red-700"
+                      onClick={handleRemoveCoupon}
+                      disabled={removingCoupon}
+                      className="h-6 w-6 text-green-600 hover:text-green-800"
                     >
-                      <X className="h-3 w-3" />
+                      {removingCoupon ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <X className="h-3 w-3" />
+                      )}
                     </Button>
                   </div>
                   <p className="text-sm text-green-600 mt-1">
-                    Saved {currencySymbol}{couponDiscount}
+                    Saved {cartSummary.currencySymbol}{cartSummary.couponDiscount.toFixed(2)}
                   </p>
                 </CardContent>
               </Card>
             )}
+
+            {/* Bundle Discount */}
+            <BundleDiscountDisplay
+              bundleDiscount={cartSummary.bundleDiscount}
+              bundleDetails={cartSummary.bundleDetails}
+              discountMessage={cartSummary.discountMessage}
+              currencySymbol={cartSummary.currencySymbol}
+              variant="desktop"
+            />
 
             {/* Promo Code */}
             <Card>
@@ -412,13 +393,14 @@ export default function MobileResponsiveCartPage() {
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="Enter code"
+                    placeholder="Enter coupon code"
                     value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value)}
-                    className="flex-1 px-3 py-2 border rounded-lg text-sm"
+                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                    className="flex-1 px-3 py-2 border border-input rounded-md text-sm"
+                    disabled={applyingPromo}
                   />
                   <Button 
-                    onClick={applyPromoCode} 
+                    onClick={handleApplyCoupon} 
                     disabled={applyingPromo || !promoCode.trim()}
                     size="sm"
                   >
@@ -429,29 +411,6 @@ export default function MobileResponsiveCartPage() {
                     )}
                   </Button>
                 </div>
-
-                {/* Available Coupons */}
-                {availableCoupons.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">Available offers:</p>
-                    {availableCoupons.slice(0, 2).map((coupon: any) => (
-                      <div
-                        key={coupon.code}
-                        className="p-2 rounded border border-dashed cursor-pointer hover:bg-muted/50"
-                        onClick={() => {
-                          setPromoCode(coupon.code);
-                          applyPromoCode();
-                        }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium">{coupon.code}</span>
-                          <span className="text-xs text-primary">Apply</span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground">{coupon.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </CardContent>
             </Card>
 
@@ -464,12 +423,18 @@ export default function MobileResponsiveCartPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Subtotal ({cart.total_items} items)</span>
-                    <span>{currencySymbol}{subtotal.toFixed(2)}</span>
+                    <span>{cartSummary.currencySymbol}{cartSummary.subtotal.toFixed(2)}</span>
                   </div>
-                  {couponDiscount > 0 && (
+                  {cartSummary.couponDiscount > 0 && (
                     <div className="flex justify-between text-sm text-green-600">
                       <span>Coupon discount</span>
-                      <span>-{currencySymbol}{couponDiscount.toFixed(2)}</span>
+                      <span>-{cartSummary.currencySymbol}{cartSummary.couponDiscount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {cartSummary.bundleDiscount > 0 && (
+                    <div className="flex justify-between text-sm text-blue-600">
+                      <span>Bundle discount</span>
+                      <span>-{cartSummary.currencySymbol}{cartSummary.bundleDiscount.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
@@ -478,7 +443,7 @@ export default function MobileResponsiveCartPage() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>Tax (GST 18%)</span>
-                    <span>{currencySymbol}{tax.toFixed(2)}</span>
+                    <span>{cartSummary.currencySymbol}{cartSummary.tax.toFixed(2)}</span>
                   </div>
                 </div>
                 
@@ -486,142 +451,31 @@ export default function MobileResponsiveCartPage() {
                 
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-bold">Total</span>
-                  <span className="text-xl font-bold text-primary">{currencySymbol}{total.toFixed(2)}</span>
+                  <span className="text-xl font-bold text-primary">
+                    {cartSummary.currencySymbol}{cartSummary.total.toFixed(2)}
+                  </span>
                 </div>
 
-                <Button size="lg" className="w-full" asChild>
+                <Button className="w-full" size="lg" asChild>
                   <Link href="/checkout">
+                    <ShoppingCart className="h-5 w-5 mr-2" />
                     Proceed to Checkout
-                    <ArrowRight className="h-4 w-4 ml-2" />
                   </Link>
                 </Button>
 
-                <div className="text-[10px] text-muted-foreground space-y-1">
-                  <div className="flex items-center gap-1">
+                <div className="text-center text-xs text-muted-foreground space-y-1">
+                  <div className="flex items-center justify-center gap-1">
                     <Shield className="h-3 w-3" />
                     <span>Secure checkout</span>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center justify-center gap-1">
                     <Truck className="h-3 w-3" />
-                    <span>Free delivery above {currencySymbol}499</span>
+                    <span>Free delivery above {cartSummary.currencySymbol}499</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
-        </div>
-      </div>
-
-      {/* Mobile Bottom Summary Bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg z-40">
-        {/* Expandable Summary */}
-        <div 
-          className="p-3 border-b cursor-pointer"
-          onClick={() => setExpandedSummary(!expandedSummary)}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">Total Amount</p>
-              <p className="text-lg font-bold">{currencySymbol}{total.toFixed(2)}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">View details</span>
-              {expandedSummary ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-            </div>
-          </div>
-        </div>
-
-        {/* Expanded Details */}
-        {expandedSummary && (
-          <div className="p-3 space-y-3 max-h-60 overflow-y-auto">
-            {/* Promo Code Section */}
-            {!couponCode && (
-              <div className="space-y-2">
-                <button
-                  onClick={() => setShowPromoInput(!showPromoInput)}
-                  className="flex items-center justify-between w-full text-sm"
-                >
-                  <span className="flex items-center gap-2">
-                    <Tag className="h-4 w-4" />
-                    Add promo code
-                  </span>
-                  <ChevronDown className={cn("h-4 w-4 transition-transform", showPromoInput && "rotate-180")} />
-                </button>
-                
-                {showPromoInput && (
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Enter code"
-                      value={promoCode}
-                      onChange={(e) => setPromoCode(e.target.value)}
-                      className="flex-1 px-3 py-2 border rounded text-sm"
-                    />
-                    <Button 
-                      onClick={applyPromoCode}
-                      disabled={applyingPromo || !promoCode.trim()}
-                      size="sm"
-                    >
-                      Apply
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Applied Coupon */}
-            {couponCode && (
-              <div className="bg-green-50 p-2 rounded flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <div>
-                    <p className="text-xs font-medium">{couponCode} applied</p>
-                    <p className="text-[10px] text-green-600">Saved {currencySymbol}{couponDiscount}</p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeCoupon()}
-                  className="h-6 w-6"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-            )}
-
-            {/* Price Breakdown */}
-            <div className="space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span>{currencySymbol}{subtotal.toFixed(2)}</span>
-              </div>
-              {couponDiscount > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Discount</span>
-                  <span>-{currencySymbol}{couponDiscount.toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Tax</span>
-                <span>{currencySymbol}{tax.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Shipping</span>
-                <span className="text-xs">At checkout</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Checkout Button */}
-        <div className="p-3">
-          <Button className="w-full" size="lg" asChild>
-            <Link href="/checkout">
-              Proceed to Checkout
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Link>
-          </Button>
         </div>
       </div>
     </div>

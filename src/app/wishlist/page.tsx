@@ -299,5 +299,6 @@ export default function WishlistPage() {
         </div>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }
