@@ -194,21 +194,23 @@ export function ProductCard({
         {/* Product Image */}
         <div className={cn('relative bg-gray-50 rounded-lg overflow-hidden', styles.image)}>
           <Link href={`/products/${product.slug || product.id}`}>
-            {product.images && product.images.length > 0 && !imageError ? (
-              <OptimizedImage
-                src={product.images[0].url}
-                alt={product.name}
-                fill
-                className="object-cover group-hover:scale-110 transition-transform duration-300"
-                onError={() => setImageError(true)}
-                priority={false}
-                eager={false}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <BookOpen className={cn('text-gray-400', styles.imageSize)} />
-              </div>
-            )}
+            <div className="relative w-full h-full">
+              {product.images && product.images.length > 0 && product.images[0].url && !imageError ? (
+                <OptimizedImage
+                  src={product.images[0].url}
+                  alt={product.name}
+                  fill
+                  className="object-cover group-hover:scale-110 transition-transform duration-300"
+                  onError={() => setImageError(true)}
+                  priority={false}
+                  eager={false}
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <BookOpen className={cn('text-gray-400', styles.imageSize)} />
+                </div>
+              )}
+            </div>
           </Link>
 
           {/* Badges */}

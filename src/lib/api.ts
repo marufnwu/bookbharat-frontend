@@ -12,6 +12,51 @@ class ApiClient {
   private client: AxiosInstance;
   private sessionId: string | null = null;
 
+  // Centralized image transformation helper
+  private transformProductImages(product: any): any {
+    if (!product) return product;
+
+    return {
+      ...product,
+      images: product.images?.map((img: any) => ({
+        ...img,
+        url: img.image_path || img.url
+      })) || []
+    };
+  }
+
+  // Transform multiple products
+  private transformProductsImages(products: any[]): any[] {
+    if (!Array.isArray(products)) return products;
+    return products.map(product => this.transformProductImages(product));
+  }
+
+  // Transform cart/wishlist/order items with nested products
+  private transformItemWithProduct(item: any): any {
+    if (!item) return item;
+
+    return {
+      ...item,
+      product: item.product ? this.transformProductImages(item.product) : item.product
+    };
+  }
+
+  // Transform multiple items with nested products
+  private transformItemsWithProducts(items: any[]): any[] {
+    if (!Array.isArray(items)) return items;
+    return items.map(item => this.transformItemWithProduct(item));
+  }
+
+  // Transform order with items
+  private transformOrder(order: any): any {
+    if (!order) return order;
+
+    return {
+      ...order,
+      items: order.items ? this.transformItemsWithProducts(order.items) : order.items
+    };
+  }
+
   constructor() {
     this.client = axios.create({
       baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
@@ -187,19 +232,59 @@ class ApiClient {
 
   // Product API methods
   async getProducts(params?: any) {
-    return this.get('/products', { params });
+    const response = await this.get('/products', { params });
+
+    if (response.success && response.data) {
+      const products = response.data.data || response.data;
+      const transformedProducts = Array.isArray(products) ?
+        this.transformProductsImages(products) : products;
+
+      if (response.data.data) {
+        response.data.data = transformedProducts;
+      } else {
+        response.data = transformedProducts;
+      }
+    }
+
+    return response;
   }
 
   async getProduct(id: number | string) {
-    return this.get(`/products/${id}`);
+    const response = await this.get(`/products/${id}`);
+
+    if (response.success && response.data) {
+      response.data = this.transformProductImages(response.data);
+    }
+
+    return response;
   }
 
   async searchProducts(query: string, filters?: any) {
-    return this.get('/products/search', { params: { query: query, ...filters } });
+    const response = await this.get('/products/search', { params: { query: query, ...filters } });
+
+    if (response.success && response.data) {
+      const products = response.data.data || response.data;
+      const transformedProducts = Array.isArray(products) ?
+        this.transformProductsImages(products) : products;
+
+      if (response.data.data) {
+        response.data.data = transformedProducts;
+      } else {
+        response.data = transformedProducts;
+      }
+    }
+
+    return response;
   }
 
   async getFeaturedProducts() {
-    return this.get('/products/featured');
+    const response = await this.get('/products/featured');
+
+    if (response.success && response.data) {
+      response.data = this.transformProductsImages(response.data);
+    }
+
+    return response;
   }
 
   async getProductSuggestions(query: string) {
@@ -211,19 +296,46 @@ class ApiClient {
   }
 
   async getProductsByCategory(categoryId: number, params?: any) {
-    return this.get(`/products/category/${categoryId}`, { params });
+    const response = await this.get(`/products/category/${categoryId}`, { params });
+
+    if (response.success && response.data?.products?.data) {
+      response.data.products.data = this.transformProductsImages(response.data.products.data);
+    }
+
+    return response;
   }
 
   async getProductsByCategories(params?: any) {
-    return this.get('/products/by-categories', { params });
+    const response = await this.get('/products/by-categories', { params });
+
+    if (response.success && response.data && Array.isArray(response.data)) {
+      response.data = response.data.map((category: any) => ({
+        ...category,
+        products: category.products ? this.transformProductsImages(category.products) : []
+      }));
+    }
+
+    return response;
   }
 
   async getRelatedProducts(productId: number | string) {
-    return this.get(`/products/${productId}/related`);
+    const response = await this.get(`/products/${productId}/related`);
+
+    if (response.success && response.data && Array.isArray(response.data)) {
+      response.data = this.transformProductsImages(response.data);
+    }
+
+    return response;
   }
 
   async getFrequentlyBoughtTogether(productId: number | string) {
-    return this.get(`/products/${productId}/frequently-bought-together`);
+    const response = await this.get(`/products/${productId}/frequently-bought-together`);
+
+    if (response.success && response.data?.products) {
+      response.data.products = this.transformProductsImages(response.data.products);
+    }
+
+    return response;
   }
 
   // Category API methods
@@ -237,11 +349,30 @@ class ApiClient {
 
   // Cart API methods
   async getCart() {
-    return this.get('/cart');
+    const response = await this.get('/cart');
+
+    // Handle different response structures from backend
+    if (response.success) {
+      if (response.cart?.items) {
+        // Response structure: { success: true, cart: { items: [...] } }
+        response.cart.items = this.transformItemsWithProducts(response.cart.items);
+      } else if (response.data?.items) {
+        // Response structure: { success: true, data: { items: [...] } }
+        response.data.items = this.transformItemsWithProducts(response.data.items);
+      }
+    }
+
+    return response;
   }
 
   async addToCart(productId: number, quantity: number) {
-    return this.post('/cart/add', { product_id: productId, quantity });
+    const response = await this.post('/cart/add', { product_id: productId, quantity });
+
+    if (response.success && response.data?.items) {
+      response.data.items = this.transformItemsWithProducts(response.data.items);
+    }
+
+    return response;
   }
 
   async updateCartItem(itemId: number, quantity: number) {
@@ -270,7 +401,17 @@ class ApiClient {
 
   // Wishlist API methods
   async getWishlist() {
-    return this.get('/wishlist');
+    const response = await this.get('/wishlist');
+
+    if (response.success && response.data) {
+      if (Array.isArray(response.data)) {
+        response.data = this.transformItemsWithProducts(response.data);
+      } else if (response.data.items) {
+        response.data.items = this.transformItemsWithProducts(response.data.items);
+      }
+    }
+
+    return response;
   }
 
   async addToWishlist(productId: number) {
@@ -358,11 +499,27 @@ class ApiClient {
 
   // Order API methods
   async getOrders() {
-    return this.get('/orders');
+    const response = await this.get('/orders');
+
+    if (response.success && response.data) {
+      if (Array.isArray(response.data)) {
+        response.data = response.data.map(order => this.transformOrder(order));
+      } else if (response.data.data) {
+        response.data.data = response.data.data.map((order: any) => this.transformOrder(order));
+      }
+    }
+
+    return response;
   }
 
   async getOrder(idOrNumber: string | number) {
-    return this.get(`/orders/${idOrNumber}`);
+    const response = await this.get(`/orders/${idOrNumber}`);
+
+    if (response.success && response.data) {
+      response.data = this.transformOrder(response.data);
+    }
+
+    return response;
   }
 
   async createOrder(data: any) {
@@ -512,11 +669,27 @@ class ApiClient {
 
   // Admin Order Management
   async getAdminOrders(params?: any) {
-    return this.get('/admin/orders', { params });
+    const response = await this.get('/admin/orders', { params });
+
+    if (response.success && response.data) {
+      if (Array.isArray(response.data)) {
+        response.data = response.data.map(order => this.transformOrder(order));
+      } else if (response.data.data) {
+        response.data.data = response.data.data.map((order: any) => this.transformOrder(order));
+      }
+    }
+
+    return response;
   }
 
   async getAdminOrder(id: number) {
-    return this.get(`/admin/orders/${id}`);
+    const response = await this.get(`/admin/orders/${id}`);
+
+    if (response.success && response.data) {
+      response.data = this.transformOrder(response.data);
+    }
+
+    return response;
   }
 
   async updateOrderStatus(id: number, data: { status: string; notes?: string }) {
@@ -666,7 +839,14 @@ class ApiClient {
   }
 
   async getActiveHeroConfig() {
-    return this.get('/hero/active');
+    const response = await this.get('/hero/active');
+
+    // Transform featuredProducts images if they exist
+    if (response.success && response.data?.featuredProducts) {
+      response.data.featuredProducts = this.transformProductsImages(response.data.featuredProducts);
+    }
+
+    return response;
   }
 
   async getHeroConfig(variant: string) {

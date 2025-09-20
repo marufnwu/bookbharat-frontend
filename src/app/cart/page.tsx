@@ -226,9 +226,9 @@ export default function ImprovedCartPage() {
                 <div className="flex gap-3 lg:gap-4">
                   {/* Product Image */}
                   <div className="relative w-16 h-20 lg:w-24 lg:h-32 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                    {item.product.images && item.product.images.length > 0 ? (
+                    {item.product?.images?.[0]?.url ? (
                       <Image
-                        src={item.product.images[0].url || item.product.images[0].image_path || '/book-placeholder.svg'}
+                        src={item.product.images[0].url}
                         alt={item.product.name}
                         fill
                         className="object-cover"

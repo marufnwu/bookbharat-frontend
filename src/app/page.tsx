@@ -91,7 +91,7 @@ export default function Home() {
       try {
         setFeaturedBooksLoading(true);
         const featuredResponse = await productApi.getFeaturedProducts();
-        
+
         if (featuredResponse.success) {
           setFeaturedBooks(featuredResponse.data.slice(0, 8));
         }

@@ -303,10 +303,16 @@ export function Header() {
                     <div className="space-y-3 max-h-64 overflow-y-auto">
                       {cart.items.slice(0, 3).map((item) => (
                         <div key={item.id} className="flex items-center space-x-3 py-2 border-b border-border last:border-b-0">
-                          <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
-                            <span className="text-xs font-medium">
-                              {item.product?.name?.charAt(0) || 'P'}
-                            </span>
+                          <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center overflow-hidden relative">
+                            {item.product?.images?.[0]?.url ? (
+                              <img
+                                src={item.product.images[0].url}
+                                alt={item.product.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <BookOpen className="h-6 w-6 text-muted-foreground" />
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">

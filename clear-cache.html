@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear BookBharat Cache</title>
+</head>
+<body>
+    <h1>Clearing BookBharat Cache...</h1>
+    <script>
+        // Clear all localStorage items for BookBharat
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.includes('bookbharat') || key.includes('cart') || key.includes('auth') || key.includes('config'))) {
+                keysToRemove.push(key);
+            }
+        }
+
+        keysToRemove.forEach(key => {
+            localStorage.removeItem(key);
+            console.log('Removed:', key);
+        });
+
+        // Clear sessionStorage
+        sessionStorage.clear();
+
+        document.body.innerHTML = '<h1>Cache cleared! You can close this page and restart the app.</h1>';
+    </script>
+</body>
+</html>
