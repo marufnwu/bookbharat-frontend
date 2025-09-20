@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
-import { Footer } from "@/components/layout/footer";
+import FooterServer from "@/components/layout/FooterServer";
 import { ConfigProvider } from "@/contexts/ConfigContext";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { CartProvider } from "@/components/providers/CartProvider";
@@ -60,7 +60,7 @@ export default function RootLayout({
                 <main className="flex-1">
                   {children}
                 </main>
-                <Footer />
+                <FooterServer />
                 <Toaster />
                 <SonnerToaster />
               </div>
