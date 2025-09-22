@@ -862,16 +862,17 @@ class ApiClient {
   }
 
   // Payment API methods
-  async getPaymentMethods(amount?: number) {
-    return this.get('/payment/methods', { params: amount ? { amount } : undefined });
+  async getPaymentMethods(amount?: number, currency?: string) {
+    // Use the unified payment gateway endpoint
+    return this.get('/payment/gateways', { params: { amount, currency: currency || 'INR' } });
   }
 
-  async initiatePayment(data: { order_id: number; payment_method: string; return_url?: string; cancel_url?: string }) {
+  async initiatePayment(data: { order_id: number; gateway: string; return_url?: string; cancel_url?: string }) {
     return this.post('/payment/initiate', data);
   }
 
   async razorpayCallback(data: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) {
-    return this.post('/payment/razorpay/callback', data);
+    return this.post('/payment/callback/razorpay', data);
   }
 
   async cashfreeCallback(orderId: string) {

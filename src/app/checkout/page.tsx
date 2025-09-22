@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useForm } from 'react-hook-form';
@@ -53,7 +53,25 @@ import {
   Sparkles
 } from 'lucide-react';
 
+// Flexible shipping schema - required for guests, optional for authenticated users
 const shippingSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  phone: z.string().optional(),
+  whatsapp: z.string().optional(),
+  pincode: z.string().optional(),
+  area: z.string().optional(),
+  houseNo: z.string().optional(),
+  landmark: z.string().optional(),
+  district: z.string().optional(),
+  state: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+});
+
+// Strict validation for guest checkout
+const guestShippingSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   firstName: z.string().min(2, 'First name must be at least 2 characters'),
   lastName: z.string().min(1, 'Last name is required'),
@@ -93,31 +111,89 @@ const checkoutSchema = shippingSchema.merge(billingSchema.partial()).merge(payme
 type CheckoutForm = z.infer<typeof checkoutSchema>;
 
 export default function CheckoutPage() {
-  const [currentStep, setCurrentStep] = useState(1);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Map hash to step numbers
+  const getStepFromHash = (hash: string): number => {
+    switch (hash) {
+      case '#shipping':
+      case '#step1':
+        return 1;
+      case '#billing':
+      case '#step2':
+        return 2;
+      case '#payment':
+      case '#review':
+      case '#step3':
+        return 3;
+      default:
+        return 1;
+    }
+  };
+
+  // Map step to hash
+  const getHashFromStep = (step: number): string => {
+    switch (step) {
+      case 1:
+        return '#shipping';
+      case 2:
+        return '#billing';
+      case 3:
+        return '#payment';
+      default:
+        return '#shipping';
+    }
+  };
+
+  // Initialize step from URL hash
+  const [currentStep, setCurrentStep] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash || '#shipping';
+      return getStepFromHash(hash);
+    }
+    return 1;
+  });
   const [isProcessing, setIsProcessing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pincodeError, setPincodeError] = useState<string | null>(null);
   const [pincodeInfo, setPincodeInfo] = useState<any>(null);
-  const [shippingCost, setShippingCost] = useState(0);
+  // Load persisted state from localStorage
+  const getPersistedState = () => {
+    if (typeof window !== 'undefined') {
+      const savedState = localStorage.getItem('checkoutState');
+      if (savedState) {
+        try {
+          return JSON.parse(savedState);
+        } catch (e) {
+          console.error('Failed to parse saved state:', e);
+        }
+      }
+    }
+    return {};
+  };
+
+  const persistedState = getPersistedState();
+
+  const [shippingCost, setShippingCost] = useState(persistedState.shippingCost || 0);
   const [calculatingShipping, setCalculatingShipping] = useState(false);
-  const [sameAsBilling, setSameAsBilling] = useState(true);
-  const [estimatedDelivery, setEstimatedDelivery] = useState<string>('');
-  const [codAvailable, setCodAvailable] = useState(false);
+  const [sameAsBilling, setSameAsBilling] = useState(persistedState.sameAsBilling ?? true);
+  const [estimatedDelivery, setEstimatedDelivery] = useState<string>(persistedState.estimatedDelivery || '');
+  const [codAvailable, setCodAvailable] = useState(persistedState.codAvailable ?? false);
   const [showCouponField, setShowCouponField] = useState(false);
-  const [couponCode, setCouponCode] = useState('');
+  const [couponCode, setCouponCode] = useState(persistedState.couponCode || '');
   const [applyCouponLoading, setApplyCouponLoading] = useState(false);
   const { siteConfig } = useConfig();
   const { cart, getCart, applyCoupon, removeCoupon, isLoading: cartLoading } = useCartStore();
   const { user, isAuthenticated } = useHydratedAuth();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
-  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
-  const [selectedBillingAddressId, setSelectedBillingAddressId] = useState<number | null>(null);
-  const [selectedShippingAddress, setSelectedShippingAddress] = useState<Address | null>(null);
-  const [selectedBillingAddress, setSelectedBillingAddress] = useState<Address | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(persistedState.selectedAddressId || null);
+  const [selectedBillingAddressId, setSelectedBillingAddressId] = useState<number | null>(persistedState.selectedBillingAddressId || null);
+  const [selectedShippingAddress, setSelectedShippingAddress] = useState<Address | null>(persistedState.selectedShippingAddress || null);
+  const [selectedBillingAddress, setSelectedBillingAddress] = useState<Address | null>(persistedState.selectedBillingAddress || null);
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState<any[]>([]);
-  const router = useRouter();
 
   const {
     register,
@@ -128,10 +204,64 @@ export default function CheckoutPage() {
     setValue,
   } = useForm<CheckoutForm>({
     resolver: zodResolver(checkoutSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onSubmit',
+    defaultValues: (() => {
+      if (typeof window !== 'undefined') {
+        const savedData = localStorage.getItem('checkoutFormData');
+        if (savedData) {
+          try {
+            return JSON.parse(savedData);
+          } catch (e) {
+            console.error('Failed to parse saved form data:', e);
+          }
+        }
+      }
+      return {};
+    })(),
   });
 
   // Watch form values for real-time validation
   const formValues = watch();
+
+  // Save form data to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Debounce to avoid too frequent saves
+      const timeoutId = setTimeout(() => {
+        localStorage.setItem('checkoutFormData', JSON.stringify(formValues));
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [formValues]);
+
+  // Save checkout state to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stateToSave = {
+        shippingCost,
+        sameAsBilling,
+        estimatedDelivery,
+        codAvailable,
+        couponCode,
+        selectedAddressId,
+        selectedBillingAddressId,
+        selectedShippingAddress,
+        selectedBillingAddress,
+      };
+      localStorage.setItem('checkoutState', JSON.stringify(stateToSave));
+    }
+  }, [
+    shippingCost,
+    sameAsBilling,
+    estimatedDelivery,
+    codAvailable,
+    couponCode,
+    selectedAddressId,
+    selectedBillingAddressId,
+    selectedShippingAddress,
+    selectedBillingAddress,
+  ]);
   
   // Real-time validation functions
   const isStep1Valid = () => {
@@ -175,8 +305,10 @@ export default function CheckoutPage() {
   };
 
   const isStep3Valid = () => {
-    const isValid = formValues.paymentMethod && formValues.paymentMethod.trim() !== '';
-    console.log('🔍 Step 3 validation - Payment Method:', formValues.paymentMethod, 'Is Valid:', isValid);
+    // Get payment method directly from watch
+    const paymentMethod = selectedPaymentMethod;
+    const isValid = !!paymentMethod && paymentMethod.trim() !== '';
+    console.log('Step 3 Validation:', { paymentMethod, isValid });
     return isValid;
   };
 
@@ -199,7 +331,49 @@ export default function CheckoutPage() {
         setValue('email', user.email);
       }
     }
+    // Load payment methods on initial load
+    loadPaymentMethods();
   }, [isAuthenticated, user]);
+
+  // Listen for hash changes and update step
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash || '#shipping';
+      const newStep = getStepFromHash(hash);
+      console.log('Hash changed to:', hash, 'Setting step to:', newStep);
+      setCurrentStep(newStep);
+    };
+
+    // Handle initial hash on mount
+    const initialHash = window.location.hash || '#shipping';
+    const initialStep = getStepFromHash(initialHash);
+    console.log('Initial hash:', initialHash, 'Setting initial step to:', initialStep);
+    if (initialStep !== currentStep) {
+      setCurrentStep(initialStep);
+    }
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []); // Remove currentStep dependency to avoid stale closures
+
+  // Update URL hash when step changes programmatically (not from hash change)
+  const updateUrlHash = (step: number) => {
+    const newHash = getHashFromStep(step);
+    if (window.location.hash !== newHash) {
+      window.history.replaceState(null, '', newHash);
+    }
+  };
+
+  // Clear form data from localStorage when checkout is completed
+  useEffect(() => {
+    return () => {
+      // Cleanup function - only clear if we're leaving checkout
+      if (typeof window !== 'undefined' && window.location.pathname !== '/checkout') {
+        localStorage.removeItem('checkoutFormData');
+        localStorage.removeItem('checkoutState');
+      }
+    };
+  }, []);
 
   // Watch pincode field and trigger validation when it changes
   useEffect(() => {
@@ -274,18 +448,45 @@ export default function CheckoutPage() {
 
   const loadPaymentMethods = async (orderAmount?: number) => {
     try {
-      const response = await paymentApi.getPaymentMethods(orderAmount);
-      if (response?.success && response?.payment_methods) {
-        setAvailablePaymentMethods(response.payment_methods);
-        
+      const response = await paymentApi.getPaymentMethods(orderAmount, 'INR');
+      console.log('Payment methods API response:', response);
+
+      // Handle unified gateway response
+      const gateways = response?.gateways || [];
+
+      if (response?.success && gateways.length > 0) {
+        // Transform gateway format to payment method format
+        const methods = gateways.map((gateway: any) => ({
+          payment_method: gateway.gateway,
+          display_name: gateway.display_name || gateway.name,
+          description: gateway.description || '',
+          priority: gateway.priority || 0
+        }));
+        setAvailablePaymentMethods(methods);
+
         // Update COD availability based on response
-        const hasCodMethod = response.payment_methods.some((method: any) => 
+        const hasCodMethod = methods.some((method: any) =>
           method.payment_method && method.payment_method.includes('cod')
         );
         setCodAvailable(hasCodMethod);
       }
     } catch (error) {
       console.error('Failed to load payment methods:', error);
+      // Set default methods if API fails
+      setAvailablePaymentMethods([
+        {
+          payment_method: 'razorpay',
+          display_name: 'Online Payment (Cards/UPI/NetBanking)',
+          description: 'Pay securely using cards, UPI, or net banking',
+          priority: 10
+        },
+        {
+          payment_method: 'cod',
+          display_name: 'Cash on Delivery',
+          description: 'Pay when your order arrives',
+          priority: 5
+        }
+      ]);
     }
   };
 
@@ -602,17 +803,19 @@ export default function CheckoutPage() {
 
   const nextStep = () => {
     if (currentStep === 1 && sameAsBilling) {
-      setCurrentStep(3);
+      window.location.hash = '#payment';
     } else if (currentStep < 3) {
-      setCurrentStep(currentStep + 1);
+      const nextHash = getHashFromStep(currentStep + 1);
+      window.location.hash = nextHash;
     }
   };
 
   const prevStep = () => {
     if (currentStep === 3 && sameAsBilling) {
-      setCurrentStep(1);
+      window.location.hash = '#shipping';
     } else if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+      const prevHash = getHashFromStep(currentStep - 1);
+      window.location.hash = prevHash;
     }
   };
 
@@ -641,14 +844,14 @@ export default function CheckoutPage() {
   const handleSameAsBillingChange = (checked: boolean) => {
     setSameAsBilling(checked);
     if (checked && currentStep === 2) {
-      setCurrentStep(3);
+      window.location.hash = '#payment';
     }
   };
 
   const steps = [
-    { id: 1, name: 'Shipping Details', icon: MapPin, completed: currentStep > 1 },
-    { id: 2, name: 'Billing Address', icon: Home, completed: currentStep > 2, skip: sameAsBilling },
-    { id: 3, name: 'Payment & Review', icon: CreditCard, completed: false },
+    { id: 1, name: 'Shipping Details', icon: MapPin, completed: currentStep > 1, hash: '#shipping' },
+    { id: 2, name: 'Billing Address', icon: Home, completed: currentStep > 2, skip: sameAsBilling, hash: '#billing' },
+    { id: 3, name: 'Payment & Review', icon: CreditCard, completed: false, hash: '#payment' },
   ];
 
   const currencySymbol = siteConfig?.payment?.currency_symbol || '₹';
@@ -675,6 +878,8 @@ export default function CheckoutPage() {
     const iconMap: { [key: string]: any } = {
       'razorpay': CreditCard,
       'cashfree': CreditCard,
+      'payu': CreditCard,
+      'phonepe': CreditCard,
       'cod': Circle,
       'cod_with_advance': Circle,
       'cod_percentage_advance': Circle,
@@ -692,15 +897,94 @@ export default function CheckoutPage() {
 
   const selectedPaymentMethod = watch('paymentMethod');
 
+  // Debug payment methods
+  useEffect(() => {
+    console.log('Available payment methods:', paymentMethods);
+    console.log('Selected payment method:', selectedPaymentMethod);
+  }, [paymentMethods.length, selectedPaymentMethod]);
+
+  // Handle payment gateway redirection
+  const handlePaymentRedirect = (paymentData: any, gateway: string) => {
+    // Create a form dynamically and submit it for gateways that require POST
+    if (gateway === 'payu') {
+      // PayU requires form POST submission with specific fields
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = paymentData.payment_url || 'https://test.payu.in/_payment';
+      form.style.display = 'none';
+
+      // Add all PayU required fields as hidden inputs
+      // Skip meta fields like payment_url, payment_id, method
+      const skipFields = ['payment_url', 'payment_id', 'method'];
+      Object.entries(paymentData).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && !skipFields.includes(key)) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = String(value);
+          form.appendChild(input);
+        }
+      });
+
+      // Add form to body and submit
+      document.body.appendChild(form);
+      console.log('Submitting PayU form with action:', form.action);
+      console.log('PayU form data:', paymentData);
+      form.submit();
+    } else if (gateway === 'razorpay' && paymentData.key_id && paymentData.order_id) {
+      // Handle Razorpay checkout
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => {
+        const options = {
+          key: paymentData.key_id,
+          amount: paymentData.amount,
+          currency: paymentData.currency || 'INR',
+          order_id: paymentData.order_id,
+          name: 'BookBharat',
+          description: paymentData.description || 'Order Payment',
+          handler: function(response: any) {
+            // Payment successful, redirect to success page
+            window.location.href = `/payment/success?order_id=${paymentData.order_id}&payment_id=${response.razorpay_payment_id}`;
+          },
+          prefill: paymentData.prefill || {},
+          theme: {
+            color: '#F37254'
+          }
+        };
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+      };
+      document.body.appendChild(script);
+    }
+  };
+
   const onSubmit = async (data: CheckoutForm) => {
-    console.log('🚀 Place Order clicked, form data:', data);
-    console.log('🛒 Cart:', cart);
-    console.log('👤 Is Authenticated:', isAuthenticated);
-    console.log('📍 Selected Shipping Address:', selectedShippingAddress);
-    console.log('📍 Selected Billing Address:', selectedBillingAddress);
-    
+    console.log('🚀 Form submitted successfully!');
+    console.log('Form data:', data);
+    console.log('Payment method selected:', data.paymentMethod);
+    console.log('Cart:', cart);
+    console.log('Is Authenticated:', isAuthenticated);
+    console.log('Selected Shipping Address:', selectedShippingAddress);
+    console.log('Selected Billing Address:', selectedBillingAddress);
+
     if (!cart) {
       console.error('❌ No cart found');
+      setError('No cart found');
+      return;
+    }
+
+    // For authenticated users with selected address, validate differently
+    if (isAuthenticated && !selectedShippingAddress) {
+      console.error('❌ No shipping address selected');
+      setError('Please select a shipping address');
+      return;
+    }
+
+    // Validate payment method is selected
+    if (!data.paymentMethod) {
+      console.error('❌ No payment method selected');
+      setError('Please select a payment method');
       return;
     }
     
@@ -773,22 +1057,37 @@ export default function CheckoutPage() {
       
       const response = await orderApi.createOrder(orderData);
       console.log('✅ Order API Response:', response);
-      
-      if (response?.success || response?.data?.id) {
-        await cartApi.clearCart();
-        const orderId = response.data?.id || response.order?.id;
-        const paymentMethod = data.paymentMethod;
-        
-        if (orderId) {
-          // For COD orders, go directly to success page
-          if (paymentMethod === 'cod' || paymentMethod === 'cod_with_advance') {
-            router.push(`/orders/success?order_id=${orderId}`);
-          } else {
-            // For online payments, redirect to payment status checker
-            router.push(`/payment/status?order_id=${orderId}`);
+
+      if (response?.success) {
+        // Don't clear cart immediately - wait for payment confirmation
+        // Clear localStorage on successful order creation
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('checkoutFormData');
+          localStorage.removeItem('checkoutState');
+        }
+
+        const order = response.order;
+        const paymentDetails = response.payment_details;
+        const requiresRedirect = response.requires_redirect;
+
+        if (requiresRedirect && paymentDetails) {
+          // Redirect to payment gateway
+          const redirectUrl = response.redirect_url || paymentDetails.payment_data?.payment_url;
+
+          if (redirectUrl) {
+            // External redirect to payment gateway
+            window.location.href = redirectUrl;
+          } else if (paymentDetails.payment_data) {
+            // For gateways that need form submission (like PayU)
+            handlePaymentRedirect(paymentDetails.payment_data, data.paymentMethod);
           }
+        } else if (data.paymentMethod === 'cod') {
+          // COD order - clear cart and go to success page
+          await cartApi.clearCart();
+          router.push(`/orders/success?order_id=${order.order_number}`);
         } else {
-          router.push('/orders/success');
+          // Unknown payment flow - go to order details
+          router.push(`/orders/${order.order_number}`);
         }
       } else {
         setError(response?.message || response?.error || 'Failed to create order. Please try again.');
@@ -836,6 +1135,8 @@ export default function CheckoutPage() {
       </div>
     );
   }
+
+  console.log('Current step in render:', currentStep, 'Hash:', window.location.hash);
 
   if (!cart || !cart.items.length) {
     return (
@@ -887,18 +1188,25 @@ export default function CheckoutPage() {
             <div className="flex items-center justify-between">
               {steps.map((step, index) => {
                 const Icon = step.icon;
+                const isClickable = step.completed || step.id === currentStep || (step.skip && step.id === 2);
                 return (
                   <div key={step.id} className="flex flex-col items-center">
-                    <div
+                    <button
+                      onClick={() => {
+                        if (isClickable && !step.skip) {
+                          window.location.hash = step.hash;
+                        }
+                      }}
+                      disabled={!isClickable || step.skip}
                       className={`w-8 h-8 lg:w-10 lg:h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
-                        step.completed 
-                          ? 'bg-primary text-primary-foreground' 
+                        step.completed
+                          ? 'bg-primary text-primary-foreground'
                           : step.id === currentStep
                           ? 'bg-primary text-primary-foreground ring-2 ring-primary/20'
                           : step.skip
                           ? 'bg-muted text-muted-foreground'
                           : 'bg-muted text-muted-foreground'
-                      }`}
+                      } ${isClickable && !step.skip ? 'cursor-pointer hover:ring-2 hover:ring-primary/30' : 'cursor-default'}`}
                     >
                       {step.completed ? (
                         <Check className="h-4 w-4 lg:h-5 lg:w-5" />
@@ -907,7 +1215,7 @@ export default function CheckoutPage() {
                       ) : (
                         <Icon className="h-3 w-3 lg:h-4 lg:w-4" />
                       )}
-                    </div>
+                    </button>
                     <div className="mt-2 lg:mt-3 text-center min-w-[80px] lg:min-w-[100px]">
                       <div className={`text-xs lg:text-sm font-medium transition-colors duration-300 ${
                         step.id === currentStep 
@@ -943,7 +1251,36 @@ export default function CheckoutPage() {
           <div className="lg:col-span-2 space-y-4 lg:space-y-6">
             
 
-            <form id="checkout-form" onSubmit={handleSubmit(onSubmit)}>
+            <form id="checkout-form" key={currentStep} onSubmit={(e) => {
+              e.preventDefault();
+
+              // For authenticated users with selected address, skip validation
+              if (isAuthenticated && selectedShippingAddress) {
+                // Manually call onSubmit with current form values
+                const formData = getValues();
+                formData.paymentMethod = selectedPaymentMethod || '';
+
+                // Ensure email is set
+                if (!formData.email) {
+                  setError('Please provide an email address for order confirmation');
+                  return;
+                }
+
+                // Ensure payment method is selected
+                if (!formData.paymentMethod) {
+                  setError('Please select a payment method');
+                  return;
+                }
+
+                onSubmit(formData);
+              } else {
+                // For guest checkout, use normal validation
+                handleSubmit(onSubmit, (errors) => {
+                  console.error('Form validation errors:', errors);
+                  setError('Please fix the form errors before submitting');
+                })(e);
+              }
+            }}>
               
               {/* STEP 1: SHIPPING DETAILS */}
               {currentStep === 1 && (
@@ -1257,9 +1594,40 @@ export default function CheckoutPage() {
               )}
 
               {/* STEP 2: BILLING ADDRESS */}
-              {currentStep === 2 && !sameAsBilling && (
+              {currentStep === 2 && (
                 <div className="space-y-4 lg:space-y-6">
-                  {isAuthenticated ? (
+                  {sameAsBilling ? (
+                    <Card>
+                      <CardContent className="py-8 text-center">
+                        <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                        <p className="text-lg font-medium">Billing address is same as shipping address</p>
+                        <p className="text-muted-foreground mt-2">Click continue to proceed to payment</p>
+                        <div className="flex gap-3 justify-center mt-6">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={prevStep}
+                          >
+                            <ChevronLeft className="w-4 h-4 mr-2" />
+                            Back
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={() => setSameAsBilling(false)}
+                          >
+                            Use Different Billing Address
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={nextStep}
+                          >
+                            Continue to Payment
+                            <ChevronRight className="w-4 h-4 ml-2" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : isAuthenticated ? (
                     <AddressManager
                       selectedAddress={selectedBillingAddress}
                       onAddressSelect={handleBillingAddressSelect}
@@ -1397,10 +1765,15 @@ export default function CheckoutPage() {
                               }`}
                             >
                               <input
-                                {...register('paymentMethod')}
+                                {...register('paymentMethod', {
+                                  onChange: (e) => {
+                                    console.log('Payment method selected:', e.target.value);
+                                  }
+                                })}
                                 type="radio"
                                 value={method.id}
                                 className="sr-only"
+                                checked={selectedPaymentMethod === method.id}
                               />
                               <Icon className="h-4 w-4 lg:h-5 lg:w-5 mr-3 text-muted-foreground" />
                               <div className="flex-1">
@@ -1456,10 +1829,11 @@ export default function CheckoutPage() {
                       <ChevronLeft className="w-4 h-4 mr-2" />
                       Back to {sameAsBilling ? 'Shipping' : 'Billing Address'}
                     </Button>
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       disabled={isProcessing || !isCurrentStepValid()}
                       className="order-1 sm:order-2 w-full sm:w-auto"
+                      form="checkout-form"
                     >
                       {isProcessing ? (
                         <>
@@ -1604,8 +1978,8 @@ export default function CheckoutPage() {
             )}
             
             {currentStep === 3 ? (
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isProcessing || !isCurrentStepValid()}
                 size="default"
                 className="flex-1"
