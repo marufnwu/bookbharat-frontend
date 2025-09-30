@@ -939,28 +939,45 @@ export default function CheckoutPage() {
       console.log('✅ Submitting PayU form with action:', form.action);
       console.log('📋 PayU form fields count:', form.querySelectorAll('input').length);
       form.submit();
-    } else if (gateway === 'razorpay' && (paymentData.key_id && paymentData.order_id)) {      // Handle Razorpay checkout
+    } else if (gateway === 'razorpay' && (paymentData.key && paymentData.razorpay_order_id)) {
+      // Handle Razorpay checkout with JavaScript SDK
+      console.log('💳 Initializing Razorpay with:', paymentData);
+
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.onload = () => {
         const options = {
-          key: paymentData.key_id,
+          key: paymentData.key,
           amount: paymentData.amount,
           currency: paymentData.currency || 'INR',
-          order_id: paymentData.order_id,
-          name: 'BookBharat',
+          order_id: paymentData.razorpay_order_id,
+          name: paymentData.name || 'BookBharat',
           description: paymentData.description || 'Order Payment',
           handler: function(response: any) {
-            // Payment successful, redirect to success page
-            window.location.href = `/payment/success?order_id=${paymentData.order_id}&payment_id=${response.razorpay_payment_id}`;
+            console.log('✅ Razorpay payment successful:', response);
+            // Payment successful, redirect to callback URL with payment details
+            const callbackUrl = `${paymentData.callback_url}?razorpay_payment_id=${response.razorpay_payment_id}&razorpay_order_id=${response.razorpay_order_id}&razorpay_signature=${response.razorpay_signature}`;
+            window.location.href = callbackUrl;
           },
           prefill: paymentData.prefill || {},
-          theme: {
-            color: '#F37254'
+          theme: paymentData.theme || {
+            color: '#3B82F6'
+          },
+          modal: {
+            ondismiss: function() {
+              console.log('⚠️ Razorpay payment cancelled by user');
+              setIsProcessing(false);
+            }
           }
         };
+        console.log('🚀 Opening Razorpay checkout with options:', options);
         const rzp = new (window as any).Razorpay(options);
         rzp.open();
+      };
+      script.onerror = () => {
+        console.error('❌ Failed to load Razorpay script');
+        setError('Failed to load payment gateway. Please try again.');
+        setIsProcessing(false);
       };
       document.body.appendChild(script);
     }

@@ -6,18 +6,22 @@ import { CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
+import { useCartStore } from '@/stores/cart';
 
 export default function PaymentSuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
+  const clearCart = useCartStore((state) => state.clearCart);
 
   useEffect(() => {
     const orderId = searchParams.get('order_id');
     if (orderId) {
       setOrderNumber(orderId);
+      // Clear cart on successful payment
+      clearCart();
     }
-  }, [searchParams]);
+  }, [searchParams, clearCart]);
 
   return (
     <div className="container mx-auto px-4 py-8">
