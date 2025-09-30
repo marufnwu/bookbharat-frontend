@@ -904,26 +904,18 @@ export default function CheckoutPage() {
   }, [paymentMethods.length, selectedPaymentMethod]);
 
   // Handle payment gateway redirection
-  const handlePaymentRedirect = (paymentDetails: any, gateway: string) => {
-    console.log('🔄 handlePaymentRedirect called with:', { paymentDetails, gateway });
-
-    // Extract payment data and URL from the response structure
-    const paymentData = paymentDetails.payment_data || paymentDetails;
-    const paymentUrl = paymentDetails.payment_url || paymentData.payment_url;
-
-    console.log('💳 Extracted payment data:', { paymentData, paymentUrl });
-
+  const handlePaymentRedirect = (paymentData: any, gateway: string) => {
     // Create a form dynamically and submit it for gateways that require POST
     if (gateway === 'payu') {
       // PayU requires form POST submission with specific fields
       const form = document.createElement('form');
       form.method = 'POST';
-      form.action = paymentUrl || 'https://test.payu.in/_payment';
+      form.action = paymentData.payment_url || 'https://test.payu.in/_payment';
       form.style.display = 'none';
 
       // Add all PayU required fields as hidden inputs
-      // Skip meta fields
-      const skipFields = ['payment_url', 'payment_id', 'method', 'success', 'message', 'data'];
+      // Skip meta fields like payment_url, payment_id, method
+      const skipFields = ['payment_url', 'payment_id', 'method'];
       Object.entries(paymentData).forEach(([key, value]) => {
         if (value !== null && value !== undefined && !skipFields.includes(key)) {
           const input = document.createElement('input');
@@ -936,10 +928,11 @@ export default function CheckoutPage() {
 
       // Add form to body and submit
       document.body.appendChild(form);
-      console.log('✅ Submitting PayU form with action:', form.action);
-      console.log('📋 PayU form fields count:', form.querySelectorAll('input').length);
+      console.log('Submitting PayU form with action:', form.action);
+      console.log('PayU form data:', paymentData);
       form.submit();
-    } else if (gateway === 'razorpay' && (paymentData.key_id && paymentData.order_id)) {      // Handle Razorpay checkout
+    } else if (gateway === 'razorpay' && paymentData.key_id && paymentData.order_id) {
+      // Handle Razorpay checkout
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.onload = () => {
@@ -1076,22 +1069,17 @@ export default function CheckoutPage() {
         const order = response.order;
         const paymentDetails = response.payment_details;
         const requiresRedirect = response.requires_redirect;
-        if (requiresRedirect && paymentDetails) {
-          console.log('💳 Payment redirect required:', { paymentDetails, method: data.paymentMethod });
 
-          // For PayU and similar gateways that need form POST submission
-          if (data.paymentMethod === 'payu' && paymentDetails.payment_data) {
-            handlePaymentRedirect(paymentDetails, data.paymentMethod);
-          }
-          // For redirect-based gateways (like Cashfree)
-          else if (response.redirect_url || paymentDetails.payment_url) {
-            const redirectUrl = response.redirect_url || paymentDetails.payment_url;
-            console.log('🔗 Redirecting to:', redirectUrl);
+        if (requiresRedirect && paymentDetails) {
+          // Redirect to payment gateway
+          const redirectUrl = response.redirect_url || paymentDetails.payment_data?.payment_url;
+
+          if (redirectUrl) {
+            // External redirect to payment gateway
             window.location.href = redirectUrl;
-          }
-          // Fallback to handlePaymentRedirect for other gateways
-          else if (paymentDetails.payment_data) {
-            handlePaymentRedirect(paymentDetails, data.paymentMethod);
+          } else if (paymentDetails.payment_data) {
+            // For gateways that need form submission (like PayU)
+            handlePaymentRedirect(paymentDetails.payment_data, data.paymentMethod);
           }
         } else if (data.paymentMethod === 'cod') {
           // COD order - clear cart and go to success page

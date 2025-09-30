@@ -53,6 +53,11 @@ const nextConfig: NextConfig = {
       '@radix-ui/react-toast',
       'lucide-react'
     ],
+    // Enable client-side router cache for back/forward navigation
+    staleTimes: {
+      dynamic: 30, // Cache dynamic pages for 30 seconds
+      static: 180, // Cache static pages for 3 minutes
+    },
   },
 
   // Ignore ESLint warnings during build

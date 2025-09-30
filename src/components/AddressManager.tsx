@@ -104,15 +104,15 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
       const data: PincodeDetails = await shippingApi.checkPincode(pincode)
       console.log('Pincode validation response:', data)
       
-      if (data.success && data.serviceable && data.city) {
+      if (data.success && data.serviceable && data.zone_info?.city) {
         // Auto-fill city, state, and post name
-        form.setValue('zila', data.city)
-        form.setValue('state', data.state)
-        form.setValue('post_name', data.city) // Using city as post name for now
+        form.setValue('zila', data.zone_info?.city)
+        form.setValue('state', data.zone_info.state)
+        form.setValue('post_name', data.zone_info?.city) // Using city as post name for now
         
         toast({
           title: "Pincode validated",
-          description: `Delivery available to ${data.city}, ${data.state}`,
+          description: `Delivery available to ${data.zone_info?.city}, ${data.zone_info.state}`,
         })
       } else {
         form.setError('pincode', {
@@ -207,11 +207,12 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
           onAddressSelect(defaultAddress)
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching addresses:', error)
+      const errorMessage = error.response?.data?.message || error.message || "Failed to load addresses"
       toast({
         title: "Error",
-        description: "Failed to load addresses",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -242,11 +243,12 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
       await fetchAddresses()
       setIsDialogOpen(false)
       setEditingAddress(null)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving address:', error)
+      const errorMessage = error.response?.data?.message || error.message || "Failed to save address"
       toast({
         title: "Error",
-        description: "Failed to save address",
+        description: errorMessage,
         variant: "destructive",
       })
     }
@@ -271,11 +273,12 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
       
       setIsDeleteDialogOpen(false)
       setEditingAddress(null)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting address:', error)
+      const errorMessage = error.response?.data?.message || error.message || "Failed to delete address"
       toast({
         title: "Error",
-        description: "Failed to delete address",
+        description: errorMessage,
         variant: "destructive",
       })
     }
@@ -289,11 +292,12 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
         description: "Default address updated",
       })
       await fetchAddresses()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error setting default address:', error)
+      const errorMessage = error.response?.data?.message || error.message || "Failed to update default address"
       toast({
         title: "Error",
-        description: "Failed to update default address",
+        description: errorMessage,
         variant: "destructive",
       })
     }

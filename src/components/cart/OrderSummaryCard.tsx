@@ -97,7 +97,7 @@ export function OrderSummaryCard({
           <div className="flex-1">
             <div className="flex items-center justify-between text-sm">
               <span>Subtotal:</span>
-              <span>{summary.currencySymbol}{summary.subtotal.toFixed(2)}</span>
+              <span>{summary.currencySymbol}{parseFloat(String(summary.subtotal)).toFixed(2)}</span>
             </div>
             {(summary.couponDiscount > 0 || summary.bundleDiscount > 0) && (
               <div className="flex items-center justify-between text-xs font-semibold text-green-700 bg-green-50 px-2 py-1 rounded border border-green-200">
@@ -107,12 +107,12 @@ export function OrderSummaryCard({
                   </svg>
                   Total Savings:
                 </span>
-                <span>-{summary.currencySymbol}{(summary.couponDiscount + summary.bundleDiscount).toFixed(2)}</span>
+                <span>-{summary.currencySymbol}{(parseFloat(String(summary.couponDiscount)) + parseFloat(String(summary.bundleDiscount))).toFixed(2)}</span>
               </div>
             )}
             <div className="flex items-center justify-between text-base font-bold border-t pt-1 mt-1">
               <span>Total:</span>
-              <span className="text-primary">{summary.currencySymbol}{summary.total.toFixed(2)}</span>
+              <span className="text-primary">{summary.currencySymbol}{parseFloat(String(summary.total)).toFixed(2)}</span>
             </div>
           </div>
           {showCheckoutButton && (
@@ -303,7 +303,7 @@ export function OrderSummaryCard({
                 </Button>
               </div>
               <p className="text-sm text-green-600 mt-1">
-                🎉 You saved {summary.currencySymbol}{summary.couponDiscount.toFixed(2)}!
+                🎉 You saved {summary.currencySymbol}{parseFloat(String(summary.couponDiscount)).toFixed(2)}!
               </p>
             </CardContent>
           </Card>
@@ -395,21 +395,21 @@ export function OrderSummaryCard({
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span>Subtotal</span>
-            <span>{summary.currencySymbol}{summary.subtotal.toFixed(2)}</span>
+            <span>{summary.currencySymbol}{parseFloat(String(summary.subtotal)).toFixed(2)}</span>
           </div>
           
           {/* Individual Discounts */}
           {summary.couponDiscount > 0 && (
             <div className="flex justify-between text-green-600">
               <span>Coupon discount</span>
-              <span>-{summary.currencySymbol}{summary.couponDiscount.toFixed(2)}</span>
+              <span>-{summary.currencySymbol}{parseFloat(String(summary.couponDiscount)).toFixed(2)}</span>
             </div>
           )}
 
           {summary.bundleDiscount > 0 && (
             <div className="flex justify-between text-blue-600">
               <span>Bundle discount</span>
-              <span>-{summary.currencySymbol}{summary.bundleDiscount.toFixed(2)}</span>
+              <span>-{summary.currencySymbol}{parseFloat(String(summary.bundleDiscount)).toFixed(2)}</span>
             </div>
           )}
           
@@ -422,7 +422,7 @@ export function OrderSummaryCard({
                 </svg>
                 Total Savings
               </span>
-              <span>-{summary.currencySymbol}{(summary.couponDiscount + summary.bundleDiscount).toFixed(2)}</span>
+              <span>-{summary.currencySymbol}{(parseFloat(String(summary.couponDiscount)) + parseFloat(String(summary.bundleDiscount))).toFixed(2)}</span>
             </div>
           )}
           
@@ -439,27 +439,27 @@ export function OrderSummaryCard({
               ) : summary.shippingCost === 0 ? (
                 <span className="text-green-600 font-semibold">FREE</span>
               ) : (
-                `${summary.currencySymbol}${summary.shippingCost.toFixed(2)}`
+                `${summary.currencySymbol}${parseFloat(String(summary.shippingCost)).toFixed(2)}`
               )}
             </span>
           </div>
           
           <div className="flex justify-between">
             <span>Tax (GST 18%)</span>
-            <span>{summary.currencySymbol}{summary.tax.toFixed(2)}</span>
+            <span>{summary.currencySymbol}{parseFloat(String(summary.tax)).toFixed(2)}</span>
           </div>
           
           <hr />
           
           <div className="flex justify-between text-lg font-bold">
             <span>Total</span>
-            <span className="text-primary">{summary.currencySymbol}{summary.total.toFixed(2)}</span>
+            <span className="text-primary">{summary.currencySymbol}{parseFloat(String(summary.total)).toFixed(2)}</span>
           </div>
           
           {/* Total Savings Highlight */}
           {(summary.couponDiscount > 0 || summary.bundleDiscount > 0) && (
             <div className="text-center text-sm text-green-600 bg-green-50 p-2 rounded border border-green-200">
-              🎉 You saved {summary.currencySymbol}{(summary.couponDiscount + summary.bundleDiscount).toFixed(2)} on this order!
+              🎉 You saved {summary.currencySymbol}{(parseFloat(String(summary.couponDiscount)) + parseFloat(String(summary.bundleDiscount))).toFixed(2)} on this order!
             </div>
           )}
         </div>
@@ -489,7 +489,7 @@ export function OrderSummaryCard({
             ) : (
               <>
                 <Shield className="h-4 w-4 mr-2" />
-                Place Order • {summary.currencySymbol}{summary.total.toFixed(2)}
+                Place Order • {summary.currencySymbol}{parseFloat(String(summary.total)).toFixed(2)}
               </>
             )}
           </Button>

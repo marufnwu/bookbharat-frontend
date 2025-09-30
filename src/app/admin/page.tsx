@@ -4,17 +4,18 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useConfig } from '@/contexts/ConfigContext';
-import { 
-  Settings, 
-  Palette, 
-  Users, 
-  Package, 
+import {
+  Settings,
+  Palette,
+  Users,
+  Package,
   ShoppingCart,
   BarChart3,
   FileText,
   Image,
   Monitor,
-  Globe
+  Globe,
+  CreditCard
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -104,6 +105,14 @@ export default function AdminDashboard() {
       href: '/admin/media',
       color: 'text-pink-600',
       bgColor: 'bg-pink-100'
+    },
+    {
+      title: 'Payment Settings',
+      description: 'Configure payment gateways and methods',
+      icon: CreditCard,
+      href: '/admin/payments',
+      color: 'text-emerald-600',
+      bgColor: 'bg-emerald-100'
     }
   ];
 

@@ -20,7 +20,7 @@ class ApiClient {
       ...product,
       images: product.images?.map((img: any) => ({
         ...img,
-        url: img.image_path || img.url
+        url: img.image_url || img.url || img.image_path
       })) || []
     };
   }
