@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useConfig } from '@/contexts/ConfigContext';
+import { useAuthStore } from '@/stores/auth';
 import { userApi, orderApi } from '@/lib/api';
 import { User as UserType, Order } from '@/types';
 import { 
@@ -45,7 +46,6 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<UserType | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState({
     totalOrders: 0,
@@ -54,6 +54,7 @@ export default function ProfilePage() {
   });
   const [error, setError] = useState<string | null>(null);
   const { siteConfig } = useConfig();
+  const { user, updateProfile: updateUserProfile } = useAuthStore();
 
   const {
     register,
@@ -65,71 +66,81 @@ export default function ProfilePage() {
     defaultValues: {
       name: user?.name || '',
       email: user?.email || '',
-      phone: '9876543210', // Mock data
+      phone: user?.phone || '',
     },
   });
 
-  // Mock user data
+  // Update form when user data loads
+  useEffect(() => {
+    if (user) {
+      reset({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+      });
+    }
+  }, [user, reset]);
+
+  // Load user stats and recent orders
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        setLoading(true);
+
+        // Load recent orders
+        const ordersResponse = await orderApi.getOrders({ per_page: 3 });
+        if (ordersResponse.success) {
+          const ordersData = ordersResponse.orders?.data || ordersResponse.data?.data || ordersResponse.data || [];
+          setRecentOrders(ordersData.slice(0, 3));
+
+          // Calculate stats from orders
+          const deliveredOrders = ordersData.filter((o: Order) => o.status === 'delivered');
+          const totalSpent = deliveredOrders.reduce((sum: number, o: Order) => sum + (o.total_amount || o.total || 0), 0);
+
+          setStats({
+            totalOrders: ordersData.length,
+            totalSpent: totalSpent,
+            wishlistCount: 0 // Will be updated when wishlist API is called
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load user data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      loadUserData();
+    }
+  }, [user]);
+
+  // User data object with real data
   const userData = {
-    name: user?.name || 'John Doe',
-    email: user?.email || 'john.doe@example.com',
-    phone: '+91 9876543210',
-    joinDate: '2023-03-15',
-    totalOrders: 24,
-    totalSpent: 12450,
-    wishlistCount: 8,
-    addresses: [
-      {
-        id: 1,
-        type: 'Home',
-        address: '123, ABC Society, XYZ Road',
-        city: 'Mumbai',
-        state: 'Maharashtra',
-        pincode: '400001',
-        isDefault: true
-      },
-      {
-        id: 2,
-        type: 'Office',
-        address: '456, Business Park, Corporate Road',
-        city: 'Mumbai',
-        state: 'Maharashtra', 
-        pincode: '400070',
-        isDefault: false
-      }
-    ],
-    recentOrders: [
-      {
-        id: 'ORD-2024-001',
-        date: '2024-01-15',
-        status: 'delivered',
-        total: 1247,
-        items: 3
-      },
-      {
-        id: 'ORD-2024-002',
-        date: '2024-01-10',
-        status: 'shipped',
-        total: 899,
-        items: 2
-      },
-      {
-        id: 'ORD-2024-003',
-        date: '2024-01-08',
-        status: 'processing',
-        total: 567,
-        items: 1
-      }
-    ]
+    name: user?.name || 'User',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    joinDate: user?.created_at || new Date().toISOString(),
+    totalOrders: stats.totalOrders,
+    totalSpent: stats.totalSpent,
+    wishlistCount: stats.wishlistCount,
+    recentOrders: recentOrders.map(order => ({
+      id: order.id?.toString() || order.order_number || '',
+      date: order.created_at || order.date || '',
+      status: order.status || 'pending',
+      total: order.total_amount || order.total || 0,
+      items: order.order_items?.length || order.items?.length || 0
+    }))
   };
 
   const onSubmit = async (data: ProfileForm) => {
     try {
       setIsLoading(true);
-      await updateProfile(data);
+      await updateUserProfile(data);
       setIsEditing(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Profile update failed:', error);
+      alert(error?.response?.data?.message || 'Failed to update profile. Please try again.');
     } finally {
       setIsLoading(false);
     }

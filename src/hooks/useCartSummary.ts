@@ -21,14 +21,15 @@ export function useCartSummary(cart: Cart | null, currencySymbol: string) {
     }
 
     const summary = (cart as any)?.summary || {};
-    
+
     const subtotal = summary.subtotal || cart.subtotal || 0;
     const couponDiscount = summary.coupon_discount || 0;
     const bundleDiscount = summary.bundle_discount || 0;
     const totalDiscount = summary.total_discount || Math.max(couponDiscount, bundleDiscount);
     const discountedSubtotal = summary.discounted_subtotal || Math.max(0, subtotal - totalDiscount);
+    const shippingCost = summary.shipping_cost || 0;
     const tax = summary.tax_amount || Math.round(discountedSubtotal * 0.18);
-    const total = summary.total || (discountedSubtotal + tax);
+    const total = summary.total || (discountedSubtotal + tax + shippingCost);
 
     return {
       subtotal,
@@ -40,9 +41,12 @@ export function useCartSummary(cart: Cart | null, currencySymbol: string) {
       totalDiscount,
       discountMessage: summary.discount_message || null,
       discountedSubtotal,
+      shippingCost,
+      shippingDetails: summary.shipping_details || null,
       tax,
       total,
       currencySymbol,
+      requiresPincode: summary.requires_pincode || false,
     };
   }, [cart, currencySymbol]);
 }

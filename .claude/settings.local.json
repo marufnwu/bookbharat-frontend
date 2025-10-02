@@ -12,7 +12,16 @@
       "Bash(npx next build:*)",
       "Bash(npm run dev:*)",
       "Bash(npx eslint:*)",
-      "Bash(php artisan migrate:*)"
+      "Bash(php artisan migrate:*)",
+      "Bash(grep:*)",
+      "Bash(php artisan make:migration:*)",
+      "Bash(php artisan make:model:*)",
+      "Bash(php artisan make:seeder:*)",
+      "Bash(curl:*)",
+      "Bash(php artisan route:list:*)",
+      "Bash(python:*)",
+      "Bash(php artisan tinker:*)",
+      "Bash(php artisan make:controller:*)"
     ],
     "deny": [],
     "ask": []

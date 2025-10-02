@@ -17,6 +17,7 @@ import { useConfig } from '@/contexts/ConfigContext';
 import { useCartStore } from '@/stores/cart';
 import { useHydratedAuth } from '@/stores/auth';
 import { cartApi, orderApi, shippingApi, addressApi, paymentApi } from '@/lib/api';
+import { toast } from 'sonner';
 import { Cart, Order, Address } from '@/types';
 import AddressManager from '@/components/AddressManager';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -413,32 +414,37 @@ export default function CheckoutPage() {
 
   const loadAddresses = async () => {
     try {
-      const response = await addressApi.getAddresses();
+      // Get only shipping addresses for the shipping address selector
+      const response = await addressApi.getAddresses('shipping');
       if (response?.status === 'success' || response?.data) {
-        const userAddresses = response.data || [];
-        setAddresses(userAddresses);
-        
-        const defaultShipping = userAddresses.find(
-          (addr: Address) => addr.type === 'shipping' && addr.is_default
+        const shippingAddresses = response.data || [];
+        setAddresses(shippingAddresses);
+
+        const defaultShipping = shippingAddresses.find(
+          (addr: Address) => addr.is_default
         );
         if (defaultShipping) {
           setSelectedAddressId(defaultShipping.id);
           setSelectedShippingAddress(defaultShipping);
           populateFormFromAddress(defaultShipping);
-          
+
           // Calculate shipping for default address
           if (defaultShipping.postal_code && defaultShipping.postal_code.length === 6) {
             calculateShipping(defaultShipping.postal_code);
           }
         }
-        
-        // Auto-select default billing address
-        const defaultBilling = userAddresses.find(
-          (addr: Address) => addr.type === 'billing' && addr.is_default
-        );
-        if (defaultBilling) {
-          setSelectedBillingAddressId(defaultBilling.id);
-          setSelectedBillingAddress(defaultBilling);
+
+        // Load billing addresses separately if needed
+        const billingResponse = await addressApi.getAddresses('billing');
+        if (billingResponse?.status === 'success' || billingResponse?.data) {
+          const billingAddresses = billingResponse.data || [];
+          const defaultBilling = billingAddresses.find(
+            (addr: Address) => addr.is_default
+          );
+          if (defaultBilling) {
+            setSelectedBillingAddressId(defaultBilling.id);
+            setSelectedBillingAddress(defaultBilling);
+          }
         }
       }
     } catch (error) {
@@ -661,19 +667,27 @@ export default function CheckoutPage() {
 
     try {
       setCalculatingShipping(true);
-      const response = await shippingApi.calculateCartShipping({
-        delivery_pincode: pincode,
-        include_insurance: false,
-        is_remote: false,
-        has_fragile_items: false,
-        has_electronics: false
-      });
+      // Use new cart/calculate-shipping endpoint
+      const response = await cartApi.calculateShipping(pincode);
 
-      if (response.success && response.shipping) {
-        setShippingCost(response.shipping.total_cost || response.shipping.base_cost || 0);
+      if (response.success && response.summary) {
+        const summary = response.summary;
+        setShippingCost(summary.shipping_cost || 0);
+
+        if (summary.shipping_details) {
+          setEstimatedDelivery(summary.shipping_details.delivery_estimate || '3-5 business days');
+          setCodAvailable(true);
+        }
+      } else {
+        console.error('Shipping calculation failed:', response);
+        toast.error('Failed to calculate shipping. Using default rates.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to calculate shipping:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to calculate shipping';
+      toast.error(errorMessage);
+      // Set default shipping cost on error
+      setShippingCost(50);
     } finally {
       setCalculatingShipping(false);
     }
@@ -1068,10 +1082,7 @@ export default function CheckoutPage() {
           }
         }),
         payment_method: data.paymentMethod,
-        subtotal: subtotal,
-        shipping_cost: calculatedShippingCost,
-        tax_amount: tax,
-        total_amount: total,
+        // REMOVED: shipping_cost - backend calculates from delivery address (security)
         notes: data.notes || '',
         coupon_code: activeCouponCode,
         coupon_discount: couponDiscount

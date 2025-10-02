@@ -10,9 +10,10 @@ interface CartState {
   cart: Cart | null;
   isLoading: boolean;
   availableCoupons: any[];
-  
+  deliveryPincode: string | null;
+
   // Actions
-  getCart: () => Promise<void>;
+  getCart: (deliveryPincode?: string) => Promise<void>;
   addToCart: (product: Product, quantity?: number) => Promise<void>;
   updateQuantity: (itemId: number, quantity: number) => Promise<void>;
   removeItem: (itemId: number) => Promise<void>;
@@ -20,7 +21,9 @@ interface CartState {
   applyCoupon: (couponCode: string) => Promise<void>;
   removeCoupon: () => Promise<void>;
   getAvailableCoupons: () => Promise<void>;
-  
+  calculateShipping: (pincode: string, pickupPincode?: string) => Promise<void>;
+  setDeliveryPincode: (pincode: string) => void;
+
   // Local state helpers
   getTotalItems: () => number;
   getSubtotal: () => number;
@@ -33,22 +36,27 @@ export const useCartStore = create<CartState>()(
       cart: null,
       isLoading: false,
       availableCoupons: [],
+      deliveryPincode: null,
 
-      getCart: async () => {
+      getCart: async (deliveryPincode?: string) => {
         try {
           set({ isLoading: true });
-          
+
           // Log authentication method for debugging
           const authToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
           const sessionId = typeof window !== 'undefined' ? localStorage.getItem('guest_session_id') : null;
-          
+
           if (authToken) {
             console.log('🛒 Fetching cart as authenticated user');
           } else {
             console.log('🛒 Fetching cart with session ID:', sessionId);
           }
-          
-          const response = await cartApi.getCart();
+
+          // Use deliveryPincode parameter or from state
+          const pincode = deliveryPincode || get().deliveryPincode;
+          const params = pincode ? { delivery_pincode: pincode } : undefined;
+
+          const response = await cartApi.getCart(params);
           console.log('🛒 Raw API response:', JSON.stringify(response, null, 2));
           
           // Handle different possible response structures
@@ -221,11 +229,35 @@ export const useCartStore = create<CartState>()(
           set({ availableCoupons: [] });
         }
       },
+
+      calculateShipping: async (pincode: string, pickupPincode?: string) => {
+        try {
+          set({ isLoading: true });
+          const response = await cartApi.calculateShipping(pincode, pickupPincode);
+
+          if (response.success && response.summary) {
+            // Update delivery pincode
+            set({ deliveryPincode: pincode });
+
+            // Refresh cart with new shipping calculation
+            await get().getCart(pincode);
+          }
+        } catch (error) {
+          console.error('Failed to calculate shipping:', error);
+          set({ isLoading: false });
+          throw error;
+        }
+      },
+
+      setDeliveryPincode: (pincode: string) => {
+        set({ deliveryPincode: pincode });
+      },
     }),
     {
       name: 'cart-store',
       partialize: (state) => ({
         cart: state.cart,
+        deliveryPincode: state.deliveryPincode,
       }),
     }
   )

@@ -26,6 +26,8 @@ interface CartSummaryData {
   bundleDiscount: number;
   discountedSubtotal: number;
   shippingCost: number;
+  shippingDetails?: any;
+  requiresPincode?: boolean;
   tax: number;
   total: number;
   currencySymbol: string;
@@ -434,7 +436,9 @@ export function OrderSummaryCard({
               )}
             </span>
             <span>
-              {variant === 'checkout' && !hasValidShippingAddress ? (
+              {summary.requiresPincode && variant === 'cart' ? (
+                <span className="text-xs text-muted-foreground italic">Calculated at checkout</span>
+              ) : variant === 'checkout' && !hasValidShippingAddress ? (
                 <span className="text-muted-foreground">TBD</span>
               ) : summary.shippingCost === 0 ? (
                 <span className="text-green-600 font-semibold">FREE</span>

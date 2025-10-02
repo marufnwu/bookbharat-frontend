@@ -15,7 +15,8 @@ import {
   Image,
   Monitor,
   Globe,
-  CreditCard
+  CreditCard,
+  Layout
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -113,6 +114,14 @@ export default function AdminDashboard() {
       href: '/admin/payments',
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-100'
+    },
+    {
+      title: 'Hero Configuration',
+      description: 'Manage homepage hero sections and variants',
+      icon: Layout,
+      href: '/admin/hero',
+      color: 'text-red-600',
+      bgColor: 'bg-red-100'
     }
   ];
 

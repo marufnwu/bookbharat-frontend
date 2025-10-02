@@ -292,9 +292,10 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Breadcrumb */}
-      <nav className="text-sm text-muted-foreground mb-6">
+    <ProtectedRoute>
+      <div className="container mx-auto px-4 py-8">
+        {/* Breadcrumb */}
+        <nav className="text-sm text-muted-foreground mb-6">
         <Link href="/" className="hover:text-primary">Home</Link>
         <span className="mx-2">/</span>
         <Link href="/profile" className="hover:text-primary">Profile</Link>
@@ -534,6 +535,7 @@ export default function OrdersPage() {
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       )}
-    </div>
+      </div>
+    </ProtectedRoute>
   );
 }

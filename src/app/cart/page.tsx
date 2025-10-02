@@ -336,14 +336,16 @@ export default function ImprovedCartPage() {
                 couponDiscount: cartSummary.couponDiscount,
                 bundleDiscount: cartSummary.bundleDiscount,
                 discountedSubtotal: cartSummary.discountedSubtotal,
-                shippingCost: 0, // Free shipping shown in cart
+                shippingCost: cartSummary.shippingCost || 0,
+                shippingDetails: cartSummary.shippingDetails,
                 tax: cartSummary.tax,
                 total: cartSummary.total,
                 currencySymbol: cartSummary.currencySymbol,
                 couponCode: cartSummary.couponCode,
                 bundleDetails: cartSummary.bundleDetails,
                 discountMessage: cartSummary.discountMessage,
-                itemCount: cart.total_items
+                itemCount: cart.total_items,
+                requiresPincode: cartSummary.requiresPincode
               }}
               onApplyCoupon={handleApplyCoupon}
               onRemoveCoupon={handleRemoveCoupon}
@@ -364,14 +366,16 @@ export default function ImprovedCartPage() {
           couponDiscount: cartSummary.couponDiscount,
           bundleDiscount: cartSummary.bundleDiscount,
           discountedSubtotal: cartSummary.discountedSubtotal,
-          shippingCost: 0,
+          shippingCost: cartSummary.shippingCost || 0,
+          shippingDetails: cartSummary.shippingDetails,
           tax: cartSummary.tax,
           total: cartSummary.total,
           currencySymbol: cartSummary.currencySymbol,
           couponCode: cartSummary.couponCode,
           bundleDetails: cartSummary.bundleDetails,
           discountMessage: cartSummary.discountMessage,
-          itemCount: cart.total_items
+          itemCount: cart.total_items,
+          requiresPincode: cartSummary.requiresPincode
         }}
         onApplyCoupon={handleApplyCoupon}
         onRemoveCoupon={handleRemoveCoupon}

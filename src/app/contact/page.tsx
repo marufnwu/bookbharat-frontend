@@ -1,102 +1,121 @@
-'use client';
-
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { contactApi } from '@/lib/api';
-import { toast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
+import { Metadata } from 'next';
+import ContactForm from '@/components/contact/ContactForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { 
+import {
   Phone,
   Mail,
   MapPin,
   Clock,
   MessageSquare,
   HeadphonesIcon,
-  Users,
-  BookOpen,
   HelpCircle,
-  Send
+  Users,
+  BookOpen
 } from 'lucide-react';
 
-const contactSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Please enter a valid email address'),
-  subject: z.string().min(5, 'Subject must be at least 5 characters'),
-  category: z.string().min(1, 'Please select a category'),
-  message: z.string().min(10, 'Message must be at least 10 characters'),
-});
+export const metadata: Metadata = {
+  title: 'Contact Us',
+  description: 'Get in touch with BookBharat. We\'re here to help!',
+};
 
-type ContactForm = z.infer<typeof contactSchema>;
+async function getContactInfo() {
+  try {
+    // Fetch site configuration for contact details
+    const configResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/configuration/site-config`, {
+      next: { revalidate: 3600 }, // Cache for 1 hour
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
 
-export default function ContactPage() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+    if (configResponse.ok) {
+      const configData = await configResponse.json();
+      return configData.data;
+    }
+  } catch (error) {
+    console.error('Error fetching contact info:', error);
+  }
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm<ContactForm>({
-    resolver: zodResolver(contactSchema),
-  });
-
-  const categories = [
-    { value: 'order', label: 'Order Support' },
-    { value: 'shipping', label: 'Shipping & Delivery' },
-    { value: 'returns', label: 'Returns & Refunds' },
-    { value: 'technical', label: 'Technical Issues' },
-    { value: 'general', label: 'General Inquiry' },
-    { value: 'feedback', label: 'Feedback & Suggestions' },
-  ];
-
-  const onSubmit = async (data: ContactForm) => {
-    try {
-      setIsSubmitting(true);
-      
-      const response = await contactApi.submitContactForm(data);
-      
-      if (response.success) {
-        reset();
-        toast({
-          title: "Message sent successfully!",
-          description: response.message || "We have received your message and will respond within 24 hours.",
-        });
-      } else {
-        toast({
-          title: "Failed to send message",
-          description: response.message || "Please try again or contact us directly.",
-          variant: "destructive",
-        });
+  // Return default values if API fails
+  return {
+    contact: {
+      phone: '+91 12345 67890',
+      email: 'support@bookbharat.com',
+      address: {
+        line1: 'Level 5, Tower A',
+        line2: 'Business Park, Andheri East',
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        pincode: '400069',
+        country: 'India'
       }
-    } catch (error: any) {
-      console.error('Failed to submit contact form:', error);
-      toast({
-        title: "Error",
-        description: "Unable to send message. Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
+    },
+    support_hours: {
+      weekdays: '9:00 AM - 8:00 PM',
+      saturday: '9:00 AM - 6:00 PM',
+      sunday: 'Closed'
     }
   };
+}
+
+async function getContactPageContent() {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/configuration/content-page/contact`, {
+      next: { revalidate: 3600 }, // Cache for 1 hour
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return data.data;
+    }
+  } catch (error) {
+    console.error('Error fetching contact page content:', error);
+  }
+  return null;
+}
+
+export default async function ContactPage() {
+  const [siteConfig, pageContent] = await Promise.all([
+    getContactInfo(),
+    getContactPageContent()
+  ]);
+
+  const content = pageContent?.content || {};
+  const contact = siteConfig?.contact || {};
+  const supportHours = siteConfig?.support_hours || {};
+
+  // Use content from API if available
+  const pageTitle = content.title || 'We\'d Love to Hear From You';
+  const pageSubtitle = content.subtitle || 'Have a question, feedback, or need assistance? We\'re here to help! Reach out to us using any of the methods below.';
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      {/* Hero Section */}
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-foreground mb-4">Contact Us</h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Have questions or need help? We're here to assist you. Get in touch with our team.
+        <h1 className="text-4xl font-bold text-foreground mb-4">
+          {pageTitle}
+        </h1>
+        <p className="text-muted-foreground max-w-2xl mx-auto">
+          {pageSubtitle}
         </p>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
+        {/* Contact Form */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Send Us a Message</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ContactForm />
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Contact Information */}
         <div className="lg:col-span-1 space-y-6">
           {/* Contact Methods */}
@@ -112,20 +131,20 @@ export default function ContactPage() {
                 <Phone className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="font-medium">Customer Support</p>
-                  <p className="text-sm text-muted-foreground">+91 12345 67890</p>
-                  <p className="text-xs text-muted-foreground">Mon-Sat: 9:00 AM - 8:00 PM</p>
+                  <p className="text-sm text-muted-foreground">{contact.phone || '+91 12345 67890'}</p>
+                  <p className="text-xs text-muted-foreground">Mon-Sat: {supportHours.weekdays || '9:00 AM - 8:00 PM'}</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start space-x-3">
                 <Mail className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="font-medium">Email Support</p>
-                  <p className="text-sm text-muted-foreground">support@bookbharat.com</p>
+                  <p className="text-sm text-muted-foreground">{contact.email || 'support@bookbharat.com'}</p>
                   <p className="text-xs text-muted-foreground">Response within 24 hours</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start space-x-3">
                 <MessageSquare className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                 <div>
@@ -149,10 +168,10 @@ export default function ContactPage() {
               <div className="space-y-2">
                 <p className="font-medium">BookBharat Headquarters</p>
                 <p className="text-sm text-muted-foreground">
-                  Level 5, Tower A<br />
-                  Business Park, Andheri East<br />
-                  Mumbai, Maharashtra 400069<br />
-                  India
+                  {contact.address?.line1 || 'Level 5, Tower A'}<br />
+                  {contact.address?.line2 || 'Business Park, Andheri East'}<br />
+                  {contact.address?.city || 'Mumbai'}, {contact.address?.state || 'Maharashtra'} {contact.address?.pincode || '400069'}<br />
+                  {contact.address?.country || 'India'}
                 </p>
               </div>
             </CardContent>
@@ -170,15 +189,15 @@ export default function ContactPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span>Monday - Friday</span>
-                  <span className="font-medium">9:00 AM - 8:00 PM</span>
+                  <span className="font-medium">{supportHours.weekdays || '9:00 AM - 8:00 PM'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Saturday</span>
-                  <span className="font-medium">9:00 AM - 6:00 PM</span>
+                  <span className="font-medium">{supportHours.saturday || '9:00 AM - 6:00 PM'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Sunday</span>
-                  <span className="text-muted-foreground">Closed</span>
+                  <span className="text-muted-foreground">{supportHours.sunday || 'Closed'}</span>
                 </div>
               </div>
             </CardContent>
@@ -197,132 +216,53 @@ export default function ContactPage() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Contact Form */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Send className="h-5 w-5 mr-2" />
-                Send us a Message
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <Input
-                    {...register('name')}
-                    label="Your Name"
-                    placeholder="Enter your full name"
-                    error={errors.name?.message}
-                    required
-                  />
-                  <Input
-                    {...register('email')}
-                    type="email"
-                    label="Email Address"
-                    placeholder="Enter your email"
-                    error={errors.email?.message}
-                    required
-                  />
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <Input
-                    {...register('subject')}
-                    label="Subject"
-                    placeholder="Brief description of your inquiry"
-                    error={errors.subject?.message}
-                    required
-                  />
-                  <Select
-                    {...register('category')}
-                    label="Category"
-                    options={categories}
-                    error={errors.category?.message}
-                    required
-                  />
-                </div>
-
-                <Textarea
-                  {...register('message')}
-                  label="Message"
-                  placeholder="Please provide details about your inquiry..."
-                  rows={6}
-                  error={errors.message?.message}
-                  required
-                />
-
-                <Button type="submit" size="lg" loading={isSubmitting} className="w-full">
-                  <Send className="h-4 w-4 mr-2" />
-                  Send Message
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          {/* Support Categories */}
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold mb-6">Common Support Categories</h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              {[
-                {
-                  icon: BookOpen,
-                  title: 'Order Support',
-                  description: 'Help with placing orders, order status, and modifications'
-                },
-                {
-                  icon: MapPin,
-                  title: 'Shipping & Delivery',
-                  description: 'Questions about delivery times, shipping costs, and tracking'
-                },
-                {
-                  icon: Users,
-                  title: 'Returns & Refunds',
-                  description: 'Information about our return policy and refund process'
-                },
-                {
-                  icon: HelpCircle,
-                  title: 'Technical Issues',
-                  description: 'Website problems, account issues, and technical support'
-                }
-              ].map((item, index) => {
-                const Icon = item.icon;
-                return (
-                  <Card key={index} className="hover:shadow-md transition-shadow cursor-pointer">
-                    <CardContent className="p-4">
-                      <div className="flex items-start space-x-3">
-                        <Icon className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
-                        <div>
-                          <h4 className="font-medium mb-1">{item.title}</h4>
-                          <p className="text-sm text-muted-foreground">{item.description}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* Additional Support */}
-      <div className="mt-16 bg-gradient-to-r from-primary/5 to-accent/5 rounded-2xl p-8 text-center">
-        <h3 className="text-2xl font-bold text-foreground mb-4">Need Immediate Help?</h3>
-        <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-          For urgent matters or immediate assistance, you can also reach us through these channels:
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button variant="outline">
-            <Phone className="h-4 w-4 mr-2" />
-            Call Now: +91 12345 67890
-          </Button>
-          <Button variant="outline">
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Start Live Chat
-          </Button>
-        </div>
+      {/* Additional Info */}
+      <div className="mt-12 grid md:grid-cols-3 gap-6 text-center">
+        {content.features?.map((feature: any, index: number) => (
+          <Card key={index}>
+            <CardContent className="p-6">
+              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                {feature.icon === 'users' ? <Users className="h-6 w-6 text-primary" /> :
+                 feature.icon === 'book' ? <BookOpen className="h-6 w-6 text-primary" /> :
+                 <HeadphonesIcon className="h-6 w-6 text-primary" />}
+              </div>
+              <h3 className="font-semibold mb-2">{feature.title}</h3>
+              <p className="text-sm text-muted-foreground">{feature.description}</p>
+            </CardContent>
+          </Card>
+        )) || (
+          <>
+            <Card>
+              <CardContent className="p-6">
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="font-semibold mb-2">Customer First</h3>
+                <p className="text-sm text-muted-foreground">Your satisfaction is our top priority</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Clock className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="font-semibold mb-2">Quick Response</h3>
+                <p className="text-sm text-muted-foreground">We respond within 24 hours</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <HeadphonesIcon className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="font-semibold mb-2">Expert Support</h3>
+                <p className="text-sm text-muted-foreground">Knowledgeable team ready to help</p>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     </div>
   );

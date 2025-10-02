@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Plus, Check, ShoppingCart } from 'lucide-react';
 import { useCartStore } from '@/stores/cart';
-import { productApi } from '@/lib/api';
+import { productApi, cartApi } from '@/lib/api';
 import { toast } from 'sonner';
 
 interface Product {
@@ -159,18 +159,29 @@ export default function FrequentlyBoughtTogether({ productId, mainProduct }: Fre
 
   const handleAddBundleToCart = async () => {
     try {
-      // Add main product
-      await addToCart(mainProduct);
-      
-      // Add selected products
+      // Get selected product IDs
       const selectedProductsList = products.filter(p => selectedProducts.has(p.id));
-      for (const product of selectedProductsList) {
-        await addToCart(product);
-      }
+      const selectedProductIds = selectedProductsList.map(p => parseInt(p.id));
 
-      toast.success('Bundle added to cart!');
-    } catch (error) {
-      toast.error('Failed to add bundle to cart');
+      // Call backend addBundle endpoint with bundle discount
+      const response = await cartApi.addBundle({
+        main_product_id: parseInt(mainProduct.id),
+        product_ids: selectedProductIds,
+        bundle_discount_rule_id: bundleData?.discount_rule ? undefined : undefined // Optional: Can add if tracking rule ID
+      });
+
+      if (response.success) {
+        // Refresh cart store
+        const { refreshCart } = useCartStore.getState();
+        await refreshCart();
+
+        toast.success(`Bundle added to cart! Saved ₹${response.bundle_data?.savings?.toFixed(2) || bundle.savings.toFixed(2)}`);
+      } else {
+        toast.error(response.message || 'Failed to add bundle to cart');
+      }
+    } catch (error: any) {
+      console.error('Error adding bundle to cart:', error);
+      toast.error(error?.response?.data?.message || 'Failed to add bundle to cart');
     }
   };
 

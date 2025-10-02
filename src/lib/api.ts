@@ -348,8 +348,8 @@ class ApiClient {
   }
 
   // Cart API methods
-  async getCart() {
-    const response = await this.get('/cart');
+  async getCart(params?: { delivery_pincode?: string; pickup_pincode?: string }) {
+    const response = await this.get('/cart', { params });
 
     // Handle different response structures from backend
     if (response.success) {
@@ -370,6 +370,16 @@ class ApiClient {
 
     if (response.success && response.data?.items) {
       response.data.items = this.transformItemsWithProducts(response.data.items);
+    }
+
+    return response;
+  }
+
+  async addBundle(data: { main_product_id: number; product_ids: number[]; bundle_discount_rule_id?: number }) {
+    const response = await this.post('/cart/add-bundle', data);
+
+    if (response.success && response.cart_items) {
+      response.cart_items = this.transformItemsWithProducts(response.cart_items);
     }
 
     return response;
@@ -397,6 +407,13 @@ class ApiClient {
 
   async getAvailableCoupons() {
     return this.get('/coupons/available');
+  }
+
+  async calculateCartShipping(deliveryPincode: string, pickupPincode?: string) {
+    return this.post('/cart/calculate-shipping', {
+      delivery_pincode: deliveryPincode,
+      pickup_pincode: pickupPincode
+    });
   }
 
   // Wishlist API methods
@@ -576,17 +593,18 @@ class ApiClient {
     return this.post('/shipping/calculate', data);
   }
 
-  async calculateCartShipping(data: { 
-    delivery_pincode: string; 
-    pickup_pincode?: string;
-    include_insurance?: boolean;
-    delivery_option_id?: number;
-    is_remote?: boolean;
-    has_fragile_items?: boolean;
-    has_electronics?: boolean;
-  }) {
-    return this.post('/shipping/calculate-cart', data);
-  }
+  // OLD METHOD - DEPRECATED - Use cartApi.calculateShipping instead
+  // async calculateCartShipping(data: {
+  //   delivery_pincode: string;
+  //   pickup_pincode?: string;
+  //   include_insurance?: boolean;
+  //   delivery_option_id?: number;
+  //   is_remote?: boolean;
+  //   has_fragile_items?: boolean;
+  //   has_electronics?: boolean;
+  // }) {
+  //   return this.post('/shipping/calculate-cart', data);
+  // }
 
   async getDeliveryOptions(params?: { pincode?: string; weight?: number }) {
     return this.get('/shipping/delivery-options', { params });
@@ -952,12 +970,14 @@ export const categoryApi = {
 export const cartApi = {
   getCart: apiClient.getCart.bind(apiClient),
   addToCart: apiClient.addToCart.bind(apiClient),
+  addBundle: apiClient.addBundle.bind(apiClient),
   updateCartItem: apiClient.updateCartItem.bind(apiClient),
   removeCartItem: apiClient.removeCartItem.bind(apiClient),
   clearCart: apiClient.clearCart.bind(apiClient),
   applyCoupon: apiClient.applyCoupon.bind(apiClient),
   removeCoupon: apiClient.removeCoupon.bind(apiClient),
   getAvailableCoupons: apiClient.getAvailableCoupons.bind(apiClient),
+  calculateShipping: apiClient.calculateCartShipping.bind(apiClient),
 };
 
 export const wishlistApi = {
@@ -1007,7 +1027,7 @@ export const shippingApi = {
   checkPincode: apiClient.checkPincode.bind(apiClient),
   getShippingRates: apiClient.getShippingRates.bind(apiClient),
   calculateShipping: apiClient.calculateShipping.bind(apiClient),
-  calculateCartShipping: apiClient.calculateCartShipping.bind(apiClient),
+  // calculateCartShipping: REMOVED - Use cartApi.calculateShipping instead
   getDeliveryOptions: apiClient.getDeliveryOptions.bind(apiClient),
   getInsurancePlans: apiClient.getInsurancePlans.bind(apiClient),
 };
