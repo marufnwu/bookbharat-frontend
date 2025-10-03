@@ -21,7 +21,13 @@
       "Bash(php artisan route:list:*)",
       "Bash(python:*)",
       "Bash(php artisan tinker:*)",
-      "Bash(php artisan make:controller:*)"
+      "Bash(php artisan make:controller:*)",
+      "Bash(php artisan serve:*)",
+      "Bash(cat:*)",
+      "Bash(php artisan:*)",
+      "Bash(php artisan config:clear:*)",
+      "Bash(php:*)",
+      "Bash(npm start)"
     ],
     "deny": [],
     "ask": []
