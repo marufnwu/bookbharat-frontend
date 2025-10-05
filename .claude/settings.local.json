@@ -60,7 +60,8 @@
       "Bash(npx tailwindcss:*)",
       "Bash(composer show:*)",
       "Bash(pkill:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Read(//d//**)"
     ],
     "deny": [],
     "ask": []

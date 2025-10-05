@@ -103,7 +103,7 @@ const billingSchema = z.object({
 });
 
 const paymentSchema = z.object({
-  paymentMethod: z.string().min(1, 'Please select a payment method'),
+  paymentMethod: z.string().optional(), // Made optional - will validate conditionally based on payment type
   notes: z.string().optional(),
 });
 
@@ -195,6 +195,9 @@ export default function CheckoutPage() {
   const [selectedShippingAddress, setSelectedShippingAddress] = useState<Address | null>(persistedState.selectedShippingAddress || null);
   const [selectedBillingAddress, setSelectedBillingAddress] = useState<Address | null>(persistedState.selectedBillingAddress || null);
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState<any[]>([]);
+  const [paymentType, setPaymentType] = useState<'online' | 'cod' | null>(persistedState.paymentType || null); // Step 1: Online vs COD
+  const [codConfig, setCodConfig] = useState<any>(null); // COD configuration from backend
+  const [paymentFlowSettings, setPaymentFlowSettings] = useState<any>({ type: 'two_tier', default_payment_type: 'none' }); // Payment flow settings from backend
 
   const {
     register,
@@ -249,6 +252,7 @@ export default function CheckoutPage() {
         selectedBillingAddressId,
         selectedShippingAddress,
         selectedBillingAddress,
+        paymentType,
       };
       localStorage.setItem('checkoutState', JSON.stringify(stateToSave));
     }
@@ -262,6 +266,7 @@ export default function CheckoutPage() {
     selectedBillingAddressId,
     selectedShippingAddress,
     selectedBillingAddress,
+    paymentType,
   ]);
   
   // Real-time validation functions
@@ -306,11 +311,32 @@ export default function CheckoutPage() {
   };
 
   const isStep3Valid = () => {
-    // Get payment method directly from watch
-    const paymentMethod = selectedPaymentMethod;
-    const isValid = !!paymentMethod && paymentMethod.trim() !== '';
-    console.log('Step 3 Validation:', { paymentMethod, isValid });
-    return isValid;
+    // First check if payment type is selected
+    if (!paymentType) return false;
+
+    // If online payment, check if gateway is selected
+    if (paymentType === 'online') {
+      const paymentMethod = selectedPaymentMethod;
+      const isValid = !!paymentMethod && paymentMethod.trim() !== '';
+      console.log('Step 3 Validation (Online):', { paymentMethod, isValid });
+      return isValid;
+    }
+
+    // If COD with advance, check if gateway is selected
+    if (paymentType === 'cod' && codConfig?.advance_payment?.required) {
+      const paymentMethod = selectedPaymentMethod;
+      const isValid = !!paymentMethod && paymentMethod.trim() !== '';
+      console.log('Step 3 Validation (COD with advance):', { paymentMethod, isValid });
+      return isValid;
+    }
+
+    // If COD without advance, no gateway selection needed
+    if (paymentType === 'cod') {
+      console.log('Step 3 Validation (Pure COD): true');
+      return true;
+    }
+
+    return false;
   };
 
   // Get current step validity
@@ -420,17 +446,36 @@ export default function CheckoutPage() {
         const shippingAddresses = response.data || [];
         setAddresses(shippingAddresses);
 
-        const defaultShipping = shippingAddresses.find(
-          (addr: Address) => addr.is_default
-        );
-        if (defaultShipping) {
-          setSelectedAddressId(defaultShipping.id);
-          setSelectedShippingAddress(defaultShipping);
-          populateFormFromAddress(defaultShipping);
+        // First, try to restore previously selected address from localStorage
+        const persistedAddressId = persistedState.selectedAddressId;
+        const persistedAddress = persistedAddressId
+          ? shippingAddresses.find((addr: Address) => addr.id === persistedAddressId)
+          : null;
 
-          // Calculate shipping for default address
-          if (defaultShipping.postal_code && defaultShipping.postal_code.length === 6) {
-            calculateShipping(defaultShipping.postal_code);
+        if (persistedAddress) {
+          // Restore the previously selected address
+          setSelectedAddressId(persistedAddress.id);
+          setSelectedShippingAddress(persistedAddress);
+          populateFormFromAddress(persistedAddress);
+
+          // Calculate shipping for restored address
+          if (persistedAddress.postal_code && persistedAddress.postal_code.length === 6) {
+            calculateShipping(persistedAddress.postal_code);
+          }
+        } else {
+          // Otherwise, use default shipping address
+          const defaultShipping = shippingAddresses.find(
+            (addr: Address) => addr.is_default
+          );
+          if (defaultShipping) {
+            setSelectedAddressId(defaultShipping.id);
+            setSelectedShippingAddress(defaultShipping);
+            populateFormFromAddress(defaultShipping);
+
+            // Calculate shipping for default address
+            if (defaultShipping.postal_code && defaultShipping.postal_code.length === 6) {
+              calculateShipping(defaultShipping.postal_code);
+            }
           }
         }
 
@@ -438,12 +483,26 @@ export default function CheckoutPage() {
         const billingResponse = await addressApi.getAddresses('billing');
         if (billingResponse?.status === 'success' || billingResponse?.data) {
           const billingAddresses = billingResponse.data || [];
-          const defaultBilling = billingAddresses.find(
-            (addr: Address) => addr.is_default
-          );
-          if (defaultBilling) {
-            setSelectedBillingAddressId(defaultBilling.id);
-            setSelectedBillingAddress(defaultBilling);
+
+          // First, try to restore previously selected billing address from localStorage
+          const persistedBillingAddressId = persistedState.selectedBillingAddressId;
+          const persistedBillingAddress = persistedBillingAddressId
+            ? billingAddresses.find((addr: Address) => addr.id === persistedBillingAddressId)
+            : null;
+
+          if (persistedBillingAddress) {
+            // Restore the previously selected billing address
+            setSelectedBillingAddressId(persistedBillingAddress.id);
+            setSelectedBillingAddress(persistedBillingAddress);
+          } else {
+            // Otherwise, use default billing address
+            const defaultBilling = billingAddresses.find(
+              (addr: Address) => addr.is_default
+            );
+            if (defaultBilling) {
+              setSelectedBillingAddressId(defaultBilling.id);
+              setSelectedBillingAddress(defaultBilling);
+            }
           }
         }
       }
@@ -461,8 +520,23 @@ export default function CheckoutPage() {
       const gateways = response?.gateways || [];
 
       if (response?.success && gateways.length > 0) {
-        // Transform gateway format to payment method format
-        const methods = gateways.map((gateway: any) => ({
+        // Store payment flow settings from backend
+        if (response.payment_flow) {
+          setPaymentFlowSettings(response.payment_flow);
+          console.log('Payment flow settings:', response.payment_flow);
+
+          // Set default payment type if specified
+          if (response.payment_flow.default_payment_type && response.payment_flow.default_payment_type !== 'none' && !paymentType) {
+            setPaymentType(response.payment_flow.default_payment_type);
+          }
+        }
+
+        // Separate COD from online payment methods
+        const codGateway = gateways.find((g: any) => g.gateway && g.gateway.includes('cod'));
+        const onlineGateways = gateways.filter((g: any) => !g.gateway || !g.gateway.includes('cod'));
+
+        // Transform online gateways only
+        const methods = onlineGateways.map((gateway: any) => ({
           payment_method: gateway.gateway,
           display_name: gateway.display_name || gateway.name,
           description: gateway.description || '',
@@ -470,11 +544,20 @@ export default function CheckoutPage() {
         }));
         setAvailablePaymentMethods(methods);
 
-        // Update COD availability based on response
-        const hasCodMethod = methods.some((method: any) =>
-          method.payment_method && method.payment_method.includes('cod')
-        );
-        setCodAvailable(hasCodMethod);
+        // Store COD configuration separately
+        if (codGateway) {
+          setCodConfig({
+            enabled: true,
+            display_name: codGateway.display_name || 'Cash on Delivery',
+            description: codGateway.description || 'Pay when your order arrives',
+            advance_payment: codGateway.advance_payment || null,
+            service_charges: codGateway.service_charges || null
+          });
+          setCodAvailable(true);
+        } else {
+          setCodConfig(null);
+          setCodAvailable(false);
+        }
       }
     } catch (error) {
       console.error('Failed to load payment methods:', error);
@@ -485,14 +568,16 @@ export default function CheckoutPage() {
           display_name: 'Online Payment (Cards/UPI/NetBanking)',
           description: 'Pay securely using cards, UPI, or net banking',
           priority: 10
-        },
-        {
-          payment_method: 'cod',
-          display_name: 'Cash on Delivery',
-          description: 'Pay when your order arrives',
-          priority: 5
         }
       ]);
+      setCodConfig({
+        enabled: true,
+        display_name: 'Cash on Delivery',
+        description: 'Pay when your order arrives',
+        advance_payment: null,
+        service_charges: null
+      });
+      setCodAvailable(true);
     }
   };
 
@@ -869,17 +954,20 @@ export default function CheckoutPage() {
   ];
 
   const currencySymbol = siteConfig?.payment?.currency_symbol || '₹';
-  
+
   const subtotal = cart?.summary?.subtotal || cart?.subtotal || 0;
   const couponDiscount = cart?.summary?.coupon_discount || 0;
   const activeCouponCode = cart?.summary?.coupon_code || null;
   const discountedSubtotal = cart?.summary?.discounted_subtotal || (subtotal - couponDiscount);
-  const hasValidShippingAddress = isAuthenticated ? 
+  const hasValidShippingAddress = isAuthenticated ?
     selectedShippingAddress?.postal_code && selectedShippingAddress?.state && selectedShippingAddress?.city :
     getValues('pincode') && getValues('state') && getValues('city');
   const calculatedShippingCost = hasValidShippingAddress ? (shippingCost || 0) : 0;
   const tax = cart?.summary?.tax_amount || Math.round(discountedSubtotal * 0.18);
-  const total = discountedSubtotal + calculatedShippingCost + tax;
+
+  // Use server-calculated total which includes charges (COD, etc.)
+  // Fallback to local calculation only if server total is not available
+  const total = cart?.summary?.total || (discountedSubtotal + calculatedShippingCost + tax);
 
   // Load payment methods when total changes
   useEffect(() => {
@@ -917,21 +1005,32 @@ export default function CheckoutPage() {
     console.log('Selected payment method:', selectedPaymentMethod);
   }, [paymentMethods.length, selectedPaymentMethod]);
 
-  // Handle payment method selection - recalculate cart with charges
+  // Handle payment type change - recalculate cart with COD charges
   useEffect(() => {
-    const handlePaymentMethodChange = async () => {
-      if (selectedPaymentMethod && selectedPaymentMethod !== '') {
-        console.log('💳 Payment method changed to:', selectedPaymentMethod);
+    const handlePaymentTypeChange = async () => {
+      if (paymentType === 'cod') {
+        console.log('💳 COD selected, recalculating with COD charges');
         try {
-          await setPaymentMethod(selectedPaymentMethod);
+          await setPaymentMethod('cod');
         } catch (error) {
-          console.error('Failed to update cart with payment method:', error);
+          console.error('Failed to update cart with COD:', error);
+        }
+      } else if (paymentType === 'online') {
+        console.log('💳 Online payment selected, removing COD charges');
+        try {
+          // Send 'online' as payment method to remove COD charges
+          await setPaymentMethod('online');
+        } catch (error) {
+          console.error('Failed to update cart with online payment:', error);
         }
       }
     };
 
-    handlePaymentMethodChange();
-  }, [selectedPaymentMethod]);
+    // Only trigger if paymentType is set
+    if (paymentType) {
+      handlePaymentTypeChange();
+    }
+  }, [paymentType]);
 
   // Handle payment gateway redirection
   const handlePaymentRedirect = (paymentDetails: any, gateway: string) => {
@@ -1035,8 +1134,9 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Validate payment method is selected
-    if (!data.paymentMethod) {
+    // Validate payment method is selected (except for pure COD without advance)
+    const isPureCOD = paymentType === 'cod' && (!codConfig?.advance_payment?.required);
+    if (!isPureCOD && !data.paymentMethod) {
       console.error('❌ No payment method selected');
       setError('Please select a payment method');
       return;
@@ -1097,7 +1197,7 @@ export default function CheckoutPage() {
             country: 'IN'
           }
         }),
-        payment_method: data.paymentMethod,
+        payment_method: paymentType === 'cod' && (!codConfig?.advance_payment?.required) ? 'cod' : data.paymentMethod,
         // REMOVED: shipping_cost - backend calculates from delivery address (security)
         notes: data.notes || '',
         coupon_code: activeCouponCode,
@@ -1798,17 +1898,267 @@ export default function CheckoutPage() {
               {/* STEP 3: PAYMENT & REVIEW */}
               {currentStep === 3 && (
                 <div className="space-y-4 lg:space-y-6">
-                  
-                  {/* Payment Method */}
+
+                  {/* Payment Flow: TWO-TIER (Default) */}
+                  {paymentFlowSettings.type === 'two_tier' && (
+                  <>
+                  {/* Step 1: Payment Type Selection */}
                   <Card>
                     <CardHeader className="pb-3 lg:pb-4">
                       <CardTitle className="flex items-center text-sm lg:text-base">
                         <CreditCard className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                        Payment Method
+                        Choose Payment Type
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3 lg:space-y-4">
                       <div className="space-y-2 lg:space-y-3">
+                        {/* Online Payment Option */}
+                        <label
+                          className={`flex items-center p-3 lg:p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                            paymentType === 'online'
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:bg-muted/50'
+                          }`}
+                          onClick={() => setPaymentType('online')}
+                        >
+                          <CreditCard className="h-5 w-5 mr-3 text-primary" />
+                          <div className="flex-1">
+                            <div className="font-medium text-sm lg:text-base">Full Payment (Pay Online Now)</div>
+                            <div className="text-xs lg:text-sm text-muted-foreground">Pay the full amount securely online</div>
+                          </div>
+                          <div className={`w-5 h-5 border-2 rounded-full flex items-center justify-center ${
+                            paymentType === 'online'
+                              ? 'border-primary bg-primary'
+                              : 'border-border'
+                          }`}>
+                            {paymentType === 'online' && (
+                              <div className="w-2.5 h-2.5 bg-primary-foreground rounded-full" />
+                            )}
+                          </div>
+                        </label>
+
+                        {/* COD Option (only if enabled) */}
+                        {codConfig && codConfig.enabled && (
+                          <label
+                            className={`flex items-center p-3 lg:p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                              paymentType === 'cod'
+                                ? 'border-primary bg-primary/5'
+                                : 'border-border hover:bg-muted/50'
+                            }`}
+                            onClick={() => setPaymentType('cod')}
+                          >
+                            <DollarSign className="h-5 w-5 mr-3 text-green-600" />
+                            <div className="flex-1">
+                              <div className="font-medium text-sm lg:text-base">{codConfig.display_name}</div>
+                              <div className="text-xs lg:text-sm text-muted-foreground">{codConfig.description}</div>
+                              {codConfig.advance_payment && codConfig.advance_payment.required && (
+                                <div className="text-xs mt-1 text-orange-600 font-medium">
+                                  ⚠️ Partial payment required upfront
+                                </div>
+                              )}
+                            </div>
+                            <div className={`w-5 h-5 border-2 rounded-full flex items-center justify-center ${
+                              paymentType === 'cod'
+                                ? 'border-primary bg-primary'
+                                : 'border-border'
+                            }`}>
+                              {paymentType === 'cod' && (
+                                <div className="w-2.5 h-2.5 bg-primary-foreground rounded-full" />
+                              )}
+                            </div>
+                          </label>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Step 2: Payment Gateway Selection (for Online) or COD Details */}
+                  {paymentType === 'online' && (
+                    <Card>
+                      <CardHeader className="pb-3 lg:pb-4">
+                        <CardTitle className="flex items-center text-sm lg:text-base">
+                          <Lock className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+                          Select Payment Gateway
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3 lg:space-y-4">
+                        <div className="space-y-2 lg:space-y-3">
+                          {paymentMethods.length === 0 && (
+                            <div className="text-center text-muted-foreground py-4">
+                              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                              <p className="text-sm">Loading payment gateways...</p>
+                            </div>
+                          )}
+                          {paymentMethods.map((method) => {
+                            const Icon = method.icon;
+                            return (
+                              <label
+                                key={method.id}
+                                className={`flex items-center p-3 lg:p-4 border rounded-lg cursor-pointer transition-colors ${
+                                  selectedPaymentMethod === method.id
+                                    ? 'border-primary bg-primary/5'
+                                    : 'border-border hover:bg-muted/50'
+                                }`}
+                              >
+                                <input
+                                  {...register('paymentMethod', {
+                                    onChange: (e) => {
+                                      console.log('Payment method selected:', e.target.value);
+                                    }
+                                  })}
+                                  type="radio"
+                                  value={method.id}
+                                  className="sr-only"
+                                  checked={selectedPaymentMethod === method.id}
+                                />
+                                <Icon className="h-4 w-4 lg:h-5 lg:w-5 mr-3 text-muted-foreground" />
+                                <div className="flex-1">
+                                  <div className="font-medium text-sm lg:text-base">{method.name}</div>
+                                  <div className="text-xs lg:text-sm text-muted-foreground">{method.description}</div>
+                                </div>
+                                <div className={`w-4 h-4 border-2 rounded-full ${
+                                  selectedPaymentMethod === method.id
+                                    ? 'border-primary bg-primary'
+                                    : 'border-border'
+                                }`}>
+                                  {selectedPaymentMethod === method.id && (
+                                    <div className="w-2 h-2 bg-primary-foreground rounded-full m-0.5" />
+                                  )}
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+
+                        {errors.paymentMethod && (
+                          <p className="text-sm text-destructive">{errors.paymentMethod.message}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* COD Details */}
+                  {paymentType === 'cod' && codConfig && (
+                    <Card>
+                      <CardHeader className="pb-3 lg:pb-4">
+                        <CardTitle className="flex items-center text-sm lg:text-base">
+                          <Package className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+                          Cash on Delivery Details
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {/* If advance payment required */}
+                        {codConfig.advance_payment && codConfig.advance_payment.required ? (
+                          <>
+                            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                              <div className="flex items-start gap-3">
+                                <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                                <div>
+                                  <h4 className="font-semibold text-orange-900 mb-2">Advance Payment Required</h4>
+                                  <p className="text-sm text-orange-800 mb-3">
+                                    To place a COD order, you need to pay a partial amount online now and the remaining on delivery.
+                                  </p>
+                                  <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div className="bg-white border border-orange-200 rounded p-3">
+                                      <p className="text-orange-600 text-xs mb-1">Pay Now (Online)</p>
+                                      <p className="text-lg font-bold text-orange-900">
+                                        {currencySymbol}{((total * (codConfig.advance_payment.type === 'percentage' ? codConfig.advance_payment.value / 100 : codConfig.advance_payment.value / total))).toFixed(2)}
+                                      </p>
+                                    </div>
+                                    <div className="bg-white border border-orange-200 rounded p-3">
+                                      <p className="text-orange-600 text-xs mb-1">Pay on Delivery</p>
+                                      <p className="text-lg font-bold text-orange-900">
+                                        {currencySymbol}{(total - (total * (codConfig.advance_payment.type === 'percentage' ? codConfig.advance_payment.value / 100 : codConfig.advance_payment.value / total))).toFixed(2)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Select gateway for advance payment */}
+                            <div>
+                              <h4 className="font-medium text-sm mb-3">Select Payment Gateway for Advance Payment</h4>
+                              <div className="space-y-2">
+                                {paymentMethods.length === 0 && (
+                                  <div className="text-center text-muted-foreground py-4">
+                                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                                    <p className="text-sm">Loading payment gateways...</p>
+                                  </div>
+                                )}
+                                {paymentMethods.map((method) => {
+                                  const Icon = method.icon;
+                                  return (
+                                    <label
+                                      key={method.id}
+                                      className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
+                                        selectedPaymentMethod === method.id
+                                          ? 'border-primary bg-primary/5'
+                                          : 'border-border hover:bg-muted/50'
+                                      }`}
+                                    >
+                                      <input
+                                        {...register('paymentMethod')}
+                                        type="radio"
+                                        value={method.id}
+                                        className="sr-only"
+                                        checked={selectedPaymentMethod === method.id}
+                                      />
+                                      <Icon className="h-4 w-4 mr-3 text-muted-foreground" />
+                                      <div className="flex-1">
+                                        <div className="font-medium text-sm">{method.name}</div>
+                                      </div>
+                                      <div className={`w-4 h-4 border-2 rounded-full ${
+                                        selectedPaymentMethod === method.id
+                                          ? 'border-primary bg-primary'
+                                          : 'border-border'
+                                      }`}>
+                                        {selectedPaymentMethod === method.id && (
+                                          <div className="w-2 h-2 bg-primary-foreground rounded-full m-0.5" />
+                                        )}
+                                      </div>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          /* No advance payment - Pure COD */
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <div className="flex items-start gap-3">
+                              <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-green-900 mb-2">Cash on Delivery Confirmed</h4>
+                                <p className="text-sm text-green-800 mb-2">
+                                  You will pay the full amount when your order is delivered.
+                                </p>
+                                <div className="bg-white border border-green-200 rounded p-3 inline-block">
+                                  <p className="text-green-600 text-xs mb-1">Total Amount (Pay on Delivery)</p>
+                                  <p className="text-2xl font-bold text-green-900">{currencySymbol}{total.toFixed(2)}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+                  </>
+                  )}
+
+                  {/* Payment Flow: SINGLE LIST - All gateways in one list */}
+                  {paymentFlowSettings.type === 'single_list' && (
+                  <Card>
+                    <CardHeader className="pb-3 lg:pb-4">
+                      <CardTitle className="flex items-center text-sm lg:text-base">
+                        <CreditCard className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+                        Select Payment Method
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3 lg:space-y-4">
+                      <div className="space-y-2 lg:space-y-3">
+                        {/* All gateways including COD in single list */}
                         {paymentMethods.map((method) => {
                           const Icon = method.icon;
                           return (
@@ -1821,11 +2171,7 @@ export default function CheckoutPage() {
                               }`}
                             >
                               <input
-                                {...register('paymentMethod', {
-                                  onChange: (e) => {
-                                    console.log('Payment method selected:', e.target.value);
-                                  }
-                                })}
+                                {...register('paymentMethod')}
                                 type="radio"
                                 value={method.id}
                                 className="sr-only"
@@ -1835,12 +2181,6 @@ export default function CheckoutPage() {
                               <div className="flex-1">
                                 <div className="font-medium text-sm lg:text-base">{method.name}</div>
                                 <div className="text-xs lg:text-sm text-muted-foreground">{method.description}</div>
-                                {method.advance_payment && method.advance_payment.required && (
-                                  <div className="text-xs mt-1 text-orange-600">
-                                    Advance: {currencySymbol}{method.advance_payment.amount.toFixed(2)} 
-                                    | COD: {currencySymbol}{method.advance_payment.cod_amount.toFixed(2)}
-                                  </div>
-                                )}
                               </div>
                               <div className={`w-4 h-4 border-2 rounded-full ${
                                 selectedPaymentMethod === method.id
@@ -1854,12 +2194,136 @@ export default function CheckoutPage() {
                             </label>
                           );
                         })}
-                      </div>
-                      
-                      {errors.paymentMethod && (
-                        <p className="text-sm text-destructive">{errors.paymentMethod.message}</p>
-                      )}
 
+                        {/* COD in the same list */}
+                        {codConfig && codConfig.enabled && (
+                          <label
+                            className={`flex items-center p-3 lg:p-4 border rounded-lg cursor-pointer transition-colors ${
+                              selectedPaymentMethod === 'cod'
+                                ? 'border-primary bg-primary/5'
+                                : 'border-border hover:bg-muted/50'
+                            }`}
+                            onClick={() => {
+                              setValue('paymentMethod', 'cod');
+                              setPaymentType('cod');
+                            }}
+                          >
+                            <DollarSign className="h-5 w-5 mr-3 text-green-600" />
+                            <div className="flex-1">
+                              <div className="font-medium text-sm lg:text-base">{codConfig.display_name}</div>
+                              <div className="text-xs lg:text-sm text-muted-foreground">{codConfig.description}</div>
+                            </div>
+                            <div className={`w-4 h-4 border-2 rounded-full ${
+                              selectedPaymentMethod === 'cod'
+                                ? 'border-primary bg-primary'
+                                : 'border-border'
+                            }`}>
+                              {selectedPaymentMethod === 'cod' && (
+                                <div className="w-2 h-2 bg-primary-foreground rounded-full m-0.5" />
+                              )}
+                            </div>
+                          </label>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  )}
+
+                  {/* Payment Flow: COD FIRST - COD prominently shown first */}
+                  {paymentFlowSettings.type === 'cod_first' && (
+                  <>
+                    {/* COD Option - Prominent */}
+                    {codConfig && codConfig.enabled && (
+                      <Card className="border-2 border-green-500">
+                        <CardHeader className="pb-3 lg:pb-4 bg-green-50">
+                          <CardTitle className="flex items-center text-sm lg:text-base text-green-900">
+                            <DollarSign className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+                            Cash on Delivery (Recommended)
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 lg:space-y-4">
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <p className="text-sm text-green-800 mb-3">{codConfig.description}</p>
+                            <Button
+                              type="button"
+                              className="w-full bg-green-600 hover:bg-green-700"
+                              onClick={() => {
+                                setValue('paymentMethod', 'cod');
+                                setPaymentType('cod');
+                              }}
+                            >
+                              Pay on Delivery
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Divider */}
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-border"></div>
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">Or pay online</span>
+                      </div>
+                    </div>
+
+                    {/* Online Payment Gateways */}
+                    <Card>
+                      <CardHeader className="pb-3 lg:pb-4">
+                        <CardTitle className="flex items-center text-sm lg:text-base">
+                          <CreditCard className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+                          Online Payment Methods
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3 lg:space-y-4">
+                        <div className="space-y-2 lg:space-y-3">
+                          {paymentMethods.map((method) => {
+                            const Icon = method.icon;
+                            return (
+                              <label
+                                key={method.id}
+                                className={`flex items-center p-3 lg:p-4 border rounded-lg cursor-pointer transition-colors ${
+                                  selectedPaymentMethod === method.id
+                                    ? 'border-primary bg-primary/5'
+                                    : 'border-border hover:bg-muted/50'
+                                }`}
+                              >
+                                <input
+                                  {...register('paymentMethod')}
+                                  type="radio"
+                                  value={method.id}
+                                  className="sr-only"
+                                  checked={selectedPaymentMethod === method.id}
+                                  onChange={() => setPaymentType('online')}
+                                />
+                                <Icon className="h-4 w-4 lg:h-5 lg:w-5 mr-3 text-muted-foreground" />
+                                <div className="flex-1">
+                                  <div className="font-medium text-sm lg:text-base">{method.name}</div>
+                                  <div className="text-xs lg:text-sm text-muted-foreground">{method.description}</div>
+                                </div>
+                                <div className={`w-4 h-4 border-2 rounded-full ${
+                                  selectedPaymentMethod === method.id
+                                    ? 'border-primary bg-primary'
+                                    : 'border-border'
+                                }`}>
+                                  {selectedPaymentMethod === method.id && (
+                                    <div className="w-2 h-2 bg-primary-foreground rounded-full m-0.5" />
+                                  )}
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </>
+                  )}
+
+                  {/* Order Notes */}
+                  <Card>
+                    <CardContent className="pt-6">
                       <Textarea
                         {...register('notes')}
                         label="Order Notes (Optional)"
