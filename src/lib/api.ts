@@ -348,7 +348,7 @@ class ApiClient {
   }
 
   // Cart API methods
-  async getCart(params?: { delivery_pincode?: string; pickup_pincode?: string }) {
+  async getCart(params?: { delivery_pincode?: string; pickup_pincode?: string; payment_method?: string }) {
     const response = await this.get('/cart', { params });
 
     // Handle different response structures from backend
@@ -363,6 +363,14 @@ class ApiClient {
     }
 
     return response;
+  }
+
+  async setCartPaymentMethod(paymentMethod: string, deliveryPincode?: string) {
+    // Get cart with payment method to recalculate charges
+    return this.getCart({
+      payment_method: paymentMethod,
+      delivery_pincode: deliveryPincode
+    });
   }
 
   async addToCart(productId: number, quantity: number) {
@@ -978,6 +986,7 @@ export const cartApi = {
   removeCoupon: apiClient.removeCoupon.bind(apiClient),
   getAvailableCoupons: apiClient.getAvailableCoupons.bind(apiClient),
   calculateShipping: apiClient.calculateCartShipping.bind(apiClient),
+  setPaymentMethod: apiClient.setCartPaymentMethod.bind(apiClient),
 };
 
 export const wishlistApi = {

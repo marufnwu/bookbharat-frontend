@@ -186,7 +186,7 @@ export default function CheckoutPage() {
   const [couponCode, setCouponCode] = useState(persistedState.couponCode || '');
   const [applyCouponLoading, setApplyCouponLoading] = useState(false);
   const { siteConfig } = useConfig();
-  const { cart, getCart, applyCoupon, removeCoupon, isLoading: cartLoading } = useCartStore();
+  const { cart, getCart, applyCoupon, removeCoupon, setPaymentMethod, isLoading: cartLoading } = useCartStore();
   const { user, isAuthenticated } = useHydratedAuth();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
@@ -916,6 +916,22 @@ export default function CheckoutPage() {
     console.log('Available payment methods:', paymentMethods);
     console.log('Selected payment method:', selectedPaymentMethod);
   }, [paymentMethods.length, selectedPaymentMethod]);
+
+  // Handle payment method selection - recalculate cart with charges
+  useEffect(() => {
+    const handlePaymentMethodChange = async () => {
+      if (selectedPaymentMethod && selectedPaymentMethod !== '') {
+        console.log('💳 Payment method changed to:', selectedPaymentMethod);
+        try {
+          await setPaymentMethod(selectedPaymentMethod);
+        } catch (error) {
+          console.error('Failed to update cart with payment method:', error);
+        }
+      }
+    };
+
+    handlePaymentMethodChange();
+  }, [selectedPaymentMethod]);
 
   // Handle payment gateway redirection
   const handlePaymentRedirect = (paymentDetails: any, gateway: string) => {

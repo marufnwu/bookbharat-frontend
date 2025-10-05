@@ -11,9 +11,10 @@ interface CartState {
   isLoading: boolean;
   availableCoupons: any[];
   deliveryPincode: string | null;
+  selectedPaymentMethod: string | null;
 
   // Actions
-  getCart: (deliveryPincode?: string) => Promise<void>;
+  getCart: (deliveryPincode?: string, paymentMethod?: string) => Promise<void>;
   addToCart: (product: Product, quantity?: number) => Promise<void>;
   updateQuantity: (itemId: number, quantity: number) => Promise<void>;
   removeItem: (itemId: number) => Promise<void>;
@@ -23,6 +24,7 @@ interface CartState {
   getAvailableCoupons: () => Promise<void>;
   calculateShipping: (pincode: string, pickupPincode?: string) => Promise<void>;
   setDeliveryPincode: (pincode: string) => void;
+  setPaymentMethod: (paymentMethod: string) => Promise<void>;
 
   // Local state helpers
   getTotalItems: () => number;
@@ -37,8 +39,9 @@ export const useCartStore = create<CartState>()(
       isLoading: false,
       availableCoupons: [],
       deliveryPincode: null,
+      selectedPaymentMethod: null,
 
-      getCart: async (deliveryPincode?: string) => {
+      getCart: async (deliveryPincode?: string, paymentMethod?: string) => {
         try {
           set({ isLoading: true });
 
@@ -52,9 +55,12 @@ export const useCartStore = create<CartState>()(
             console.log('🛒 Fetching cart with session ID:', sessionId);
           }
 
-          // Use deliveryPincode parameter or from state
+          // Use parameters or from state
           const pincode = deliveryPincode || get().deliveryPincode;
-          const params = pincode ? { delivery_pincode: pincode } : undefined;
+          const method = paymentMethod || get().selectedPaymentMethod;
+          const params: any = {};
+          if (pincode) params.delivery_pincode = pincode;
+          if (method) params.payment_method = method;
 
           const response = await cartApi.getCart(params);
           console.log('🛒 Raw API response:', JSON.stringify(response, null, 2));
@@ -255,12 +261,32 @@ export const useCartStore = create<CartState>()(
       setDeliveryPincode: (pincode: string) => {
         set({ deliveryPincode: pincode });
       },
+
+      setPaymentMethod: async (paymentMethod: string) => {
+        try {
+          console.log('💳 Setting payment method:', paymentMethod);
+          set({ selectedPaymentMethod: paymentMethod, isLoading: true });
+
+          // Get current pincode
+          const pincode = get().deliveryPincode;
+
+          // Recalculate cart with payment method
+          await get().getCart(pincode || undefined, paymentMethod);
+
+          console.log('💳 Cart recalculated with payment method');
+        } catch (error) {
+          console.error('Failed to set payment method:', error);
+          set({ isLoading: false });
+          throw error;
+        }
+      },
     }),
     {
       name: 'cart-store',
       partialize: (state) => ({
         cart: state.cart,
         deliveryPincode: state.deliveryPincode,
+        selectedPaymentMethod: state.selectedPaymentMethod,
       }),
     }
   )
