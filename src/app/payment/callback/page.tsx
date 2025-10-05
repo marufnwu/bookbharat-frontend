@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
+// Disable static generation for this page as it requires query parameters
+export const dynamic = 'force-dynamic';
+
 export default function PaymentCallbackPage() {
   const [status, setStatus] = useState<'processing' | 'success' | 'failed'>('processing');
   const router = useRouter();

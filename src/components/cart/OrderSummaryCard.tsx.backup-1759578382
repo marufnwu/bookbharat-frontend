@@ -28,26 +28,7 @@ interface CartSummaryData {
   shippingCost: number;
   shippingDetails?: any;
   requiresPincode?: boolean;
-  charges?: Array<{
-    code: string;
-    name: string;
-    display_label: string;
-    amount: number;
-    is_taxable: boolean;
-    type: string;
-  }>;
-  totalCharges?: number;
   tax: number;
-  taxesBreakdown?: Array<{
-    code: string;
-    name: string;
-    display_label: string;
-    rate: string;
-    amount: number;
-    taxable_amount: number;
-    is_inclusive: boolean;
-    type: string;
-  }>;
   total: number;
   currencySymbol: string;
   couponCode?: string;
@@ -466,37 +447,12 @@ export function OrderSummaryCard({
               )}
             </span>
           </div>
-
-          {/* Additional Charges */}
-          {summary.charges && summary.charges.length > 0 && (
-            <>
-              {summary.charges.map((charge: any, index: number) => (
-                <div key={index} className="flex justify-between text-sm">
-                  <span>{charge.display_label || charge.name}</span>
-                  <span>{summary.currencySymbol}{parseFloat(String(charge.amount)).toFixed(2)}</span>
-                </div>
-              ))}
-            </>
-          )}
-
-
-          {/* Tax Breakdown */}
-          {summary.taxesBreakdown && summary.taxesBreakdown.length > 0 ? (
-            <>
-              {summary.taxesBreakdown.map((tax: any, index: number) => (
-                <div key={index} className="flex justify-between text-sm">
-                  <span>{tax.display_label}</span>
-                  <span>{summary.currencySymbol}{parseFloat(String(tax.amount)).toFixed(2)}</span>
-                </div>
-              ))}
-            </>
-          ) : (
-            <div className="flex justify-between">
-              <span>Tax (GST 18%)</span>
-              <span>{summary.currencySymbol}{parseFloat(String(summary.tax)).toFixed(2)}</span>
-            </div>
-          )}
-
+          
+          <div className="flex justify-between">
+            <span>Tax (GST 18%)</span>
+            <span>{summary.currencySymbol}{parseFloat(String(summary.tax)).toFixed(2)}</span>
+          </div>
+          
           <hr />
           
           <div className="flex justify-between text-lg font-bold">

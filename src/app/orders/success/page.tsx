@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useCartStore } from '@/stores/cart';
 import { orderApi } from '@/lib/api';
 import { Order } from '@/types';
-import { 
+import {
   CheckCircle,
   ArrowRight,
   Download,
@@ -19,18 +19,30 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+// Disable static generation for this page as it requires query parameters
+export const dynamic = 'force-dynamic';
+
 function OrderSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const clearCart = useCartStore((state) => state.clearCart);
-  
+  const [mounted, setMounted] = useState(false);
+
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   const orderId = searchParams.get('order_id');
 
+  // Only access useCartStore on the client
+  const clearCart = mounted ? useCartStore.getState().clearCart : () => {};
+
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     if (!orderId) {
       setError('No order ID provided');
       setLoading(false);
@@ -41,14 +53,18 @@ function OrderSuccessContent() {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Pass the order ID or order number as-is (can be string or number)
         const response = await orderApi.getOrder(orderId);
-        
+
         if (response.success && response.data) {
           setOrder(response.data);
           // Clear cart after successful order display
-          clearCart();
+          try {
+            clearCart();
+          } catch (e) {
+            console.warn('Error clearing cart:', e);
+          }
         } else {
           setError(response.message || 'Failed to load order details');
         }
@@ -68,7 +84,7 @@ function OrderSuccessContent() {
     };
 
     fetchOrder();
-  }, [orderId, clearCart]);
+  }, [orderId, clearCart, mounted]);
 
   if (loading) {
     return (

@@ -1,36 +1,41 @@
 'use client';
 
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tag } from 'lucide-react';
 
-interface BundleDiscountProps {
+interface BundleDiscountDetails {
+  original_price: number;
+  bundle_price: number;
+  savings: number;
+  discount_percentage: number;
+  product_count: number;
+  discount_rule?: {
+    name: string;
+    description: string;
+    type: 'percentage' | 'fixed';
+  };
+}
+
+interface BundleDiscountDisplayProps {
   bundleDiscount: number;
-  bundleDetails: {
-    original_price: number;
-    bundle_price: number;
-    savings: number;
-    discount_percentage: number;
-    product_count: number;
-    discount_rule?: {
-      name: string;
-      description: string;
-      type: 'percentage' | 'fixed';
-    };
-  } | null;
+  bundleDetails?: BundleDiscountDetails | null;
   discountMessage?: string;
   currencySymbol: string;
   variant?: 'desktop' | 'mobile';
 }
 
-export function BundleDiscountDisplay({ 
-  bundleDiscount, 
-  bundleDetails, 
-  discountMessage, 
+const BundleDiscountDisplay: React.FC<BundleDiscountDisplayProps> = ({
+  bundleDiscount,
+  bundleDetails,
+  discountMessage,
   currencySymbol,
   variant = 'desktop'
-}: BundleDiscountProps) {
-  if (bundleDiscount <= 0) return null;
+}) => {
+  if (!bundleDiscount || bundleDiscount <= 0) {
+    return null;
+  }
 
   if (variant === 'mobile') {
     return (
@@ -92,4 +97,7 @@ export function BundleDiscountDisplay({
       </CardContent>
     </Card>
   );
-}
+};
+
+export { BundleDiscountDisplay };
+export default BundleDiscountDisplay;

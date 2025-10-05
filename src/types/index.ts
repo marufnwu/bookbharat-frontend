@@ -132,12 +132,44 @@ export interface Cart {
     coupon_code?: string;
     coupon_discount?: number;
     coupon_free_shipping?: boolean;
+    bundle_discount?: number;
+    total_discount?: number;
     discounted_subtotal: number;
     tax_amount: number;
+    taxes_breakdown?: Array<{
+      code: string;
+      name: string;
+      display_label: string;
+      rate: string;
+      amount: number;
+      taxable_amount: number;
+      is_inclusive: boolean;
+      type: string;
+    }>;
     shipping_cost: number;
+    charges?: Array<{
+      code: string;
+      name: string;
+      display_label: string;
+      amount: number;
+      is_taxable: boolean;
+      type: string;
+      source: string;
+    }>;
+    total_charges?: number;
+    cod_charge?: number;
+    cod_charge_label?: string;
+    additional_charges?: number;
+    additional_charges_label?: string;
+    payment_method?: string;
     total: number;
     currency: string;
     is_empty: boolean;
+    requires_pincode?: boolean;
+    pincode_message?: string;
+    shipping_details?: any;
+    bundle_details?: any;
+    discount_message?: string;
   };
 }
 

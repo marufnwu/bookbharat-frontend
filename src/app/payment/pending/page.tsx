@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Clock, CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,13 +9,23 @@ import Link from 'next/link';
 import { paymentApi } from '@/lib/api';
 import { useCartStore } from '@/stores/cart';
 
-export default function PaymentPendingPage() {
+// Disable static generation for this page as it requires query parameters
+export const dynamic = 'force-dynamic';
+
+function PaymentPendingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
   const [status, setStatus] = useState<string>('pending');
   const [isPolling, setIsPolling] = useState(false);
-  const clearCart = useCartStore((state) => state.clearCart);
+  const [mounted, setMounted] = useState(false);
+
+  // Only access useCartStore on the client
+  const clearCart = mounted ? useCartStore.getState().clearCart : () => {};
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const orderId = searchParams.get('order_id');
@@ -63,6 +73,20 @@ export default function PaymentPendingPage() {
 
   const isProcessing = status === 'processing';
 
+  if (!mounted) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto">
+          <Card className="text-center">
+            <CardContent className="py-12">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-2xl mx-auto">
@@ -108,5 +132,23 @@ export default function PaymentPendingPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function PaymentPendingPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto">
+          <Card className="text-center">
+            <CardContent className="py-12">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    }>
+      <PaymentPendingContent />
+    </Suspense>
   );
 }

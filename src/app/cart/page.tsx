@@ -5,112 +5,88 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useConfig } from '@/contexts/ConfigContext';
 import { useCartStore } from '@/stores/cart';
-import { Cart, CartItem } from '@/types';
-import { 
-  BookOpen, 
+import { useCartSummary } from '@/hooks/useCartSummary';
+import { OrderSummaryCard } from '@/components/cart/OrderSummaryCard';
+import {
   Minus,
   Plus,
   Trash2,
   ShoppingBag,
   Loader2,
-  ShoppingCart
+  ShoppingCart,
+  ArrowLeft,
+  ChevronDown,
+  ChevronUp,
+  BookOpen
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { OrderSummaryCard } from '@/components/cart/OrderSummaryCard';
-import { useCartSummary } from '@/hooks/useCartSummary';
 
-export default function ImprovedCartPage() {
-  const { siteConfig } = useConfig();
+export default function CartPage() {
   const [updating, setUpdating] = useState<number | null>(null);
   const [removing, setRemoving] = useState<number | null>(null);
+  const [showSummary, setShowSummary] = useState(false);
   const [clearingCart, setClearingCart] = useState(false);
   const [applyingCoupon, setApplyingCoupon] = useState(false);
-  const [removingCoupon, setRemovingCoupon] = useState(false);
-  const [initialLoad, setInitialLoad] = useState(true);
-  
-  const { 
-    cart, 
-    isLoading, 
+
+  const {
+    cart,
+    isLoading,
     availableCoupons,
-    getCart, 
-    updateQuantity, 
-    removeItem, 
-    clearCart, 
-    applyCoupon, 
+    getCart,
+    updateQuantity,
+    removeItem,
+    clearCart,
+    applyCoupon,
     removeCoupon,
     getAvailableCoupons
   } = useCartStore();
 
-  const cartSummary = useCartSummary(cart);
+  const cartSummary = useCartSummary(cart, '₹');
 
   useEffect(() => {
-    const loadCart = async () => {
-      await getCart();
-      setInitialLoad(false);
-    };
-    loadCart();
+    getCart();
     getAvailableCoupons();
   }, [getCart, getAvailableCoupons]);
 
   const handleQuantityChange = async (itemId: number, newQuantity: number) => {
-    if (newQuantity <= 0) {
-      handleRemoveItem(itemId);
-      return;
-    }
-
+    if (newQuantity <= 0) return;
+    setUpdating(itemId);
     try {
-      setUpdating(itemId);
       await updateQuantity(itemId, newQuantity);
-      toast.success('Quantity updated');
-    } catch (error) {
-      console.error('Failed to update quantity:', error);
-      toast.error('Failed to update quantity');
     } finally {
       setUpdating(null);
     }
   };
 
   const handleRemoveItem = async (itemId: number) => {
+    setRemoving(itemId);
     try {
-      setRemoving(itemId);
       await removeItem(itemId);
-      toast.success('Item removed from cart');
-    } catch (error) {
-      console.error('Failed to remove item:', error);
-      toast.error('Failed to remove item');
+      toast.success('Removed from cart');
     } finally {
       setRemoving(null);
     }
   };
 
   const handleClearCart = async () => {
-    if (!confirm('Are you sure you want to clear your cart?')) return;
-    
+    if (!confirm('Clear all items from cart?')) return;
+    setClearingCart(true);
     try {
-      setClearingCart(true);
       await clearCart();
       toast.success('Cart cleared');
-    } catch (error) {
-      console.error('Failed to clear cart:', error);
-      toast.error('Failed to clear cart');
     } finally {
       setClearingCart(false);
     }
   };
 
   const handleApplyCoupon = async (code: string) => {
+    setApplyingCoupon(true);
     try {
-      setApplyingCoupon(true);
       await applyCoupon(code);
-      toast.success('Coupon applied successfully!');
+      toast.success('Coupon applied!');
     } catch (error: any) {
-      console.error('Failed to apply coupon:', error);
-      toast.error(error?.response?.data?.message || 'Invalid promo code');
-      throw error; // Re-throw to let OrderSummaryCard handle it
+      toast.error(error?.response?.data?.message || 'Invalid coupon');
     } finally {
       setApplyingCoupon(false);
     }
@@ -118,140 +94,111 @@ export default function ImprovedCartPage() {
 
   const handleRemoveCoupon = async () => {
     try {
-      setRemovingCoupon(true);
       await removeCoupon();
       toast.success('Coupon removed');
     } catch (error) {
-      console.error('Failed to remove coupon:', error);
       toast.error('Failed to remove coupon');
-      throw error; // Re-throw to let OrderSummaryCard handle it
-    } finally {
-      setRemovingCoupon(false);
     }
   };
 
-  // Only show loading skeleton on initial load
-  if (initialLoad && isLoading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-background p-4">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/2"></div>
-          {[...Array(2)].map((_, i) => (
-            <div key={i} className="bg-card rounded-lg p-4 space-y-3">
-              <div className="flex gap-3">
-                <div className="bg-muted rounded w-16 h-20"></div>
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-muted rounded w-3/4"></div>
-                  <div className="h-3 bg-muted rounded w-1/2"></div>
-                  <div className="h-4 bg-muted rounded w-1/4"></div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
 
-  if (!cart || !cart.items.length) {
+  if (!cart || cart.items.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4">
-        <ShoppingCart className="h-20 w-20 text-muted-foreground mb-4" />
-        <h1 className="text-xl font-bold mb-2">Your cart is empty</h1>
-        <p className="text-sm text-muted-foreground text-center mb-6">
-          Start adding books to build your library
-        </p>
-        <Button asChild className="w-full max-w-xs">
-          <Link href="/products">
-            <ShoppingBag className="h-4 w-4 mr-2" />
-            Browse Books
-          </Link>
-        </Button>
+      <div className="min-h-screen flex flex-col bg-background">
+        <div className="sticky top-0 bg-background border-b px-4 py-3 flex items-center gap-3 lg:hidden">
+          <Link href="/products"><ArrowLeft className="h-5 w-5" /></Link>
+          <h1 className="text-lg font-semibold">Cart</h1>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center p-6">
+          <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
+          <h2 className="text-lg font-semibold mb-2">Your cart is empty</h2>
+          <p className="text-muted-foreground text-sm mb-6">Add books to get started</p>
+          <Button asChild className="w-full max-w-xs">
+            <Link href="/products">Browse Books</Link>
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background relative pb-20 lg:pb-0">
-      {/* Loading Overlay - Only shows during API calls */}
-      {isLoading && !initialLoad && (
-        <div className="fixed inset-0 bg-background/50 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-card p-4 rounded-lg shadow-lg flex items-center gap-3">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <span className="text-sm">Updating cart...</span>
+    <div className="min-h-screen bg-background pb-32 lg:pb-0">
+      {/* Mobile Header */}
+      <div className="sticky top-0 bg-background border-b px-4 py-3 flex items-center justify-between z-10 lg:hidden">
+        <div className="flex items-center gap-3">
+          <Link href="/products"><ArrowLeft className="h-5 w-5" /></Link>
+          <div>
+            <h1 className="text-lg font-semibold">Cart</h1>
+            <p className="text-xs text-muted-foreground">{cart.total_items} items</p>
           </div>
         </div>
-      )}
+      </div>
 
+      {/* Desktop Container */}
       <div className="container mx-auto px-4 py-6 lg:py-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        {/* Desktop Header */}
+        <div className="hidden lg:flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-xl lg:text-3xl font-bold">Shopping Cart</h1>
+            <h1 className="text-3xl font-bold">Shopping Cart</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {cart.total_items} {cart.total_items === 1 ? 'item' : 'items'} in your cart
+              {cart.total_items} items in your cart
             </p>
           </div>
-
-          <div className="flex items-center gap-2 lg:gap-3">
+          <div className="flex gap-3">
             <Button
               variant="outline"
               onClick={handleClearCart}
               disabled={clearingCart}
-              className="text-destructive hover:text-destructive text-xs lg:text-sm px-2 lg:px-3"
-              size="sm"
+              className="text-destructive"
             >
-              {clearingCart ? (
-                <Loader2 className="h-3 w-3 lg:h-4 lg:w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-3 w-3 lg:h-4 lg:w-4" />
-              )}
-              <span className="hidden sm:inline ml-1 lg:ml-2">Clear Cart</span>
+              {clearingCart ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              <span className="ml-2">Clear Cart</span>
             </Button>
-            <Button asChild size="sm" className="text-xs lg:text-sm px-2 lg:px-3">
-              <Link href="/products">
-                <ShoppingBag className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
-                <span className="hidden sm:inline">Continue Shopping</span>
-                <span className="sm:hidden">Shop</span>
-              </Link>
+            <Button asChild>
+              <Link href="/products">Continue Shopping</Link>
             </Button>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-4 lg:gap-8">
+        <div className="lg:grid lg:grid-cols-3 lg:gap-8">
           {/* Cart Items */}
-          <div className="lg:col-span-2 space-y-2 lg:space-y-4">
+          <div className="lg:col-span-2 space-y-3 p-4 lg:p-0">
             {cart.items.map((item) => (
               <Card key={item.id} className="p-3 lg:p-6">
                 <div className="flex gap-3 lg:gap-4">
-                  {/* Product Image */}
-                  <div className="relative w-16 h-20 lg:w-24 lg:h-32 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+                  {/* Image */}
+                  <div className="w-20 h-24 lg:w-24 lg:h-32 bg-muted rounded flex-shrink-0 overflow-hidden">
                     {item.product?.images?.[0]?.url ? (
                       <Image
                         src={item.product.images[0].url}
                         alt={item.product.name}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 768px) 64px, 96px"
+                        width={96}
+                        height={128}
+                        className="object-cover w-full h-full"
                       />
                     ) : (
-                      <div className="w-full h-full bg-muted flex items-center justify-center">
-                        <BookOpen className="h-6 w-6 lg:h-8 lg:w-8 text-muted-foreground" />
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BookOpen className="h-8 w-8 text-muted-foreground" />
                       </div>
                     )}
                   </div>
 
-                  {/* Product Details */}
+                  {/* Details */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="flex-1">
-                        <Link href={`/products/${item.product.slug || item.product.id}`}>
-                          <h3 className="font-medium text-sm lg:text-base line-clamp-2 hover:text-primary leading-tight">
-                            {item.product.name}
-                          </h3>
-                        </Link>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          by {item.product.brand || 'Unknown'}
+                        <h3 className="text-sm lg:text-base font-medium line-clamp-2 mb-1">
+                          {item.product.name}
+                        </h3>
+                        <p className="text-xs lg:text-sm text-muted-foreground">
+                          {item.product.author || 'Unknown'}
                         </p>
                       </div>
                       <Button
@@ -259,68 +206,65 @@ export default function ImprovedCartPage() {
                         size="icon"
                         onClick={() => handleRemoveItem(item.id)}
                         disabled={removing === item.id}
-                        className="h-7 w-7 lg:h-8 lg:w-8 text-muted-foreground hover:text-destructive flex-shrink-0"
+                        className="hidden lg:flex text-muted-foreground hover:text-destructive"
                       >
                         {removing === item.id ? (
-                          <Loader2 className="h-3 w-3 lg:h-4 lg:w-4 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          <Trash2 className="h-3 w-3 lg:h-4 lg:w-4" />
+                          <Trash2 className="h-4 w-4" />
                         )}
                       </Button>
                     </div>
 
-                    {/* Price and Quantity Row */}
-                    <div className="flex items-center justify-between gap-2">
-                      {/* Price */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm lg:text-lg font-bold">
-                          {cartSummary.currencySymbol}{item.product.price}
+                    {/* Price */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-base lg:text-lg font-bold">
+                        {cartSummary.currencySymbol}{item.product.price}
+                      </span>
+                      {item.product.compare_price > item.product.price && (
+                        <span className="text-xs text-muted-foreground line-through">
+                          {cartSummary.currencySymbol}{item.product.compare_price}
                         </span>
-                        {item.product.compare_price > item.product.price && (
-                          <>
-                            <span className="text-xs text-muted-foreground line-through">
-                              {cartSummary.currencySymbol}{item.product.compare_price}
-                            </span>
-                            <Badge variant="secondary" className="text-[9px] lg:text-xs px-1">
-                              {Math.round((1 - item.product.price / item.product.compare_price) * 100)}% off
-                            </Badge>
-                          </>
-                        )}
-                      </div>
+                      )}
+                    </div>
 
-                      {/* Quantity Controls */}
-                      <div className="flex items-center border rounded-lg">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 lg:h-8 lg:w-8"
+                    {/* Quantity & Remove */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center bg-muted rounded-lg">
+                        <button
                           onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
                           disabled={updating === item.id}
+                          className="p-2 disabled:opacity-50"
                         >
                           <Minus className="h-3 w-3 lg:h-4 lg:w-4" />
-                        </Button>
-                        <span className="px-2 lg:px-4 py-1 lg:py-2 text-center min-w-[2rem] lg:min-w-[3rem] text-sm">
+                        </button>
+                        <span className="px-3 lg:px-4 text-sm lg:text-base font-medium min-w-[40px] text-center">
                           {updating === item.id ? (
                             <Loader2 className="h-3 w-3 lg:h-4 lg:w-4 animate-spin mx-auto" />
                           ) : (
                             item.quantity
                           )}
                         </span>
-                        <Button
-                          variant="ghost"
-                          size="icon" 
-                          className="h-7 w-7 lg:h-8 lg:w-8"
+                        <button
                           onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                          disabled={updating === item.id || !item.product.in_stock}
+                          disabled={updating === item.id}
+                          className="p-2 disabled:opacity-50"
                         >
                           <Plus className="h-3 w-3 lg:h-4 lg:w-4" />
-                        </Button>
+                        </button>
                       </div>
-                    </div>
-                    
-                    {/* Item Total - Mobile Only */}
-                    <div className="lg:hidden text-right text-xs text-muted-foreground mt-1">
-                      Total: {cartSummary.currencySymbol}{(item.product.price * item.quantity).toFixed(2)}
+
+                      <button
+                        onClick={() => handleRemoveItem(item.id)}
+                        disabled={removing === item.id}
+                        className="p-2 text-destructive lg:hidden"
+                      >
+                        {removing === item.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -328,7 +272,7 @@ export default function ImprovedCartPage() {
             ))}
           </div>
 
-          {/* Order Summary - Desktop Sidebar */}
+          {/* Desktop Sidebar Summary */}
           <div className="hidden lg:block">
             <OrderSummaryCard
               summary={{
@@ -338,7 +282,10 @@ export default function ImprovedCartPage() {
                 discountedSubtotal: cartSummary.discountedSubtotal,
                 shippingCost: cartSummary.shippingCost || 0,
                 shippingDetails: cartSummary.shippingDetails,
+                charges: cartSummary.charges,
+                totalCharges: cartSummary.totalCharges,
                 tax: cartSummary.tax,
+                taxesBreakdown: cartSummary.taxesBreakdown,
                 total: cartSummary.total,
                 currencySymbol: cartSummary.currencySymbol,
                 couponCode: cartSummary.couponCode,
@@ -350,7 +297,6 @@ export default function ImprovedCartPage() {
               onApplyCoupon={handleApplyCoupon}
               onRemoveCoupon={handleRemoveCoupon}
               applyCouponLoading={applyingCoupon}
-              removeCouponLoading={removingCoupon}
               variant="cart"
               showCheckoutButton={true}
               availableCoupons={availableCoupons || []}
@@ -359,32 +305,114 @@ export default function ImprovedCartPage() {
         </div>
       </div>
 
-      {/* Mobile Sticky Bottom Summary */}
-      <OrderSummaryCard
-        summary={{
-          subtotal: cartSummary.subtotal,
-          couponDiscount: cartSummary.couponDiscount,
-          bundleDiscount: cartSummary.bundleDiscount,
-          discountedSubtotal: cartSummary.discountedSubtotal,
-          shippingCost: cartSummary.shippingCost || 0,
-          shippingDetails: cartSummary.shippingDetails,
-          tax: cartSummary.tax,
-          total: cartSummary.total,
-          currencySymbol: cartSummary.currencySymbol,
-          couponCode: cartSummary.couponCode,
-          bundleDetails: cartSummary.bundleDetails,
-          discountMessage: cartSummary.discountMessage,
-          itemCount: cart.total_items,
-          requiresPincode: cartSummary.requiresPincode
-        }}
-        onApplyCoupon={handleApplyCoupon}
-        onRemoveCoupon={handleRemoveCoupon}
-        applyCouponLoading={applyingCoupon}
-        removeCouponLoading={removingCoupon}
-        variant="mobile"
-        showCheckoutButton={true}
-        availableCoupons={availableCoupons || []}
-      />
+      {/* Mobile Fixed Bottom Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg lg:hidden z-50">
+        {/* Summary Toggle */}
+        <button
+          onClick={() => setShowSummary(!showSummary)}
+          className="w-full px-4 py-3 flex items-center justify-between border-b"
+        >
+          <div className="text-left">
+            <p className="text-xs text-muted-foreground">Total ({cart.total_items} items)</p>
+            <p className="text-xl font-bold">{cartSummary.currencySymbol}{cartSummary.total.toFixed(0)}</p>
+          </div>
+          {showSummary ? (
+            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+          ) : (
+            <ChevronUp className="h-5 w-5 text-muted-foreground" />
+          )}
+        </button>
+
+        {/* Expandable Summary */}
+        {showSummary && (
+          <div className="px-4 py-3 space-y-2 text-sm border-b max-h-[60vh] overflow-y-auto">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Subtotal</span>
+              <span>{cartSummary.currencySymbol}{cartSummary.subtotal.toFixed(2)}</span>
+            </div>
+
+            {cartSummary.couponDiscount > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>Discount ({cartSummary.couponCode})</span>
+                <span>-{cartSummary.currencySymbol}{cartSummary.couponDiscount.toFixed(2)}</span>
+              </div>
+            )}
+
+            {cartSummary.bundleDiscount > 0 && (
+              <div className="flex justify-between text-blue-600">
+                <span>Bundle Discount</span>
+                <span>-{cartSummary.currencySymbol}{cartSummary.bundleDiscount.toFixed(2)}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Delivery</span>
+              {cartSummary.requiresPincode ? (
+                <span className="text-xs text-muted-foreground">At checkout</span>
+              ) : cartSummary.shippingCost === 0 ? (
+                <span className="text-green-600 font-medium">FREE</span>
+              ) : (
+                <span>{cartSummary.currencySymbol}{cartSummary.shippingCost.toFixed(2)}</span>
+              )}
+            </div>
+
+            {/* Charges */}
+            {cartSummary.charges && cartSummary.charges.length > 0 && (
+              <>
+                {cartSummary.charges.map((charge: any, index: number) => (
+                  <div key={index} className="flex justify-between text-orange-600">
+                    <span className="flex items-center gap-1">
+                      <span className="text-xs">📦</span>
+                      {charge.display_label}
+                    </span>
+                    <span>+{cartSummary.currencySymbol}{parseFloat(String(charge.amount)).toFixed(2)}</span>
+                  </div>
+                ))}
+              </>
+            )}
+
+            {/* Tax Breakdown */}
+            {cartSummary.taxesBreakdown && cartSummary.taxesBreakdown.length > 0 ? (
+              <>
+                {cartSummary.taxesBreakdown.map((tax: any, index: number) => (
+                  <div key={index} className="flex justify-between text-muted-foreground">
+                    <span>{tax.display_label}</span>
+                    <span>+{cartSummary.currencySymbol}{parseFloat(String(tax.amount)).toFixed(2)}</span>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <div className="flex justify-between text-muted-foreground">
+                <span>Tax (18%)</span>
+                <span>+{cartSummary.currencySymbol}{cartSummary.tax.toFixed(2)}</span>
+              </div>
+            )}
+
+            {/* Total Savings */}
+            {(cartSummary.couponDiscount > 0 || cartSummary.bundleDiscount > 0) && (
+              <div className="flex justify-between text-green-700 font-semibold bg-green-50 px-2 py-1.5 rounded -mx-2">
+                <span className="flex items-center gap-1">
+                  <span>🎉</span>
+                  Total Savings
+                </span>
+                <span>-{cartSummary.currencySymbol}{(cartSummary.couponDiscount + cartSummary.bundleDiscount).toFixed(2)}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between font-semibold pt-2 border-t text-base">
+              <span>Total</span>
+              <span>{cartSummary.currencySymbol}{cartSummary.total.toFixed(2)}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Checkout Button */}
+        <div className="p-4">
+          <Button asChild className="w-full h-12 text-base">
+            <Link href="/checkout">Proceed to Checkout</Link>
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

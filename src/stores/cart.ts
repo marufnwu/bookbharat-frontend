@@ -100,7 +100,10 @@ export const useCartStore = create<CartState>()(
           
           console.log('🛒 Final transformed cart:', JSON.stringify(transformedCart, null, 2));
           console.log('🛒 Total items - calculated:', calculatedTotalItems, 'from API summary:', apiCart.summary?.total_items, 'final:', totalItems);
-          
+          console.log('🛒 CRITICAL - summary.charges:', apiCart.summary?.charges);
+          console.log('🛒 CRITICAL - summary.total_charges:', apiCart.summary?.total_charges);
+          console.log('🛒 CRITICAL - full summary:', JSON.stringify(apiCart.summary, null, 2));
+
           set({ cart: transformedCart, isLoading: false });
         } catch (error) {
           console.error('🛒 Failed to fetch cart:', error);

@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { useCartStore } from '@/stores/cart';
 import { Button } from '@/components/ui/button';
 
+// Disable static generation for debug pages
+export const dynamic = 'force-dynamic';
+
 export default function CartDebugPage() {
   const { cart, addToCart, getCart, getTotalItems, isLoading } = useCartStore();
   const [testResult, setTestResult] = useState<string>('');

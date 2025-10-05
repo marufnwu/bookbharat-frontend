@@ -5,6 +5,9 @@ import { useSearchParams } from 'next/navigation';
 import { PaymentStatusChecker } from '@/components/PaymentStatusChecker';
 import { Loader2 } from 'lucide-react';
 
+// Disable static generation for this page as it requires query parameters
+export const dynamic = 'force-dynamic';
+
 function PaymentStatusContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('order_id');

@@ -22,6 +22,9 @@ declare global {
   }
 }
 
+// Disable static generation for this page as it requires query parameters
+export const dynamic = 'force-dynamic';
+
 export default function PaymentProcessPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'processing' | 'success' | 'failed'>('pending');

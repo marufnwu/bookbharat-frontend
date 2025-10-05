@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   description: 'Terms and conditions for using BookBharat services.',
 };
 
+// Disable static generation for this page as it fetches dynamic content
+export const dynamic = 'force-dynamic';
+
 export default function TermsPage() {
   return <StaticPage slug="terms" />;
 }

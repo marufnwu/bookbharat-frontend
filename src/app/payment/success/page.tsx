@@ -1,27 +1,57 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
 import { useCartStore } from '@/stores/cart';
 
-export default function PaymentSuccessPage() {
+// Disable static generation for this page as it requires query parameters
+export const dynamic = 'force-dynamic';
+
+function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
-  const clearCart = useCartStore((state) => state.clearCart);
+  const [mounted, setMounted] = useState(false);
+
+  // Only access useCartStore on the client
+  const clearCart = mounted ? useCartStore.getState().clearCart : () => {};
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     const orderId = searchParams.get('order_id');
     if (orderId) {
       setOrderNumber(orderId);
       // Clear cart on successful payment
-      clearCart();
+      try {
+        clearCart();
+      } catch (error) {
+        console.error('Error clearing cart:', error);
+      }
     }
-  }, [searchParams, clearCart]);
+  }, [searchParams, clearCart, mounted]);
+
+  if (!mounted) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto">
+          <Card className="text-center">
+            <CardContent className="py-12">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -54,5 +84,23 @@ export default function PaymentSuccessPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto">
+          <Card className="text-center">
+            <CardContent className="py-12">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    }>
+      <PaymentSuccessContent />
+    </Suspense>
   );
 }

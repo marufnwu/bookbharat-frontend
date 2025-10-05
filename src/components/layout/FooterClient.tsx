@@ -275,7 +275,7 @@ export function FooterClient({
                   {section.links.map((link, linkIndex) => (
                     <li key={linkIndex}>
                       <Link
-                        href={link.url}
+                        href={link.url || '#'}
                         className="text-muted-foreground hover:text-primary transition-colors"
                       >
                         {link.label}
@@ -330,10 +330,11 @@ export function FooterClient({
                   return (
                     <a
                       key={key}
-                      href={url}
+                      href={url || '#'}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-muted-foreground hover:text-primary transition-colors"
+                      aria-label={key.replace('_url', '')}
                     >
                       <Icon className="h-5 w-5" />
                     </a>

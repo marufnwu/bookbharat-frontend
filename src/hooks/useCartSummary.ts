@@ -28,8 +28,18 @@ export function useCartSummary(cart: Cart | null, currencySymbol: string) {
     const totalDiscount = summary.total_discount || Math.max(couponDiscount, bundleDiscount);
     const discountedSubtotal = summary.discounted_subtotal || Math.max(0, subtotal - totalDiscount);
     const shippingCost = summary.shipping_cost || 0;
+
+    // New charge system - backward compatible
+    const charges = summary.charges || [];
+    const totalCharges = summary.total_charges || 0;
+
+    // Legacy charge fields for backward compatibility
+    const codCharge = summary.cod_charge || 0;
+    const additionalCharges = summary.additional_charges || 0;
+
     const tax = summary.tax_amount || Math.round(discountedSubtotal * 0.18);
-    const total = summary.total || (discountedSubtotal + tax + shippingCost);
+    const taxesBreakdown = summary.taxes_breakdown || [];
+    const total = summary.total || (discountedSubtotal + tax + shippingCost + totalCharges);
 
     return {
       subtotal,
@@ -43,10 +53,19 @@ export function useCartSummary(cart: Cart | null, currencySymbol: string) {
       discountedSubtotal,
       shippingCost,
       shippingDetails: summary.shipping_details || null,
+      charges,
+      totalCharges,
+      codCharge,
+      codChargeLabel: summary.cod_charge_label || 'COD Charges',
+      additionalCharges,
+      additionalChargesLabel: summary.additional_charges_label || 'Handling Fee',
+      paymentMethod: summary.payment_method || null,
       tax,
+      taxesBreakdown,
       total,
       currencySymbol,
       requiresPincode: summary.requires_pincode || false,
+      itemCount: summary.total_items || cart.items?.length || 0,
     };
   }, [cart, currencySymbol]);
 }

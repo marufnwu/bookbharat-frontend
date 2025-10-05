@@ -5,7 +5,7 @@ async function getFooterData() {
   try {
     // Fetch navigation config for footer menu
     const navigationResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/configuration/navigation-config`,
+      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/config/navigation`,
       {
         next: { revalidate: 3600 }, // Cache for 1 hour
         headers: {
@@ -16,7 +16,7 @@ async function getFooterData() {
 
     // Fetch site config for contact info and social links
     const siteConfigResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/configuration/site-config`,
+      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/config/site`,
       {
         next: { revalidate: 3600 }, // Cache for 1 hour
         headers: {
@@ -25,14 +25,33 @@ async function getFooterData() {
       }
     );
 
-    if (!navigationResponse.ok || !siteConfigResponse.ok) {
-      throw new Error('Failed to fetch footer data');
+    // Initialize with defaults
+    let navigation = { data: { footer: {} } };
+    let siteConfig = { data: {} };
+
+    // Try to parse navigation response
+    if (navigationResponse.ok) {
+      try {
+        navigation = await navigationResponse.json();
+      } catch (e) {
+        console.warn('Failed to parse navigation config, using defaults');
+      }
+    } else {
+      console.warn(`Navigation config failed with status ${navigationResponse.status}, using defaults`);
     }
 
-    const navigation = await navigationResponse.json();
-    const siteConfig = await siteConfigResponse.json();
+    // Try to parse site config response
+    if (siteConfigResponse.ok) {
+      try {
+        siteConfig = await siteConfigResponse.json();
+      } catch (e) {
+        console.warn('Failed to parse site config, using defaults');
+      }
+    } else {
+      console.warn(`Site config failed with status ${siteConfigResponse.status}, using defaults`);
+    }
 
-    // Extract footer configuration
+    // Extract footer configuration with fallbacks
     const footerConfig = navigation.data?.footer || {};
     const siteInfo = siteConfig.data || {};
 

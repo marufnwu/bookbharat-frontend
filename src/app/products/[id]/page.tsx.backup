@@ -320,14 +320,20 @@ export default function ProductDetailPage() {
                 variant="outline"
                 size="lg"
                 className="flex-1 touch-target"
+                variant="outline"
+                size="lg"
+                className="flex-1"
                 onClick={handleWishlistToggle}
               >
                 <Heart className={`h-5 w-5 ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`} />
-              </Button>
+              </Button
+                variant="outline"
+                size="lg"
+                className="flex-1 touch-target">
               <Button
                 variant="outline"
                 size="lg"
-                className="flex-1 touch-target"
+                className="flex-1"
                 onClick={handleShare}
               >
                 <Share2 className="h-5 w-5" />

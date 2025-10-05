@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   description: 'Our refund and return policy details.',
 };
 
+// Disable static generation for this page as it fetches dynamic content
+export const dynamic = 'force-dynamic';
+
 export default function RefundPage() {
   return <StaticPage slug="refund" />;
 }
