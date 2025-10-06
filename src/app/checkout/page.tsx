@@ -1,5 +1,8 @@
 'use client';
 
+// TODO: Replace console.log statements with logger from '@/lib/logger' for production
+// Currently 34 console.log statements used for debugging
+
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -54,9 +57,9 @@ import {
   Sparkles
 } from 'lucide-react';
 
-// Flexible shipping schema - required for guests, optional for authenticated users
+// Flexible shipping schema - email required for all users (for order confirmation)
 const shippingSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
+  email: z.string().min(1, 'Email is required').email('Please enter a valid email address'),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   phone: z.string().optional(),
@@ -194,10 +197,41 @@ export default function CheckoutPage() {
   const [selectedBillingAddressId, setSelectedBillingAddressId] = useState<number | null>(persistedState.selectedBillingAddressId || null);
   const [selectedShippingAddress, setSelectedShippingAddress] = useState<Address | null>(persistedState.selectedShippingAddress || null);
   const [selectedBillingAddress, setSelectedBillingAddress] = useState<Address | null>(persistedState.selectedBillingAddress || null);
-  const [availablePaymentMethods, setAvailablePaymentMethods] = useState<any[]>([]);
-  const [paymentType, setPaymentType] = useState<'online' | 'cod' | null>(persistedState.paymentType || null); // Step 1: Online vs COD
-  const [codConfig, setCodConfig] = useState<any>(null); // COD configuration from backend
-  const [paymentFlowSettings, setPaymentFlowSettings] = useState<any>({ type: 'two_tier', default_payment_type: 'none' }); // Payment flow settings from backend
+  // FIXED: Proper TypeScript types for payment data
+  interface PaymentMethod {
+    payment_method: string;
+    display_name: string;
+    description: string;
+    priority: number;
+    advance_payment?: {
+      required: boolean;
+      percentage: number;
+    } | null;
+  }
+
+  interface CODConfig {
+    enabled: boolean;
+    display_name: string;
+    description: string;
+    advance_payment?: {
+      required: boolean;
+      percentage: number;
+    } | null;
+    service_charges?: {
+      type: string;
+      value: number;
+    } | null;
+  }
+
+  interface PaymentFlowSettings {
+    type: 'two_tier' | 'single_list' | 'cod_first';
+    default_payment_type: 'online' | 'cod' | 'none';
+  }
+
+  const [availablePaymentMethods, setAvailablePaymentMethods] = useState<PaymentMethod[]>([]);
+  const [paymentType, setPaymentType] = useState<'online' | 'cod' | null>(persistedState.paymentType || null);
+  const [codConfig, setCodConfig] = useState<CODConfig | null>(null);
+  const [paymentFlowSettings, setPaymentFlowSettings] = useState<PaymentFlowSettings>({ type: 'two_tier', default_payment_type: 'none' });
 
   const {
     register,
@@ -520,10 +554,19 @@ export default function CheckoutPage() {
       const gateways = response?.gateways || [];
 
       if (response?.success && gateways.length > 0) {
-        // Store payment flow settings from backend
+        // Store payment flow settings from backend with validation
         if (response.payment_flow) {
-          setPaymentFlowSettings(response.payment_flow);
-          console.log('Payment flow settings:', response.payment_flow);
+          // FIXED: Validate payment flow type, default to 'two_tier' if invalid
+          const validTypes = ['two_tier', 'single_list', 'cod_first'];
+          const flowType = validTypes.includes(response.payment_flow.type)
+            ? response.payment_flow.type
+            : 'two_tier';
+
+          setPaymentFlowSettings({
+            ...response.payment_flow,
+            type: flowType
+          });
+          console.log('Payment flow settings:', { ...response.payment_flow, type: flowType });
 
           // Set default payment type if specified
           if (response.payment_flow.default_payment_type && response.payment_flow.default_payment_type !== 'none' && !paymentType) {
@@ -545,7 +588,7 @@ export default function CheckoutPage() {
         setAvailablePaymentMethods(methods);
 
         // Store COD configuration separately
-        if (codGateway) {
+        if (codGateway && codGateway.is_active !== false) {
           setCodConfig({
             enabled: true,
             display_name: codGateway.display_name || 'Cash on Delivery',
@@ -599,7 +642,7 @@ export default function CheckoutPage() {
 
   const populateFormFromAddress = (address: Address) => {
     console.log('🏠 Populating form from address:', address);
-    
+
     setValue('firstName', address.first_name);
     setValue('lastName', address.last_name || '');
     setValue('phone', address.phone || '');
@@ -608,23 +651,22 @@ export default function CheckoutPage() {
     setValue('city', address.city);
     setValue('houseNo', address.address_line_1);
     setValue('landmark', address.address_line_2 || '');
-    
+
     // If there's a district field in address, use it, otherwise use city
     const district = (address as any).district || address.city;
     setValue('district', district);
     setValue('state', address.state);
-    
+
     console.log('🏠 Setting form values:', {
       district,
       state: address.state,
       city: address.city,
       postalCode: address.postal_code
     });
-    
-    const fullAddress = [address.address_line_1, address.address_line_2, address.city, address.state, address.postal_code]
-      .filter(Boolean).join(', ');
-    setValue('address', fullAddress);
-    
+
+    // REMOVED: 'address' field - causes conflict with houseNo
+    // We use houseNo as the primary field for address_line_1
+
     if (address.postal_code) {
       calculateShipping(address.postal_code);
     }
@@ -804,19 +846,25 @@ export default function CheckoutPage() {
 
   const validateStep1 = () => {
     if (isAuthenticated) {
-      // For authenticated users, just check address selection and email
+      // For authenticated users, check address selection, email, and pincode serviceability
       if (!selectedShippingAddress) {
         setError('Please select a delivery address');
         return false;
       }
-      
+
       const formData = getValues();
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!formData.email || !emailRegex.test(formData.email)) {
         setError('Please enter a valid email address for order confirmation');
         return false;
       }
-      
+
+      // FIXED: Block checkout if selected address has unserviceable pincode
+      if (pincodeError) {
+        setError('The selected address has an unserviceable pincode. Please choose a different address or update the pincode.');
+        return false;
+      }
+
       setError(null);
       return true;
     }
@@ -963,11 +1011,14 @@ export default function CheckoutPage() {
     selectedShippingAddress?.postal_code && selectedShippingAddress?.state && selectedShippingAddress?.city :
     getValues('pincode') && getValues('state') && getValues('city');
   const calculatedShippingCost = hasValidShippingAddress ? (shippingCost || 0) : 0;
-  const tax = cart?.summary?.tax_amount || Math.round(discountedSubtotal * 0.18);
+  // FIXED: Use server-calculated tax only (varies by state - CGST+SGST vs IGST)
+  // Never fallback to hardcoded rate - if tax_amount missing, it's 0
+  const tax = cart?.summary?.tax_amount || 0;
+  const totalCharges = cart?.summary?.total_charges || 0;
 
-  // Use server-calculated total which includes charges (COD, etc.)
-  // Fallback to local calculation only if server total is not available
-  const total = cart?.summary?.total || (discountedSubtotal + calculatedShippingCost + tax);
+  // CRITICAL: Use server-calculated total which includes ALL charges (COD, handling, insurance, etc.)
+  // Fallback calculation MUST include totalCharges to match backend
+  const total = cart?.summary?.total || (discountedSubtotal + calculatedShippingCost + tax + totalCharges);
 
   // Load payment methods when total changes
   useEffect(() => {
@@ -1012,6 +1063,8 @@ export default function CheckoutPage() {
         console.log('💳 COD selected, recalculating with COD charges');
         try {
           await setPaymentMethod('cod');
+          // Force cart refresh to update UI with new charges
+          await getCart();
         } catch (error) {
           console.error('Failed to update cart with COD:', error);
         }
@@ -1020,6 +1073,8 @@ export default function CheckoutPage() {
         try {
           // Send 'online' as payment method to remove COD charges
           await setPaymentMethod('online');
+          // Force cart refresh to update UI with charges removed
+          await getCart();
         } catch (error) {
           console.error('Failed to update cart with online payment:', error);
         }
@@ -1030,7 +1085,7 @@ export default function CheckoutPage() {
     if (paymentType) {
       handlePaymentTypeChange();
     }
-  }, [paymentType]);
+  }, [paymentType, setPaymentMethod, getCart]);
 
   // Handle payment gateway redirection
   const handlePaymentRedirect = (paymentDetails: any, gateway: string) => {
@@ -1136,9 +1191,18 @@ export default function CheckoutPage() {
 
     // Validate payment method is selected (except for pure COD without advance)
     const isPureCOD = paymentType === 'cod' && (!codConfig?.advance_payment?.required);
-    if (!isPureCOD && !data.paymentMethod) {
+    const isCODWithAdvance = paymentType === 'cod' && codConfig?.advance_payment?.required;
+
+    if (!isPureCOD && !data.paymentMethod && !selectedPaymentMethod) {
       console.error('❌ No payment method selected');
       setError('Please select a payment method');
+      return;
+    }
+
+    // CRITICAL: For COD with advance payment, ensure a gateway is selected
+    if (isCODWithAdvance && !data.paymentMethod && !selectedPaymentMethod) {
+      console.error('❌ COD with advance payment requires gateway selection');
+      setError('Please select a payment gateway for advance payment');
       return;
     }
     
@@ -1168,7 +1232,7 @@ export default function CheckoutPage() {
             first_name: data.firstName,
             last_name: data.lastName,
             phone: data.phone,
-            address_line_1: data.houseNo || data.address,
+            address_line_1: data.houseNo || '',
             address_line_2: data.landmark || '',
             city: data.city,
             state: data.state,
@@ -1179,7 +1243,7 @@ export default function CheckoutPage() {
             first_name: data.firstName,
             last_name: data.lastName,
             phone: data.phone,
-            address_line_1: data.houseNo || data.address,
+            address_line_1: data.houseNo || '',
             address_line_2: data.landmark || '',
             city: data.city,
             state: data.state,
@@ -1189,7 +1253,7 @@ export default function CheckoutPage() {
             first_name: data.billing_firstName,
             last_name: data.billing_lastName,
             phone: data.billing_phone,
-            address_line_1: data.billing_houseNo || data.billing_address,
+            address_line_1: data.billing_houseNo || '',
             address_line_2: data.billing_landmark || '',
             city: data.billing_city,
             state: data.billing_state,
@@ -1197,7 +1261,10 @@ export default function CheckoutPage() {
             country: 'IN'
           }
         }),
-        payment_method: paymentType === 'cod' && (!codConfig?.advance_payment?.required) ? 'cod' : data.paymentMethod,
+        // FIXED: Single source of truth for payment method
+        // If pure COD (no advance), send 'cod'
+        // If COD with advance OR online, send the selected gateway from form
+        payment_method: (paymentType === 'cod' && !codConfig?.advance_payment?.required) ? 'cod' : (selectedPaymentMethod || data.paymentMethod),
         // REMOVED: shipping_cost - backend calculates from delivery address (security)
         notes: data.notes || '',
         coupon_code: activeCouponCode,
@@ -2147,8 +2214,9 @@ export default function CheckoutPage() {
                   </>
                   )}
 
-                  {/* Payment Flow: SINGLE LIST - All gateways in one list */}
-                  {paymentFlowSettings.type === 'single_list' && (
+                  {/* Payment Flow: SINGLE LIST - DEPRECATED/UNUSED - All gateways in one list */}
+                  {/* FIXME: This flow is not configured in admin and is untested. Consider removing. */}
+                  {false && paymentFlowSettings.type === 'single_list' && (
                   <Card>
                     <CardHeader className="pb-3 lg:pb-4">
                       <CardTitle className="flex items-center text-sm lg:text-base">

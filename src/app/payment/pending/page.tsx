@@ -57,12 +57,12 @@ function PaymentPendingContent() {
         }
       };
 
-      // Poll every 2 seconds for up to 30 seconds
+      // Poll every 2 seconds for up to 60 seconds (increased from 30s to handle webhook delays)
       const pollInterval = setInterval(pollPaymentStatus, 2000);
       const timeoutId = setTimeout(() => {
         clearInterval(pollInterval);
         setIsPolling(false);
-      }, 30000);
+      }, 60000);
 
       return () => {
         clearInterval(pollInterval);

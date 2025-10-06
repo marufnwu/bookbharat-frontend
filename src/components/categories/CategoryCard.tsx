@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -13,7 +14,10 @@ interface CategoryCardProps {
     slug?: string;
     description?: string;
     product_count?: number;
+    products_count?: number;
     featured?: boolean;
+    image?: string;
+    image_url?: string;
   };
   icon: LucideIcon;
   colorClass: string;
@@ -34,6 +38,9 @@ export function CategoryCard({
 }: CategoryCardProps) {
   const href = `/categories/${category.slug || category.id}`;
   
+  const categoryImage = category.image_url || category.image;
+  const productCount = category.products_count ?? category.product_count;
+
   if (variant === 'compact') {
     return (
       <Link href={href} className="group">
@@ -43,20 +50,32 @@ export function CategoryCard({
         )}>
           <CardContent className="p-4">
             <div className="flex flex-col items-center text-center space-y-3">
-              <div className={cn(
-                "w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
-                colorClass.replace('text-', 'bg-').replace('600', '100'),
-                colorClass
-              )}>
-                <Icon className="w-6 h-6 md:w-7 md:h-7" />
-              </div>
+              {categoryImage ? (
+                <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl overflow-hidden transition-transform group-hover:scale-110 relative">
+                  <Image
+                    src={categoryImage}
+                    alt={category.name}
+                    width={56}
+                    height={56}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className={cn(
+                  "w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
+                  colorClass.replace('text-', 'bg-').replace('600', '100'),
+                  colorClass
+                )}>
+                  <Icon className="w-6 h-6 md:w-7 md:h-7" />
+                </div>
+              )}
               <div className="space-y-1">
                 <h3 className="font-semibold text-sm md:text-base line-clamp-1 group-hover:text-primary transition-colors">
                   {category.name}
                 </h3>
-                {showProductCount && category.product_count !== undefined && (
+                {showProductCount && productCount !== undefined && (
                   <p className="text-xs text-muted-foreground">
-                    {category.product_count} Books
+                    {productCount} Books
                   </p>
                 )}
               </div>
@@ -85,13 +104,25 @@ export function CategoryCard({
           )}
           <CardContent className="p-6">
             <div className="flex items-start space-x-4">
-              <div className={cn(
-                "w-16 h-16 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110 group-hover:rotate-3",
-                colorClass.replace('text-', 'bg-').replace('600', '100'),
-                colorClass
-              )}>
-                <Icon className="w-8 h-8" />
-              </div>
+              {categoryImage ? (
+                <div className="w-16 h-16 rounded-2xl overflow-hidden transition-all group-hover:scale-110 group-hover:rotate-3 relative flex-shrink-0">
+                  <Image
+                    src={categoryImage}
+                    alt={category.name}
+                    width={64}
+                    height={64}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className={cn(
+                  "w-16 h-16 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110 group-hover:rotate-3 flex-shrink-0",
+                  colorClass.replace('text-', 'bg-').replace('600', '100'),
+                  colorClass
+                )}>
+                  <Icon className="w-8 h-8" />
+                </div>
+              )}
               <div className="flex-1 space-y-2">
                 <h3 className="font-bold text-lg group-hover:text-primary transition-colors">
                   {category.name}
@@ -102,10 +133,10 @@ export function CategoryCard({
                   </p>
                 )}
                 <div className="flex items-center justify-between pt-2">
-                  {showProductCount && category.product_count !== undefined && (
+                  {showProductCount && productCount !== undefined && (
                     <div className="flex items-center space-x-1 text-sm">
                       <TrendingUp className="w-4 h-4 text-primary" />
-                      <span className="font-medium">{category.product_count} Books</span>
+                      <span className="font-medium">{productCount} Books</span>
                     </div>
                   )}
                   <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
@@ -129,13 +160,25 @@ export function CategoryCard({
         <CardContent className="p-5">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className={cn(
-                "w-14 h-14 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
-                colorClass.replace('text-', 'bg-').replace('600', '100'),
-                colorClass
-              )}>
-                <Icon className="w-7 h-7" />
-              </div>
+              {categoryImage ? (
+                <div className="w-14 h-14 rounded-xl overflow-hidden transition-transform group-hover:scale-110 relative">
+                  <Image
+                    src={categoryImage}
+                    alt={category.name}
+                    width={56}
+                    height={56}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className={cn(
+                  "w-14 h-14 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
+                  colorClass.replace('text-', 'bg-').replace('600', '100'),
+                  colorClass
+                )}>
+                  <Icon className="w-7 h-7" />
+                </div>
+              )}
               {category.featured && (
                 <Badge variant="secondary" className="bg-primary/10 text-primary border-0">
                   <TrendingUp className="w-3 h-3 mr-1" />
@@ -143,22 +186,22 @@ export function CategoryCard({
                 </Badge>
               )}
             </div>
-            
+
             <div className="space-y-2">
               <h3 className="font-semibold text-base md:text-lg group-hover:text-primary transition-colors">
                 {category.name}
               </h3>
-              
+
               {showDescription && category.description && (
                 <p className="text-sm text-muted-foreground line-clamp-2">
                   {category.description}
                 </p>
               )}
-              
-              {showProductCount && category.product_count !== undefined && (
+
+              {showProductCount && productCount !== undefined && (
                 <div className="flex items-center justify-between pt-2">
                   <span className="text-sm text-muted-foreground">
-                    {category.product_count} Books
+                    {productCount} Books
                   </span>
                   <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                 </div>

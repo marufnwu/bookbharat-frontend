@@ -148,9 +148,24 @@ export default function CategoryPage() {
 
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">{category.name}</h1>
-        <p className="text-muted-foreground mb-4">{category.description}</p>
-        <p className="text-sm text-muted-foreground">{category.products_count} books available</p>
+        <div className="flex items-start gap-6 mb-4">
+          {(category.image_url || category.image) && (
+            <div className="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 shadow-lg">
+              <Image
+                src={category.image_url || category.image || ''}
+                alt={category.name}
+                width={96}
+                height={96}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold text-foreground mb-2">{category.name}</h1>
+            <p className="text-muted-foreground mb-2">{category.description}</p>
+            <p className="text-sm text-muted-foreground">{category.products_count} books available</p>
+          </div>
+        </div>
       </div>
 
       {/* Subcategories */}

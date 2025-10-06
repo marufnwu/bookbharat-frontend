@@ -1,5 +1,8 @@
 'use client';
 
+// TODO: Replace console.log/console.error with logger from '@/lib/logger' for production
+// Currently 13 console statements used for debugging
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Cart, CartItem, Product } from '@/types';
@@ -248,8 +251,10 @@ export const useCartStore = create<CartState>()(
             // Update delivery pincode
             set({ deliveryPincode: pincode });
 
-            // Refresh cart with new shipping calculation
-            await get().getCart(pincode);
+            // FIXED: Refresh cart with new shipping calculation AND current payment method
+            // This ensures COD charges are included in shipping estimate
+            const currentPaymentMethod = get().selectedPaymentMethod;
+            await get().getCart(pincode, currentPaymentMethod);
           }
         } catch (error) {
           console.error('Failed to calculate shipping:', error);
