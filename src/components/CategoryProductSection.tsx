@@ -126,17 +126,17 @@ export default function CategoryProductSection({
   }
 
   return (
-    <section ref={ref} className="py-16 bg-muted/30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-12">
-          <div>
-            <h2 className="text-3xl font-bold text-foreground">{category.name}</h2>
+    <section ref={ref} className="py-8 sm:py-12 md:py-16 bg-muted/30">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+        <div className="flex items-center justify-between mb-6 sm:mb-8 md:mb-12 gap-2">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground truncate">{category.name}</h2>
             {category.description && (
-              <p className="text-muted-foreground mt-2">{category.description}</p>
+              <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base line-clamp-1 sm:line-clamp-2">{category.description}</p>
             )}
           </div>
           {showSeeAll && (
-            <Button variant="outline" asChild>
+            <Button variant="outline" size="sm" className="hidden sm:flex min-h-[40px]" asChild>
               <Link href={`/categories/${category.slug || category.id}`}>
                 View All <ChevronRight className="ml-2 h-4 w-4" />
               </Link>
@@ -144,9 +144,9 @@ export default function CategoryProductSection({
           )}
         </div>
 
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-3 md:gap-4">
           {products.map((product) => (
-            <ProductCard 
+            <ProductCard
               key={product.id}
               product={product}
               variant="compact"
@@ -156,14 +156,15 @@ export default function CategoryProductSection({
               showDiscount={showDiscount}
               showWishlist={true}
               showAddToCart={true}
+              showBuyNow={true}
             />
           ))}
         </div>
 
         {/* View All Button for mobile */}
         {showSeeAll && (
-          <div className="text-center mt-8 md:hidden">
-            <Button asChild>
+          <div className="text-center mt-6 sm:hidden">
+            <Button asChild className="min-h-[44px] touch-target w-full max-w-xs">
               <Link href={`/categories/${category.slug || category.id}`}>
                 View All {category.name} Books
                 <ArrowRight className="ml-2 h-4 w-4" />
