@@ -130,7 +130,7 @@ export function MobileProductCard({
           <div className="aspect-[3/4] relative bg-muted">
             {product.images?.[0] && !imageError ? (
               <Image
-                src={product.images[0].url}
+                src={product.images[0].image_url || images[0].url}
                 alt={product.name}
                 fill
                 className="object-cover"
@@ -230,7 +230,7 @@ export function MobileProductCard({
           <div className="aspect-[3/4] relative bg-muted rounded-lg overflow-hidden mb-2">
             {product.images?.[0] && !imageError ? (
               <Image
-                src={product.images[0].url}
+                src={product.images[0].image_url || images[0].url}
                 alt={product.name}
                 fill
                 className="object-cover group-hover:scale-105 transition-transform"
@@ -308,7 +308,7 @@ export function MobileProductCard({
                 <div className="absolute inset-0 bg-muted animate-pulse" />
               )}
               <Image
-                src={product.images[0].url}
+                src={product.images[0].image_url || images[0].url}
                 alt={product.name}
                 fill
                 className="object-cover group-hover:scale-105 transition-transform"

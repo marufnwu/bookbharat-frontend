@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   // App directory is stable in Next.js 13+, no need for experimental flag
   pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
 
+  // Enable compression
+  compress: true,
+
   // Image configuration
   images: {
     remotePatterns: [
@@ -56,9 +59,12 @@ const nextConfig: NextConfig = {
   // Development optimizations
   experimental: {
     optimizePackageImports: [
+      '@radix-ui/react-alert-dialog',
       '@radix-ui/react-dialog',
       '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-label',
       '@radix-ui/react-select',
+      '@radix-ui/react-separator',
       '@radix-ui/react-switch',
       '@radix-ui/react-tabs',
       '@radix-ui/react-toast',
@@ -79,6 +85,52 @@ const nextConfig: NextConfig = {
   // Ignore TypeScript errors during build
   typescript: {
     ignoreBuildErrors: true,
+  },
+
+  // Cache headers for static assets
+  async headers() {
+    return [
+      {
+        source: '/:all*(svg|jpg|jpeg|png|webp|gif|ico)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/',
+        headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+          {
+            key: 'Link',
+            value: '<http://localhost:8000>; rel=preconnect; crossorigin',
+          },
+        ],
+      },
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+        ],
+      },
+    ];
   },
 
   // Webpack optimizations

@@ -3,38 +3,36 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { cn } from '@/lib/utils';
-import { 
-  ArrowRight, 
+// Import only commonly used icons, rest will be lazy loaded
+import {
+  ArrowRight,
   BookOpen,
   Star,
   Users,
   TrendingUp,
-  PlayCircle,
-  Sparkles,
-  ShoppingBag,
-  Heart,
-  Zap,
   Award,
   Truck,
-  Shield,
-  Grid3X3,
-  Calendar,
-  Gift,
-  Timer,
-  CheckCircle,
-  Globe,
-  Phone,
-  Mail,
-  Camera,
-  Eye,
-  MousePointer,
-  Quote
+  Shield
 } from 'lucide-react';
 import { Product } from '@/types';
+import type { LucideIcon } from 'lucide-react';
+
+// Icon map for dynamic loading
+const iconMap: Record<string, React.ComponentType<any>> = {
+  'arrow-right': ArrowRight,
+  'book': BookOpen,
+  'star': Star,
+  'users': Users,
+  'trending': TrendingUp,
+  'award': Award,
+  'truck': Truck,
+  'shield': Shield,
+};
 
 interface HeroConfig {
   variant: 'minimal-product' | 'lifestyle-storytelling' | 'interactive-promotional' | 'category-grid' | 'seasonal-campaign' | 'product-highlight' | 'video-hero' | 'interactive-tryOn' | 'editorial-magazine';
@@ -91,22 +89,10 @@ interface HeroSectionProps {
 
 export function HeroSection({ config, className }: HeroSectionProps) {
   const getIconComponent = (iconName?: string) => {
-    switch (iconName) {
-      case 'users': return Users;
-      case 'star': return Star;
-      case 'trending': return TrendingUp;
-      case 'book': return BookOpen;
-      case 'truck': return Truck;
-      case 'shield': return Shield;
-      case 'award': return Award;
-      case 'heart': return Heart;
-      case 'eye': return Eye;
-      case 'phone': return Phone;
-      case 'mail': return Mail;
-      case 'globe': return Globe;
-      case 'camera': return Camera;
-      default: return BookOpen;
-    }
+    if (!iconName) return BookOpen;
+
+    // Use the iconMap for loaded icons, fallback to BookOpen
+    return iconMap[iconName] || BookOpen;
   };
 
   // Variant 1: Minimal & Product-Focused - Ultra Mobile-First Design
@@ -198,7 +184,7 @@ export function HeroSection({ config, className }: HeroSectionProps) {
                   <div className="aspect-square bg-gradient-to-br from-white to-gray-50/60 rounded-xl sm:rounded-2xl lg:rounded-3xl p-4 sm:p-6 lg:p-8 flex items-center justify-center shadow-md sm:shadow-xl border border-white/40 backdrop-blur-sm transition-all duration-300">
                     {config.featuredProducts[0].images?.[0] ? (
                       <OptimizedImage
-                        src={config.featuredProducts[0].images[0].url}
+                        src={config.featuredProducts[0].images[0].image_url || images[0].url}
                         alt={config.featuredProducts[0].name}
                         width={300}
                         height={300}
@@ -256,6 +242,7 @@ export function HeroSection({ config, className }: HeroSectionProps) {
               alt="Lifestyle background"
               fill
               className="object-cover scale-105"
+              priority={true}
             />
             <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/40 to-black/70"></div>
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
@@ -362,7 +349,7 @@ export function HeroSection({ config, className }: HeroSectionProps) {
                   )}>
                     {product.images?.[0] ? (
                       <OptimizedImage
-                        src={product.images[0].url}
+                        src={product.images[0].image_url || images[0].url}
                         alt={product.name}
                         fill
                         className="object-cover group-hover:scale-110 transition-transform duration-700"
@@ -509,7 +496,7 @@ export function HeroSection({ config, className }: HeroSectionProps) {
                   <div className="aspect-[3/4] bg-gradient-to-br from-white/10 to-white/5 rounded-2xl mb-6 overflow-hidden relative">
                     {product.images?.[0] ? (
                       <OptimizedImage
-                        src={product.images[0].url}
+                        src={product.images[0].image_url || images[0].url}
                         alt={product.name}
                         fill
                         className="object-cover group-hover:scale-125 transition-transform duration-700"
@@ -676,6 +663,7 @@ export function HeroSection({ config, className }: HeroSectionProps) {
               alt="Seasonal background"
               fill
               className="object-cover scale-105"
+              priority={true}
             />
             <div className="absolute inset-0 bg-gradient-to-br from-red-900/70 via-green-900/60 to-red-800/80"></div>
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/40"></div>
@@ -816,10 +804,11 @@ export function HeroSection({ config, className }: HeroSectionProps) {
                   <div className="aspect-square bg-gradient-to-br from-white via-white to-blue-50/30 rounded-[3rem] p-12 shadow-2xl border border-white/60 backdrop-blur-sm hover:shadow-3xl transition-all duration-700 group-hover:scale-105">
                     {config.featuredProducts[0].images?.[0] ? (
                       <OptimizedImage
-                        src={config.featuredProducts[0].images[0].url}
+                        src={config.featuredProducts[0].images[0].image_url || images[0].url}
                         alt={config.featuredProducts[0].name}
                         fill
                         className="object-contain p-8 group-hover:scale-110 transition-transform duration-700"
+                        priority={true}
                       />
                     ) : (
                       <div className="flex items-center justify-center h-full">
@@ -1085,7 +1074,7 @@ export function HeroSection({ config, className }: HeroSectionProps) {
                 <div className="aspect-[4/3] bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl mb-6 flex items-center justify-center relative overflow-hidden">
                   {config.featuredProducts?.[0]?.images?.[0] ? (
                     <OptimizedImage
-                      src={config.featuredProducts[0].images[0].url}
+                      src={config.featuredProducts[0].images[0].image_url || images[0].url}
                       alt={config.featuredProducts[0].name}
                       fill
                       className="object-contain"
@@ -1191,7 +1180,7 @@ export function HeroSection({ config, className }: HeroSectionProps) {
                     <div className="aspect-[4/5] bg-gray-100 rounded-lg overflow-hidden">
                       {config.featuredProducts[0].images?.[0] ? (
                         <OptimizedImage
-                          src={config.featuredProducts[0].images[0].url}
+                          src={config.featuredProducts[0].images[0].image_url || images[0].url}
                           alt={config.featuredProducts[0].name}
                           fill
                           className="object-cover"
@@ -1230,7 +1219,7 @@ export function HeroSection({ config, className }: HeroSectionProps) {
                       <div className="aspect-[3/2] bg-gray-100 rounded-lg overflow-hidden">
                         {product.images?.[0] ? (
                           <OptimizedImage
-                            src={product.images[0].url}
+                            src={product.images[0].image_url || images[0].url}
                             alt={product.name}
                             fill
                             className="object-cover"
@@ -1385,7 +1374,7 @@ export function HeroSection({ config, className }: HeroSectionProps) {
                       <div className="aspect-[3/4] bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl overflow-hidden mb-3 relative">
                         {book.images && book.images.length > 0 ? (
                           <OptimizedImage
-                            src={book.images[0].url}
+                            src={book.images[0].image_url || images[0].url}
                             alt={book.name}
                             fill
                             className="object-cover group-hover:scale-110 transition-transform duration-500"
@@ -1476,6 +1465,7 @@ export function HeroSection({ config, className }: HeroSectionProps) {
               alt="Hero background"
               fill
               className="object-cover opacity-30"
+              priority={true}
             />
           </div>
         )}
@@ -1629,7 +1619,7 @@ export function HeroSection({ config, className }: HeroSectionProps) {
                   <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 rounded overflow-hidden">
                     {book.images && book.images.length > 0 ? (
                       <OptimizedImage
-                        src={book.images[0].url}
+                        src={book.images[0].image_url || images[0].url}
                         alt={book.name}
                         fill
                         className="object-cover"

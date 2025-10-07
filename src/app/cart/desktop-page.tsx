@@ -227,7 +227,7 @@ export default function ImprovedCartPage() {
                   <div className="relative w-20 h-24 sm:w-16 sm:h-20 lg:w-24 lg:h-32 bg-muted rounded-lg overflow-hidden flex-shrink-0">
                     {item.product?.images?.[0]?.url ? (
                       <Image
-                        src={item.product.images[0].url}
+                        src={item.product.images[0].image_url || images[0].url}
                         alt={item.product.name}
                         fill
                         className="object-cover"

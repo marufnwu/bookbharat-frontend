@@ -195,9 +195,9 @@ export function ProductCard({
         <div className={cn('relative bg-gray-50 rounded-lg overflow-hidden', styles.image)}>
           <Link href={`/products/${product.slug || product.id}`}>
             <div className="relative w-full h-full">
-              {product.images && product.images.length > 0 && product.images[0].url && !imageError ? (
+              {product.images && product.images.length > 0 && (product.images[0].image_url || product.images[0].url) && !imageError ? (
                 <OptimizedImage
-                  src={product.images[0].url}
+                  src={product.images[0].image_url || product.images[0].url || ''}
                   alt={product.name}
                   fill
                   className="object-cover group-hover:scale-110 transition-transform duration-300"
@@ -336,7 +336,7 @@ export function ProductCard({
                   ) : (
                     <>
                       <ShoppingCart className="h-3 w-3 mr-1" />
-                      {variant === 'compact' || variant === 'minimal' ? 'Cart' : 'Add to Cart'}
+                      Cart
                     </>
                   )}
                 </Button>
@@ -357,7 +357,7 @@ export function ProductCard({
                   ) : (
                     <>
                       <Zap className="h-3 w-3 mr-1" />
-                      {variant === 'compact' || variant === 'minimal' ? 'Buy' : 'Buy Now'}
+                      Buy
                     </>
                   )}
                 </Button>

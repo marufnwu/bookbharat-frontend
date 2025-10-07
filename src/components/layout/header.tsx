@@ -306,7 +306,7 @@ export function Header() {
                           <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center overflow-hidden relative">
                             {item.product?.images?.[0]?.url ? (
                               <img
-                                src={item.product.images[0].url}
+                                src={item.product.images[0].image_url || images[0].url}
                                 alt={item.product.name}
                                 className="w-full h-full object-cover"
                               />

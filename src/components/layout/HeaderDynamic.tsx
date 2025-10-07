@@ -1,11 +1,12 @@
 'use client';
 import { MobileHeader } from './MobileHeader';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useHydratedAuth } from '@/stores/auth';
 import { useCartStore } from '@/stores/cart';
+import { useConfig } from '@/contexts/ConfigContext';
 import { productApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,7 +42,7 @@ interface SiteConfig {
   };
 }
 
-export function HeaderDynamic() {
+function HeaderDynamicComponent() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [mounted, setMounted] = useState(false);
@@ -55,82 +56,30 @@ export function HeaderDynamic() {
   const cartStore = useCartStore();
   const { getTotalItems, getCart, cart, removeItem, getSubtotal } = cartStore;
 
-  // Dynamic navigation and site config states
-  const [navigation, setNavigation] = useState<NavigationItem[]>([]);
-  const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
-  const [isLoadingConfig, setIsLoadingConfig] = useState(true);
+  // Use ConfigContext instead of fetching separately
+  const { siteConfig, navigationConfig, loading: configLoading } = useConfig();
+
+  // Format navigation from ConfigContext
+  const navigation = navigationConfig?.header_menu?.map((item: any) => ({
+    name: item.label,
+    href: item.url,
+    children: item.children?.map((child: any) => ({
+      name: child.label,
+      href: child.url
+    })) || []
+  })) || [
+    { name: 'Home', href: '/' },
+    { name: 'Books', href: '/products' },
+    { name: 'Categories', href: '/categories', children: [] },
+    { name: 'New Arrivals', href: '/products?filter=new' },
+    { name: 'Best Sellers', href: '/products?filter=bestseller' },
+    { name: 'About', href: '/about' },
+    { name: 'Contact', href: '/contact' },
+  ];
 
   // Initialize mounted state
   useEffect(() => {
     setMounted(true);
-  }, []);
-
-  // Fetch navigation and site configuration from API
-  useEffect(() => {
-    const fetchConfiguration = async () => {
-      try {
-        setIsLoadingConfig(true);
-
-        // Fetch navigation configuration
-        try {
-          const navResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/configuration/navigation-config`);
-          if (navResponse.ok) {
-            const navData = await navResponse.json();
-            if (navData.success && navData.data?.header_menu) {
-              const formattedNav = navData.data.header_menu.map((item: any) => ({
-                name: item.label,
-                href: item.url,
-                children: item.children?.map((child: any) => ({
-                  name: child.label,
-                  href: child.url
-                })) || []
-              }));
-              setNavigation(formattedNav);
-            }
-          }
-        } catch (navError) {
-          console.error('Error fetching navigation:', navError);
-          // Set default navigation as fallback
-          setNavigation([
-            { name: 'Home', href: '/' },
-            { name: 'Books', href: '/products' },
-            { name: 'Categories', href: '/categories', children: [] },
-            { name: 'New Arrivals', href: '/products?filter=new' },
-            { name: 'Best Sellers', href: '/products?filter=bestseller' },
-            { name: 'About', href: '/about' },
-            { name: 'Contact', href: '/contact' },
-          ]);
-        }
-
-        // Fetch site configuration
-        try {
-          const configResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/configuration/site-config`);
-          if (configResponse.ok) {
-            const configData = await configResponse.json();
-            if (configData.success && configData.data) {
-              setSiteConfig(configData.data);
-            }
-          }
-        } catch (configError) {
-          console.error('Error fetching site config:', configError);
-          // Set default configuration as fallback
-          setSiteConfig({
-            site: {
-              name: 'BookBharat',
-              contact_phone: '+91 12345 67890',
-              contact_email: 'support@bookbharat.com',
-            },
-            payment: {
-              free_shipping_threshold: 499
-            }
-          });
-        }
-      } finally {
-        setIsLoadingConfig(false);
-      }
-    };
-
-    fetchConfiguration();
   }, []);
 
   // Re-render when cart changes
@@ -229,15 +178,6 @@ export function HeaderDynamic() {
   // Return mobile header for mobile devices
   if (isMobile && mounted) {
     return <MobileHeader />;
-  }
-
-  // Show loading state while fetching configuration
-  if (isLoadingConfig) {
-    return (
-      <header className="bg-background border-b border-border sticky top-0 z-50">
-        <div className="h-32 animate-pulse bg-gray-100" />
-      </header>
-    );
   }
 
   return (
@@ -408,3 +348,6 @@ export function HeaderDynamic() {
     </header>
   );
 }
+
+// Export memoized version to prevent unnecessary re-renders
+export const HeaderDynamic = memo(HeaderDynamicComponent);

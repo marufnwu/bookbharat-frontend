@@ -392,7 +392,7 @@ export default function OrdersPage() {
                         <div className="w-12 h-16 bg-gray-100 rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
                           {item.product?.images && item.product.images.length > 0 ? (
                             <Image
-                              src={item.product.images[0].url}
+                              src={item.product.images[0].image_url || images[0].url}
                               alt={item.product.name}
                               width={48}
                               height={64}

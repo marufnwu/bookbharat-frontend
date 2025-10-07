@@ -46,7 +46,11 @@ export const useCartStore = create<CartState>()(
 
       getCart: async (deliveryPincode?: string, paymentMethod?: string) => {
         try {
-          set({ isLoading: true });
+          // Only set loading if cart doesn't exist (initial load)
+          const currentCart = get().cart;
+          if (!currentCart) {
+            set({ isLoading: true });
+          }
 
           // Log authentication method for debugging
           const authToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
@@ -58,12 +62,11 @@ export const useCartStore = create<CartState>()(
             console.log('🛒 Fetching cart with session ID:', sessionId);
           }
 
-          // Use parameters or from state
-          const pincode = deliveryPincode || get().deliveryPincode;
-          const method = paymentMethod || get().selectedPaymentMethod;
+          // ONLY use explicitly passed parameters (not from state)
+          // This prevents cart page from unintentionally passing saved pincode/payment
           const params: any = {};
-          if (pincode) params.delivery_pincode = pincode;
-          if (method) params.payment_method = method;
+          if (deliveryPincode) params.delivery_pincode = deliveryPincode;
+          if (paymentMethod) params.payment_method = paymentMethod;
 
           const response = await cartApi.getCart(params);
           console.log('🛒 Raw API response:', JSON.stringify(response, null, 2));
@@ -122,54 +125,50 @@ export const useCartStore = create<CartState>()(
 
       addToCart: async (product: Product, quantity = 1) => {
         try {
-          set({ isLoading: true });
+          // Don't set global loading - components have their own loading states
           await cartApi.addToCart(product.id, quantity);
-          
-          // Refresh cart from server
-          await get().getCart();
-          
+
+          // Refresh cart from server (without pincode/payment)
+          await get().getCart(undefined, undefined);
+
           // Show success toast
           toast({
             title: "Added to cart",
-            description: `${product.title} has been added to your cart.`,
+            description: `${product.title || product.name} has been added to your cart.`,
             variant: "success",
           });
         } catch (error) {
-          set({ isLoading: false });
-          
           // Show error toast
           toast({
             title: "Failed to add to cart",
             description: "Something went wrong. Please try again.",
             variant: "destructive",
           });
-          
+
           throw error;
         }
       },
 
       updateQuantity: async (itemId: number, quantity: number) => {
         try {
-          set({ isLoading: true });
+          // Don't set global loading - page has its own loading state
           await cartApi.updateCartItem(itemId, quantity);
-          
-          // Refresh cart from server
-          await get().getCart();
+
+          // Refresh cart from server (without pincode/payment)
+          await get().getCart(undefined, undefined);
         } catch (error) {
-          set({ isLoading: false });
           throw error;
         }
       },
 
       removeItem: async (itemId: number) => {
         try {
-          set({ isLoading: true });
+          // Don't set global loading - page has its own loading state
           await cartApi.removeCartItem(itemId);
-          
-          // Refresh cart from server
-          await get().getCart();
+
+          // Refresh cart from server (without pincode/payment)
+          await get().getCart(undefined, undefined);
         } catch (error) {
-          set({ isLoading: false });
           throw error;
         }
       },
@@ -207,26 +206,24 @@ export const useCartStore = create<CartState>()(
 
       applyCoupon: async (couponCode: string) => {
         try {
-          set({ isLoading: true });
+          // Don't set global loading - component has its own loading state
           await cartApi.applyCoupon(couponCode);
-          
-          // Refresh cart from server
-          await get().getCart();
+
+          // Refresh cart from server (without pincode/payment)
+          await get().getCart(undefined, undefined);
         } catch (error) {
-          set({ isLoading: false });
           throw error;
         }
       },
 
       removeCoupon: async () => {
         try {
-          set({ isLoading: true });
+          // Don't set global loading - component has its own loading state
           await cartApi.removeCoupon();
-          
-          // Refresh cart from server
-          await get().getCart();
+
+          // Refresh cart from server (without pincode/payment)
+          await get().getCart(undefined, undefined);
         } catch (error) {
-          set({ isLoading: false });
           throw error;
         }
       },
@@ -244,7 +241,7 @@ export const useCartStore = create<CartState>()(
 
       calculateShipping: async (pincode: string, pickupPincode?: string) => {
         try {
-          set({ isLoading: true });
+          // Don't set global loading - checkout page has its own loading state
           const response = await cartApi.calculateShipping(pincode, pickupPincode);
 
           if (response.success && response.summary) {
@@ -258,7 +255,6 @@ export const useCartStore = create<CartState>()(
           }
         } catch (error) {
           console.error('Failed to calculate shipping:', error);
-          set({ isLoading: false });
           throw error;
         }
       },
@@ -270,7 +266,7 @@ export const useCartStore = create<CartState>()(
       setPaymentMethod: async (paymentMethod: string | null) => {
         try {
           console.log('💳 Setting payment method:', paymentMethod);
-          set({ selectedPaymentMethod: paymentMethod, isLoading: true });
+          set({ selectedPaymentMethod: paymentMethod });
 
           // Get current pincode
           const pincode = get().deliveryPincode;
@@ -281,7 +277,6 @@ export const useCartStore = create<CartState>()(
           console.log('💳 Cart recalculated with payment method');
         } catch (error) {
           console.error('Failed to set payment method:', error);
-          set({ isLoading: false });
           throw error;
         }
       },

@@ -102,7 +102,7 @@ export default function CartPage() {
               <div className="w-20 h-24 bg-gray-100 rounded flex-shrink-0 overflow-hidden">
                 {item.product?.images?.[0]?.url ? (
                   <Image
-                    src={item.product.images[0].url}
+                    src={item.product.images[0].image_url || images[0].url}
                     alt={item.product.name}
                     width={80}
                     height={96}

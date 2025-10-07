@@ -81,7 +81,9 @@ export interface Product {
 
 export interface ProductImage {
   id: number;
-  url: string;
+  image_url: string;
+  image_path?: string;
+  url?: string; // Deprecated, use image_url
   alt_text?: string;
   is_primary: boolean;
   sort_order: number;

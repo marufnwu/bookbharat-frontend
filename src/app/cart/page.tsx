@@ -30,6 +30,7 @@ export default function CartPage() {
   const [showSummary, setShowSummary] = useState(false);
   const [clearingCart, setClearingCart] = useState(false);
   const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const {
     cart,
@@ -47,8 +48,14 @@ export default function CartPage() {
   const cartSummary = useCartSummary(cart, '₹');
 
   useEffect(() => {
-    getCart();
-    getAvailableCoupons();
+    // Cart page should not pass pincode/payment - shipping calculated at checkout
+    const loadCart = async () => {
+      setInitialLoading(true);
+      await getCart(undefined, undefined);
+      await getAvailableCoupons();
+      setInitialLoading(false);
+    };
+    loadCart();
   }, [getCart, getAvailableCoupons]);
 
   const handleQuantityChange = async (itemId: number, newQuantity: number) => {
@@ -103,7 +110,7 @@ export default function CartPage() {
     }
   };
 
-  if (isLoading) {
+  if (initialLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -177,9 +184,9 @@ export default function CartPage() {
                 <div className="flex gap-3 lg:gap-4">
                   {/* Image */}
                   <div className="w-20 h-24 lg:w-24 lg:h-32 bg-muted rounded flex-shrink-0 overflow-hidden">
-                    {item.product?.images?.[0]?.url ? (
+                    {item.product?.images?.[0]?.image_url || item.product?.images?.[0]?.url ? (
                       <Image
-                        src={item.product.images[0].url}
+                        src={item.product.images[0].image_url || item.product.images[0].url || ''}
                         alt={item.product.name}
                         width={96}
                         height={128}

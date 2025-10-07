@@ -173,7 +173,7 @@ export default function MobileCartPage() {
                   <div className="relative w-20 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                     {item.product.images?.[0]?.url ? (
                       <Image
-                        src={item.product.images[0].url}
+                        src={item.product.images[0].image_url || images[0].url}
                         alt={item.product.name}
                         fill
                         className="object-cover"

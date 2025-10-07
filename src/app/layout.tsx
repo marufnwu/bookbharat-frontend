@@ -2,12 +2,21 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { HeaderDynamic as Header } from "@/components/layout/HeaderDynamic";
-import FooterServer from "@/components/layout/FooterServer";
+import dynamic from "next/dynamic";
 import { ConfigProvider } from "@/contexts/ConfigContext";
-import { AuthProvider } from "@/components/providers/AuthProvider";
-import { CartProvider } from "@/components/providers/CartProvider";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
+
+// Lazy load Footer component (below-the-fold content)
+const FooterServer = dynamic(() => import("@/components/layout/FooterServer"), {
+  loading: () => <div className="h-96 bg-background border-t border-border" />
+});
+
+// Lazy load non-critical providers (Auth, Cart)
+const ClientProviders = dynamic(() => import("@/components/providers/ClientProviders").then(mod => ({ default: mod.ClientProviders })), {
+  ssr: true,
+  loading: () => <div>Loading...</div>
+});
 
 const inter = Inter({
   subsets: ["latin"],
@@ -53,19 +62,17 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans`} suppressHydrationWarning>
         <ConfigProvider>
-          <AuthProvider>
-            <CartProvider>
-              <div className="min-h-screen flex flex-col">
-                <Header />
-                <main className="flex-1">
-                  {children}
-                </main>
-                <FooterServer />
-                <Toaster />
-                <SonnerToaster />
-              </div>
-            </CartProvider>
-          </AuthProvider>
+          <ClientProviders>
+            <div className="min-h-screen flex flex-col">
+              <Header />
+              <main className="flex-1">
+                {children}
+              </main>
+              <FooterServer />
+              <Toaster />
+              <SonnerToaster />
+            </div>
+          </ClientProviders>
         </ConfigProvider>
       </body>
     </html>

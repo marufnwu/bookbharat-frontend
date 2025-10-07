@@ -50,7 +50,7 @@ export function MobileCartItem({
         <div className="w-20 h-24 flex-shrink-0 bg-muted rounded-md overflow-hidden relative">
           {item.product?.images?.[0] && !imageError ? (
             <Image
-              src={item.product.images[0].url}
+              src={item.product.images[0].image_url || images[0].url}
               alt={item.product.name}
               fill
               className="object-cover"
@@ -362,7 +362,7 @@ export function MobileCartRecommendations({ products, onAddToCart }: MobileCartR
               <div className="aspect-[3/4] bg-muted rounded-md mb-2 relative">
                 {product.images?.[0] && (
                   <Image
-                    src={product.images[0].url}
+                    src={product.images[0].image_url || images[0].url}
                     alt={product.name}
                     fill
                     className="object-cover rounded-md"
