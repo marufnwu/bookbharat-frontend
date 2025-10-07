@@ -61,7 +61,8 @@
       "Bash(composer show:*)",
       "Bash(pkill:*)",
       "Bash(taskkill:*)",
-      "Read(//d//**)"
+      "Read(//d//**)",
+      "Bash(npx lighthouse:*)"
     ],
     "deny": [],
     "ask": []
