@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { productApi, categoryApi, cartApi } from '@/lib/api';
 import { Product, Category } from '@/types';
 import { useConfig } from '@/contexts/ConfigContext';
+import { ProductCard } from '@/components/ui/product-card';
+import { getProductCardProps, getProductGridClasses } from '@/lib/product-card-config';
 import { 
   BookOpen, 
   Star, 
@@ -43,6 +45,17 @@ export default function SearchPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [addingToCart, setAddingToCart] = useState<number | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   const [filters, setFilters] = useState({
     category: searchParams.get('category') || '',
     priceMin: searchParams.get('price_min') || '',
@@ -558,12 +571,14 @@ export default function SearchPage() {
             </div>
           ) : (
             <>
-              <div className={viewMode === 'grid' 
-                ? 'grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' 
-                : 'space-y-4'
-              }>
+              <div className={viewMode === 'grid' ? getProductGridClasses('searchResults') : 'space-y-4'}>
                 {searchResults.map((product) => (
-                  <ProductCard key={product.id} product={product} isListView={viewMode === 'list'} />
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    {...getProductCardProps(viewMode === 'grid' ? 'searchGrid' : 'searchList', isMobile)}
+                    className={viewMode === 'list' ? 'flex' : ''}
+                  />
                 ))}
               </div>
 

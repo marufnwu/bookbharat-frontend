@@ -13,6 +13,7 @@ import CategoryProductSection from '@/components/CategoryProductSection';
 import HeroSection from '@/components/hero/HeroSection';
 import ProductCard from '@/components/ui/product-card';
 import { CategoriesSection } from '@/components/home/CategoriesSection';
+import { getProductCardProps, getProductGridClasses } from '@/lib/product-card-config';
 import { 
   BookOpen, 
   TrendingUp, 
@@ -308,19 +309,12 @@ export default function Home() {
               </div>
             </div>
           ) : featuredBooks.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-3 md:gap-4">
+            <div className={getProductGridClasses('homepageFeatured')}>
               {featuredBooks.slice(0, isMobile ? 6 : 8).map((book) => (
                 <ProductCard
                   key={book.id}
                   product={book}
-                  variant={isMobile ? "minimal" : "compact"}
-                  showCategory={false}
-                  showAuthor={!isMobile}
-                  showRating={!isMobile}
-                  showDiscount={true}
-                  showWishlist={!isMobile}
-                  showAddToCart={true}
-                  showBuyNow={true}
+                  {...getProductCardProps('homepageFeatured', isMobile)}
                 />
               ))}
             </div>

@@ -215,9 +215,7 @@ export default function CheckoutPage() {
     description: string;
     advance_payment?: {
       required: boolean;
-      type: 'fixed' | 'percentage';
-      value: number;
-      description?: string;
+      percentage: number;
     } | null;
     service_charges?: {
       type: string;
@@ -231,8 +229,8 @@ export default function CheckoutPage() {
   }
 
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState<PaymentMethod[]>([]);
-  // Restore payment type from localStorage if available
-  const [paymentType, setPaymentType] = useState<'online' | 'cod' | null>(persistedState.paymentType || null);
+  // Don't auto-load persisted payment type - let admin default_payment_type control it
+  const [paymentType, setPaymentType] = useState<'online' | 'cod' | null>(null);
   const [codConfig, setCodConfig] = useState<CODConfig | null>(null);
   const [paymentFlowSettings, setPaymentFlowSettings] = useState<PaymentFlowSettings>({ type: 'two_tier', default_payment_type: 'none' });
 
@@ -399,16 +397,6 @@ export default function CheckoutPage() {
     loadPaymentMethods();
   }, [isAuthenticated, user]);
 
-  // Refresh payment methods when navigating to payment step
-  // This ensures we get the latest payment options from admin settings
-  useEffect(() => {
-    if (currentStep === 3) { // Payment step
-      console.log('📝 Refreshing payment methods for payment step');
-      const orderTotal = cart?.summary?.total || 1000;
-      loadPaymentMethods(orderTotal);
-    }
-  }, [currentStep, cart?.summary?.total]);
-
   // Listen for hash changes and update step
   useEffect(() => {
     const handleHashChange = () => {
@@ -467,16 +455,8 @@ export default function CheckoutPage() {
   const loadCart = async () => {
     try {
       setLoading(true);
-
-      // CRITICAL: If no payment type persisted (fresh visit), clear payment method from cart store
-      // This prevents COD charges from showing before user selects payment type
-      if (!persistedState.paymentType) {
-        // Clear payment method from cart store to fetch cart without any payment-specific charges
-        useCartStore.getState().setPaymentMethod(null);
-      }
-
       await getCart();
-
+      
       const currentCart = useCartStore.getState().cart;
       
       if (!currentCart || !currentCart.items || currentCart.items.length === 0) {
@@ -566,17 +546,6 @@ export default function CheckoutPage() {
     }
   };
 
-  /**
-   * Load available payment methods from backend
-   *
-   * SINGLE SOURCE OF TRUTH - HIERARCHICAL SYSTEM:
-   * Backend checks TWO conditions for each payment method:
-   * 1. PaymentSetting.is_active (Gateway Master Switch) - Must be ON
-   * 2. PaymentConfiguration.is_enabled (Method Switch) - Must be ON
-   *
-   * Only methods where BOTH are true will be returned by the API.
-   * This is enforced in backend PaymentConfiguration::getEnabledMethods()
-   */
   const loadPaymentMethods = async (orderAmount?: number) => {
     try {
       const response = await paymentApi.getPaymentMethods(orderAmount, 'INR');
@@ -601,15 +570,12 @@ export default function CheckoutPage() {
           console.log('Payment flow settings:', { ...response.payment_flow, type: flowType });
 
           // Handle default payment type from admin settings
-          // ONLY if there's no persisted payment type (fresh visit, not user selection)
-          const hasPersistedPaymentType = persistedState.paymentType !== undefined && persistedState.paymentType !== null;
-          const defaultPaymentType = (response as any).payment_flow?.default_payment_type;
-          if (!hasPersistedPaymentType && !paymentType) {
-            if (defaultPaymentType && defaultPaymentType !== 'none') {
-              // Admin has set a default (online or cod) - apply it
-              setPaymentType(defaultPaymentType as 'online' | 'cod');
-            }
-            // If 'none', leave paymentType as null (user must choose)
+          if (response.payment_flow.default_payment_type === 'none') {
+            // Admin wants no default - clear any persisted selection
+            setPaymentType(null);
+          } else if (response.payment_flow.default_payment_type && !paymentType) {
+            // Admin has set a default and user hasn't selected yet
+            setPaymentType(response.payment_flow.default_payment_type);
           }
         }
 
@@ -1139,8 +1105,7 @@ export default function CheckoutPage() {
     if (paymentType) {
       handlePaymentTypeChange();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentType]); // Only depend on paymentType - setPaymentMethod and getCart are stable
+  }, [paymentType, setPaymentMethod, getCart]);
 
   // Handle payment gateway redirection
   const handlePaymentRedirect = (paymentDetails: any, gateway: string) => {
@@ -2184,36 +2149,13 @@ export default function CheckoutPage() {
                                     <div className="bg-white border border-orange-200 rounded p-3">
                                       <p className="text-orange-600 text-xs mb-1">Pay Now (Online)</p>
                                       <p className="text-lg font-bold text-orange-900">
-                                        {currencySymbol}{(() => {
-                                          // CRITICAL: Use cart.summary values directly for accuracy
-                                          const cartSubtotal = cart?.summary?.discounted_subtotal || 0;
-                                          const cartShipping = cart?.summary?.shipping_cost || 0;
-                                          const cartTax = cart?.summary?.tax_amount || 0;
-                                          const baseAmount = cartSubtotal + cartShipping + cartTax;
-                                          const advanceAmount = codConfig.advance_payment.type === 'percentage'
-                                            ? (baseAmount * codConfig.advance_payment.value) / 100
-                                            : Math.min(codConfig.advance_payment.value, baseAmount);
-                                          return advanceAmount.toFixed(2);
-                                        })()}
+                                        {currencySymbol}{((total * (codConfig.advance_payment.type === 'percentage' ? codConfig.advance_payment.value / 100 : codConfig.advance_payment.value / total))).toFixed(2)}
                                       </p>
                                     </div>
                                     <div className="bg-white border border-orange-200 rounded p-3">
                                       <p className="text-orange-600 text-xs mb-1">Pay on Delivery</p>
                                       <p className="text-lg font-bold text-orange-900">
-                                        {currencySymbol}{(() => {
-                                          // CRITICAL: Use cart.summary values directly for accuracy
-                                          const cartSubtotal = cart?.summary?.discounted_subtotal || 0;
-                                          const cartShipping = cart?.summary?.shipping_cost || 0;
-                                          const cartTax = cart?.summary?.tax_amount || 0;
-                                          const cartCharges = cart?.summary?.total_charges || 0;
-                                          const baseAmount = cartSubtotal + cartShipping + cartTax;
-                                          const advanceAmount = codConfig.advance_payment.type === 'percentage'
-                                            ? (baseAmount * codConfig.advance_payment.value) / 100
-                                            : Math.min(codConfig.advance_payment.value, baseAmount);
-                                          // COD amount = remaining baseAmount + COD charges
-                                          const codAmount = baseAmount - advanceAmount + cartCharges;
-                                          return codAmount.toFixed(2);
-                                        })()}
+                                        {currencySymbol}{(total - (total * (codConfig.advance_payment.type === 'percentage' ? codConfig.advance_payment.value / 100 : codConfig.advance_payment.value / total))).toFixed(2)}
                                       </p>
                                     </div>
                                   </div>

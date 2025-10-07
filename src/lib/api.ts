@@ -888,6 +888,18 @@ class ApiClient {
   }
 
   // Payment API methods
+  /**
+   * Get available payment methods for checkout
+   *
+   * SINGLE SOURCE OF TRUTH - HIERARCHICAL SYSTEM:
+   * Backend returns only methods where BOTH conditions are true:
+   * 1. PaymentSetting.is_active (Gateway Master Switch) = true
+   * 2. PaymentConfiguration.is_enabled (Method Switch) = true
+   *
+   * @param amount - Order amount for restriction checking
+   * @param currency - Currency code (default: INR)
+   * @returns Array of available payment gateways/methods
+   */
   async getPaymentMethods(amount?: number, currency?: string) {
     // Use the unified payment gateway endpoint
     return this.get('/payment/gateways', { params: { amount, currency: currency || 'INR' } });

@@ -12,6 +12,7 @@ import { ProductCard } from '@/components/ui/product-card';
 import { useConfig } from '@/contexts/ConfigContext';
 import { productApi, categoryApi, cartApi } from '@/lib/api';
 import { Product, Category } from '@/types';
+import { getProductCardProps, getProductGridClasses } from '@/lib/product-card-config';
 import { 
   BookOpen, 
   Star, 
@@ -42,7 +43,7 @@ export default function ProductsPage() {
   const { siteConfig } = useConfig();
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -52,6 +53,17 @@ export default function ProductsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [addingToCart, setAddingToCart] = useState<number | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const [filters, setFilters] = useState<ProductFilters>({
     category: searchParams.get('category') || '',
@@ -413,15 +425,12 @@ export default function ProductsPage() {
               <Button onClick={clearFilters}>Clear Filters</Button>
             </div>
           ) : (
-            <div className={viewMode === 'grid' 
-              ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 compact-gap' 
-              : 'system-compact'
-            }>
+            <div className={viewMode === 'grid' ? getProductGridClasses('productListing') : 'space-y-4'}>
               {products.map((product) => (
-                <ProductCard 
-                  key={product.id} 
-                  product={product} 
-                  variant={viewMode === 'list' ? 'compact' : 'default'}
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  {...getProductCardProps(viewMode === 'grid' ? 'productListGrid' : 'productListList', isMobile)}
                   className={viewMode === 'list' ? 'flex' : ''}
                 />
               ))}

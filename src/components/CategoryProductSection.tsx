@@ -10,8 +10,9 @@ import ProductCard from '@/components/ui/product-card';
 import { productApi } from '@/lib/api';
 import { Category, Product } from '@/types';
 import { useConfig } from '@/contexts/ConfigContext';
-import { 
-  ChevronRight, 
+import { getProductCardProps, getProductGridClasses } from '@/lib/product-card-config';
+import {
+  ChevronRight,
   Loader2,
   ArrowRight
 } from 'lucide-react';
@@ -37,7 +38,18 @@ export default function CategoryProductSection({
   const [products, setProducts] = useState<Product[]>(category.products || []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const { siteConfig } = useConfig();
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // Intersection Observer for lazy loading
   const { ref, inView } = useInView({
@@ -144,19 +156,12 @@ export default function CategoryProductSection({
           )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-3 md:gap-4">
+        <div className={getProductGridClasses('categorySection')}>
           {products.map((product) => (
             <ProductCard
               key={product.id}
               product={product}
-              variant="compact"
-              showCategory={false}
-              showAuthor={true}
-              showRating={showRating}
-              showDiscount={showDiscount}
-              showWishlist={true}
-              showAddToCart={true}
-              showBuyNow={true}
+              {...getProductCardProps('categorySection', isMobile)}
             />
           ))}
         </div>

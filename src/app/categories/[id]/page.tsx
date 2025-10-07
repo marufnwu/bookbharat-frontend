@@ -8,13 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { ProductCard } from '@/components/ui/product-card';
 import { categoryApi, productApi } from '@/lib/api';
 import { Category, Product } from '@/types';
-import { 
-  BookOpen, 
-  Star, 
+import { getProductCardProps, getProductGridClasses } from '@/lib/product-card-config';
+import {
+  BookOpen,
+  Star,
   Filter,
-  Grid3X3, 
+  Grid3X3,
   List,
   ChevronRight,
   ChevronLeft,
@@ -34,6 +36,17 @@ export default function CategoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const sortOptions = [
     { value: 'popularity', label: 'Popularity' },
@@ -232,62 +245,14 @@ export default function CategoryPage() {
       )}
 
       {!loading && products.length > 0 && (
-        <div className={viewMode === 'grid' 
-          ? 'grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' 
-          : 'space-y-4'
-        }>
+        <div className={viewMode === 'grid' ? getProductGridClasses('productListing') : 'space-y-4'}>
           {products.map((product) => (
-            <Card key={product.id} className="group hover:shadow-lg transition-shadow duration-300">
-              <CardContent className="p-4">
-                <div className="aspect-[3/4] bg-gray-100 rounded-lg mb-4 flex items-center justify-center relative overflow-hidden">
-                  {product.images && product.images.length > 0 ? (
-                    <Image
-                      src={product.images[0].url}
-                      alt={product.name}
-                      width={200}
-                      height={267}
-                      className="object-cover w-full h-full"
-                    />
-                  ) : (
-                    <BookOpen className="h-12 w-12 text-gray-400" />
-                  )}
-                  {product.featured && (
-                    <Badge className="absolute top-2 left-2 bg-primary text-primary-foreground">
-                      Featured
-                    </Badge>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <p className="text-sm text-primary font-medium">{category.name}</p>
-                  <Link href={`/products/${product.id}`}>
-                    <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
-                      {product.name}
-                    </h3>
-                  </Link>
-                  <p className="text-sm text-muted-foreground">by {product.brand || 'Unknown Author'}</p>
-                  
-                  <div className="flex items-center space-x-1">
-                    <div className="flex">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className={`h-4 w-4 ${i < Math.floor(product.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
-                      ))}
-                    </div>
-                    <span className="text-sm text-muted-foreground">({product.reviews_count || 0})</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-x-2">
-                      <span className="text-lg font-bold text-foreground">₹{product.price}</span>
-                      {product.compare_price && product.compare_price > product.price && (
-                        <span className="text-sm text-muted-foreground line-through">₹{product.compare_price}</span>
-                      )}
-                    </div>
-                    <Button size="sm">Add to Cart</Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <ProductCard
+              key={product.id}
+              product={product}
+              {...getProductCardProps(viewMode === 'grid' ? 'productListGrid' : 'productListList', isMobile)}
+              className={viewMode === 'list' ? 'flex' : ''}
+            />
           ))}
         </div>
       )}
