@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useCartStore } from '@/stores/cart';
 import { useCartSummary } from '@/hooks/useCartSummary';
+import { useConfig } from '@/contexts/ConfigContext';
 import { OrderSummaryCard } from '@/components/cart/OrderSummaryCard';
 import {
   Minus,
@@ -45,7 +46,9 @@ export default function CartPage() {
     getAvailableCoupons
   } = useCartStore();
 
-  const cartSummary = useCartSummary(cart, '₹');
+  const { siteConfig } = useConfig();
+
+  const cartSummary = useCartSummary(cart, (siteConfig?.payment?.currency_symbol || '?'));
 
   useEffect(() => {
     // Cart page should not pass pincode/payment - shipping calculated at checkout
@@ -462,3 +465,7 @@ export default function CartPage() {
     </div>
   );
 }
+
+
+
+

@@ -105,3 +105,23 @@ export function StaticPage({ slug }: StaticPageProps) {
     </div>
   );
 }
+
+// Basic sanitizer to remove script tags and inline event handlers
+function sanitizeHtml(html: string) {
+  if (!html) return '';
+  try {
+    // Remove script/style tags and their content
+    html = html.replace(/<\/(script|style)>/gi, '</>');
+    html = html.replace(/<\s*(script|style)[^>]*>[\s\S]*?<\/(script|style)>/gi, '');
+    // Strip on* event handlers
+    html = html.replace(/ on\w+\s*=\s*"[^"]*"/gi, '');
+    html = html.replace(/ on\w+\s*=\s*'[^']*'/gi, '');
+    html = html.replace(/ on\w+\s*=\s*[^\s>]+/gi, '');
+    // Disallow javascript: URLs
+    html = html.replace(/href\s*=\s*"javascript:[^"]*"/gi, 'href="#"');
+    html = html.replace(/href\s*=\s*'javascript:[^']*'/gi, "href='#'");
+    return html;
+  } catch {
+    return '';
+  }
+}

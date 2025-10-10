@@ -1,6 +1,9 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { ApiResponse, PaginatedResponse } from '@/types';
 import { authStore } from '@/stores/auth';
+// Lightweight dev logger to avoid runtime import issues
+const __isDev = process.env.NODE_ENV === 'development';
+const devLog = (...args: any[]) => { if (__isDev && typeof console !== 'undefined') console.log(...args); };
 
 export interface ApiError {
   message: string;
@@ -78,14 +81,14 @@ class ApiClient {
         // Add auth token if available
         const token = localStorage.getItem('auth_token');
         if (token) {
-          console.log('🔐 Using auth token for request:', config.url);
+          devLog('🔐 Using auth token for request:', config.url);
           config.headers.Authorization = `Bearer ${token}`;
         }
         
         // ALWAYS add session ID if available (for cart continuity during login)
         const currentSessionId = localStorage.getItem('guest_session_id');
         if (currentSessionId) {
-          console.log('👤 Using session ID for request:', config.url, 'Session:', currentSessionId);
+          devLog('👤 Using session ID for request:', config.url, 'Session:', currentSessionId);
           config.headers['X-Session-ID'] = currentSessionId;
         }
       }

@@ -35,26 +35,25 @@ export default function CategoriesPage() {
   const [sortBy, setSortBy] = useState<'name' | 'books'>('name');
 
   // Load categories from API
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await categoryApi.getCategories();
-        
-        if (response.success) {
-          setCategories(response.data);
-        } else {
-          setError('Failed to load categories');
-        }
-      } catch (err) {
-        console.error('Failed to load categories:', err);
+  const loadCategories = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await categoryApi.getCategories();
+      if (response.success) {
+        setCategories(response.data);
+      } else {
         setError('Failed to load categories');
-      } finally {
-        setLoading(false);
       }
-    };
-    
+    } catch (err) {
+      console.error('Failed to load categories:', err);
+      setError('Failed to load categories');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadCategories();
   }, []);
 
@@ -97,7 +96,7 @@ export default function CategoriesPage() {
             <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-foreground mb-2">Failed to load categories</h3>
             <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={() => window.location.reload()} variant="default">
+            <Button onClick={loadCategories} variant="default">
               Try Again
             </Button>
           </div>

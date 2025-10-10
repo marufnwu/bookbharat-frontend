@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { HeaderDynamic as Header } from "@/components/layout/HeaderDynamic";
+import Script from "next/script";
 import dynamic from "next/dynamic";
 import { ConfigProvider } from "@/contexts/ConfigContext";
 import { Toaster } from "@/components/ui/toaster";
@@ -23,7 +24,10 @@ const inter = Inter({
   variable: "--font-sans",
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     template: "%s | BookBharat - Your Knowledge Partner",
     default: "BookBharat - Your Knowledge Partner | Online Bookstore India",
@@ -36,7 +40,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_IN",
-    url: "https://bookbharat.com",
+    url: siteUrl,
     title: "BookBharat - Your Knowledge Partner",
     description: "Discover millions of books online at BookBharat. India's leading bookstore.",
     siteName: "BookBharat",
@@ -61,6 +65,20 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans`} suppressHydrationWarning>
+        <Script id="logger-global" strategy="beforeInteractive">
+          {`
+            (function(){
+              if (typeof window !== 'undefined' && typeof window.logger === 'undefined') {
+                window.logger = {
+                  log: console.log.bind(console),
+                  error: console.error.bind(console),
+                  warn: console.warn.bind(console),
+                  info: console.info.bind(console)
+                };
+              }
+            })();
+          `}
+        </Script>
         <ConfigProvider>
           <ClientProviders>
             <div className="min-h-screen flex flex-col">

@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
 
   // Image configuration
   images: {
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
         protocol: 'http',
@@ -38,16 +39,7 @@ const nextConfig: NextConfig = {
         hostname: 'via.placeholder.com',
         pathname: '/**',
       },
-      {
-        protocol: 'https',
-        hostname: '*.amazonaws.com',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.cloudinary.com',
-        pathname: '/**',
-      },
+      // Add specific external hosts here as needed (avoid wildcards)
       {
         protocol: 'https',
         hostname: 'picsum.photos',
@@ -70,11 +62,6 @@ const nextConfig: NextConfig = {
       '@radix-ui/react-toast',
       'lucide-react'
     ],
-    // Enable client-side router cache for back/forward navigation
-    staleTimes: {
-      dynamic: 30, // Cache dynamic pages for 30 seconds
-      static: 180, // Cache static pages for 3 minutes
-    },
   },
 
   // Ignore ESLint warnings during build
@@ -89,6 +76,16 @@ const nextConfig: NextConfig = {
 
   // Cache headers for static assets
   async headers() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+    // Derive origin from API URL (strip path like /api/v1)
+    let apiOrigin = 'http://localhost:8000';
+    try {
+      const url = new URL(apiUrl);
+      apiOrigin = `${url.protocol}//${url.host}`;
+    } catch {
+      // Fallback: naive strip of trailing /api path
+      apiOrigin = apiUrl.replace(/\/(api|api-v\d+).*/, '');
+    }
     return [
       {
         source: '/:all*(svg|jpg|jpeg|png|webp|gif|ico)',
@@ -117,7 +114,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Link',
-            value: '<http://localhost:8000>; rel=preconnect; crossorigin',
+            value: `<${apiOrigin}>; rel=preconnect; crossorigin`,
           },
         ],
       },

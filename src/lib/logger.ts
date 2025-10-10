@@ -26,3 +26,8 @@ export const logger = {
     }
   },
 };
+
+// Expose a safe global alias so legacy call sites referencing `logger` at runtime do not crash
+if (typeof globalThis !== 'undefined') {
+  (globalThis as any).logger = logger;
+}

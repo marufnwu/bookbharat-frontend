@@ -25,6 +25,7 @@ import { Cart, Order, Address } from '@/types';
 import AddressManager from '@/components/AddressManager';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { OrderSummaryCard } from '@/components/cart/OrderSummaryCard';
+import { logger } from '@/lib/logger';
 import { 
   BookOpen,
   CreditCard,
@@ -56,6 +57,7 @@ import {
   Info,
   Sparkles
 } from 'lucide-react';
+
 
 // Flexible shipping schema - email required for all users (for order confirmation)
 const shippingSchema = z.object({
@@ -171,7 +173,7 @@ export default function CheckoutPage() {
         try {
           return JSON.parse(savedState);
         } catch (e) {
-          console.error('Failed to parse saved state:', e);
+          logger.error('Failed to parse saved state:', e);
         }
       }
     }
@@ -183,10 +185,10 @@ export default function CheckoutPage() {
   const [shippingCost, setShippingCost] = useState(persistedState.shippingCost || 0);
   const [calculatingShipping, setCalculatingShipping] = useState(false);
   const [sameAsBilling, setSameAsBilling] = useState(persistedState.sameAsBilling ?? true);
-  const [estimatedDelivery, setEstimatedDelivery] = useState<string>(persistedState.estimatedDelivery || '');
+  const [estimatedDelivery, setEstimatedDelivery] = useState<string>(persistedState.estimatedDelivery || '?');
   const [codAvailable, setCodAvailable] = useState(persistedState.codAvailable ?? false);
   const [showCouponField, setShowCouponField] = useState(false);
-  const [couponCode, setCouponCode] = useState(persistedState.couponCode || '');
+  const [couponCode, setCouponCode] = useState(persistedState.couponCode || '?');
   const [applyCouponLoading, setApplyCouponLoading] = useState(false);
   const { siteConfig } = useConfig();
   const { cart, getCart, applyCoupon, removeCoupon, setPaymentMethod, setDeliveryPincode, isLoading: cartLoading } = useCartStore();
@@ -254,7 +256,7 @@ export default function CheckoutPage() {
           try {
             return JSON.parse(savedData);
           } catch (e) {
-            console.error('Failed to parse saved form data:', e);
+            logger.error('Failed to parse saved form data:', e);
           }
         }
       }
@@ -322,8 +324,8 @@ export default function CheckoutPage() {
       return value && String(value).trim() !== '';
     }) && 
     formValues.email?.includes('@') && 
-    String(formValues.phone || '').length >= 10 && 
-    String(formValues.pincode || '').length === 6 && 
+    String(formValues.phone || '?').length >= 10 && 
+    String(formValues.pincode || '?').length === 6 && 
     !pincodeError;
     
     return isValid;
@@ -355,7 +357,7 @@ export default function CheckoutPage() {
     if (paymentType === 'online') {
       const paymentMethod = selectedPaymentMethod;
       const isValid = !!paymentMethod && paymentMethod.trim() !== '';
-      console.log('Step 3 Validation (Online):', { paymentMethod, isValid });
+      logger.log('Step 3 Validation (Online):', { paymentMethod, isValid });
       return isValid;
     }
 
@@ -363,13 +365,13 @@ export default function CheckoutPage() {
     if (paymentType === 'cod' && codConfig?.advance_payment?.required) {
       const paymentMethod = selectedPaymentMethod;
       const isValid = !!paymentMethod && paymentMethod.trim() !== '';
-      console.log('Step 3 Validation (COD with advance):', { paymentMethod, isValid });
+      logger.log('Step 3 Validation (COD with advance):', { paymentMethod, isValid });
       return isValid;
     }
 
     // If COD without advance, no gateway selection needed
     if (paymentType === 'cod') {
-      console.log('Step 3 Validation (Pure COD): true');
+      logger.log('Step 3 Validation (Pure COD): true');
       return true;
     }
 
@@ -403,7 +405,7 @@ export default function CheckoutPage() {
   // This ensures we get the latest payment options from admin settings
   useEffect(() => {
     if (currentStep === 3) { // Payment step
-      console.log('📝 Refreshing payment methods for payment step');
+      logger.log('📝 Refreshing payment methods for payment step');
       const orderTotal = cart?.summary?.total || 1000;
       loadPaymentMethods(orderTotal);
     }
@@ -414,14 +416,14 @@ export default function CheckoutPage() {
     const handleHashChange = () => {
       const hash = window.location.hash || '#shipping';
       const newStep = getStepFromHash(hash);
-      console.log('Hash changed to:', hash, 'Setting step to:', newStep);
+      logger.log('Hash changed to:', hash, 'Setting step to:', newStep);
       setCurrentStep(newStep);
     };
 
     // Handle initial hash on mount
     const initialHash = window.location.hash || '#shipping';
     const initialStep = getStepFromHash(initialHash);
-    console.log('Initial hash:', initialHash, 'Setting initial step to:', initialStep);
+    logger.log('Initial hash:', initialHash, 'Setting initial step to:', initialStep);
     if (initialStep !== currentStep) {
       setCurrentStep(initialStep);
     }
@@ -454,11 +456,7 @@ export default function CheckoutPage() {
     const pincode = formValues.pincode;
     
     const timeoutId = setTimeout(() => {
-      if (pincode && pincode.length >= 4) {
-        if (pincode.length === 6) {
-          validatePincode(pincode);
-        }
-      }
+      if (pincode && pincode.length === 6) { validatePincode(pincode); }
     }, 300);
     
     return () => clearTimeout(timeoutId);
@@ -487,7 +485,7 @@ export default function CheckoutPage() {
       setLoading(false);
       
     } catch (err) {
-      console.error('Failed to load cart:', err);
+      logger.error('Failed to load cart:', err);
       setError('Failed to load cart. Please try again.');
       setLoading(false);
     }
@@ -562,7 +560,7 @@ export default function CheckoutPage() {
         }
       }
     } catch (error) {
-      console.error('Failed to load addresses:', error);
+      logger.error('Failed to load addresses:', error);
     }
   };
 
@@ -580,7 +578,7 @@ export default function CheckoutPage() {
   const loadPaymentMethods = async (orderAmount?: number) => {
     try {
       const response = await paymentApi.getPaymentMethods(orderAmount, 'INR');
-      console.log('Payment methods API response:', response);
+      logger.log('Payment methods API response:', response);
 
       // Handle unified gateway response
       const gateways = response?.gateways || [];
@@ -598,7 +596,7 @@ export default function CheckoutPage() {
             ...response.payment_flow,
             type: flowType
           });
-          console.log('Payment flow settings:', { ...response.payment_flow, type: flowType });
+          logger.log('Payment flow settings:', { ...response.payment_flow, type: flowType });
 
           // Handle default payment type from admin settings
           // ONLY if there's no persisted payment type (fresh visit, not user selection)
@@ -614,17 +612,17 @@ export default function CheckoutPage() {
         }
 
         // Separate COD from online payment methods
-        console.log('🔍 All gateways received:', gateways);
-        console.log('🎛️ Payment flow settings:', response.payment_flow);
+        logger.log('🔍 All gateways received:', gateways);
+        logger.log('🎛️ Payment flow settings:', response.payment_flow);
         const codGateway = gateways.find((g: any) => g.gateway && g.gateway.includes('cod'));
-        console.log('💰 COD Gateway found:', codGateway);
+        logger.log('💰 COD Gateway found:', codGateway);
         const onlineGateways = gateways.filter((g: any) => !g.gateway || !g.gateway.includes('cod'));
 
         // Transform online gateways only
         const methods = onlineGateways.map((gateway: any) => ({
           payment_method: gateway.gateway,
           display_name: gateway.display_name || gateway.name,
-          description: gateway.description || '',
+          description: gateway.description || '?',
           priority: gateway.priority || 0
         }));
         setAvailablePaymentMethods(methods);
@@ -632,7 +630,7 @@ export default function CheckoutPage() {
         // Store COD configuration separately
         // Check both: COD gateway exists AND admin has enabled COD visibility
         const isCodEnabled = response.payment_flow?.cod_enabled !== false; // Default to true if not specified
-        console.log('🔒 Admin COD enabled setting:', isCodEnabled);
+        logger.log('🔒 Admin COD enabled setting:', isCodEnabled);
 
         if (codGateway && codGateway.is_active !== false && isCodEnabled) {
           const config = {
@@ -642,17 +640,17 @@ export default function CheckoutPage() {
             advance_payment: codGateway.advance_payment || null,
             service_charges: codGateway.service_charges || null
           };
-          console.log('✅ Setting COD config:', config);
+          logger.log('✅ Setting COD config:', config);
           setCodConfig(config);
           setCodAvailable(true);
         } else {
-          console.log('❌ COD not available - codGateway:', codGateway, 'adminEnabled:', isCodEnabled);
+          logger.log('❌ COD not available - codGateway:', codGateway, 'adminEnabled:', isCodEnabled);
           setCodConfig(null);
           setCodAvailable(false);
         }
       }
     } catch (error) {
-      console.error('Failed to load payment methods:', error);
+      logger.error('Failed to load payment methods:', error);
       // Set default methods if API fails
       setAvailablePaymentMethods([
         {
@@ -690,23 +688,23 @@ export default function CheckoutPage() {
   };
 
   const populateFormFromAddress = (address: Address) => {
-    console.log('🏠 Populating form from address:', address);
+    logger.log('🏠 Populating form from address:', address);
 
     setValue('firstName', address.first_name);
-    setValue('lastName', address.last_name || '');
-    setValue('phone', address.phone || '');
+    setValue('lastName', address.last_name || '?');
+    setValue('phone', address.phone || '?');
     setValue('pincode', address.postal_code);
     setValue('area', address.city);
     setValue('city', address.city);
     setValue('houseNo', address.address_line_1);
-    setValue('landmark', address.address_line_2 || '');
+    setValue('landmark', address.address_line_2 || '?');
 
     // If there's a district field in address, use it, otherwise use city
     const district = (address as any).district || address.city;
     setValue('district', district);
     setValue('state', address.state);
 
-    console.log('🏠 Setting form values:', {
+    logger.log('🏠 Setting form values:', {
       district,
       state: address.state,
       city: address.city,
@@ -743,7 +741,7 @@ export default function CheckoutPage() {
         first_name: addressData.firstName,
         last_name: addressData.lastName,
         address_line_1: addressData.houseNo || addressData.address,
-        address_line_2: addressData.landmark || '',
+        address_line_2: addressData.landmark || '?',
         city: addressData.city,
         state: addressData.state,
         postal_code: addressData.pincode,
@@ -760,7 +758,7 @@ export default function CheckoutPage() {
         }
       }
     } catch (error) {
-      console.error('Failed to create address:', error);
+      logger.error('Failed to create address:', error);
       throw error;
     }
   };
@@ -771,7 +769,7 @@ export default function CheckoutPage() {
         first_name: addressData.firstName,
         last_name: addressData.lastName,
         address_line_1: addressData.houseNo || addressData.address,
-        address_line_2: addressData.landmark || '',
+        address_line_2: addressData.landmark || '?',
         city: addressData.city,
         state: addressData.state,
         postal_code: addressData.pincode,
@@ -782,7 +780,7 @@ export default function CheckoutPage() {
         await loadAddresses();
       }
     } catch (error) {
-      console.error('Failed to update address:', error);
+      logger.error('Failed to update address:', error);
       throw error;
     }
   };
@@ -804,7 +802,7 @@ export default function CheckoutPage() {
         }
       }
     } catch (error) {
-      console.error('Failed to delete address:', error);
+      logger.error('Failed to delete address:', error);
     }
   };
 
@@ -819,8 +817,8 @@ export default function CheckoutPage() {
       const response = await shippingApi.checkPincode(pincode);
       
       if (response.success) {
-        setValue('state', response.zone_info?.state || '');
-        setValue('district', response.zone_info?.city || '');
+        setValue('state', response.zone_info?.state || '?');
+        setValue('district', response.zone_info?.city || '?');
         
         setPincodeInfo(response.zone_info);
         setEstimatedDelivery(response.estimated_delivery || '3-5 business days');
@@ -860,11 +858,11 @@ export default function CheckoutPage() {
         setDeliveryPincode(pincode);
         await getCart(pincode);
       } else {
-        console.error('Shipping calculation failed:', response);
+        logger.error('Shipping calculation failed:', response);
         toast.error('Failed to calculate shipping. Using default rates.');
       }
     } catch (error: any) {
-      console.error('Failed to calculate shipping:', error);
+      logger.error('Failed to calculate shipping:', error);
       const errorMessage = error?.response?.data?.message || error?.message || 'Failed to calculate shipping';
       toast.error(errorMessage);
       // Set default shipping cost on error
@@ -884,7 +882,7 @@ export default function CheckoutPage() {
       setShowCouponField(false);
       setCouponCode('');
     } catch (error) {
-      console.error('Failed to apply coupon:', error);
+      logger.error('Failed to apply coupon:', error);
     } finally {
       setApplyCouponLoading(false);
     }
@@ -894,7 +892,7 @@ export default function CheckoutPage() {
     try {
       await removeCoupon();
     } catch (error) {
-      console.error('Failed to remove coupon:', error);
+      logger.error('Failed to remove coupon:', error);
     }
   };
 
@@ -1106,31 +1104,31 @@ export default function CheckoutPage() {
 
   // Debug payment methods
   useEffect(() => {
-    console.log('Available payment methods:', paymentMethods);
-    console.log('Selected payment method:', selectedPaymentMethod);
+    logger.log('Available payment methods:', paymentMethods);
+    logger.log('Selected payment method:', selectedPaymentMethod);
   }, [paymentMethods.length, selectedPaymentMethod]);
 
   // Handle payment type change - recalculate cart with COD charges
   useEffect(() => {
     const handlePaymentTypeChange = async () => {
       if (paymentType === 'cod') {
-        console.log('💳 COD selected, recalculating with COD charges');
+        logger.log('💳 COD selected, recalculating with COD charges');
         try {
           await setPaymentMethod('cod');
           // Force cart refresh to update UI with new charges
           await getCart();
         } catch (error) {
-          console.error('Failed to update cart with COD:', error);
+          logger.error('Failed to update cart with COD:', error);
         }
       } else if (paymentType === 'online') {
-        console.log('💳 Online payment selected, removing COD charges');
+        logger.log('💳 Online payment selected, removing COD charges');
         try {
           // Send 'online' as payment method to remove COD charges
           await setPaymentMethod('online');
           // Force cart refresh to update UI with charges removed
           await getCart();
         } catch (error) {
-          console.error('Failed to update cart with online payment:', error);
+          logger.error('Failed to update cart with online payment:', error);
         }
       }
     };
@@ -1144,13 +1142,13 @@ export default function CheckoutPage() {
 
   // Handle payment gateway redirection
   const handlePaymentRedirect = (paymentDetails: any, gateway: string) => {
-    console.log('🔄 handlePaymentRedirect called with:', { paymentDetails, gateway });
+    logger.log('🔄 handlePaymentRedirect called with:', { paymentDetails, gateway });
 
     // Extract payment data and URL from the response structure
     const paymentData = paymentDetails.payment_data || paymentDetails;
     const paymentUrl = paymentDetails.payment_url || paymentData.payment_url;
 
-    console.log('💳 Extracted payment data:', { paymentData, paymentUrl });
+    logger.log('💳 Extracted payment data:', { paymentData, paymentUrl });
 
     // Create a form dynamically and submit it for gateways that require POST
     if (gateway === 'payu') {
@@ -1175,12 +1173,12 @@ export default function CheckoutPage() {
 
       // Add form to body and submit
       document.body.appendChild(form);
-      console.log('✅ Submitting PayU form with action:', form.action);
-      console.log('📋 PayU form fields count:', form.querySelectorAll('input').length);
+      logger.log('✅ Submitting PayU form with action:', form.action);
+      logger.log('📋 PayU form fields count:', form.querySelectorAll('input').length);
       form.submit();
     } else if (gateway === 'razorpay' && (paymentData.key && paymentData.razorpay_order_id)) {
       // Handle Razorpay checkout with JavaScript SDK
-      console.log('💳 Initializing Razorpay with:', paymentData);
+      logger.log('💳 Initializing Razorpay with:', paymentData);
 
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
@@ -1193,7 +1191,7 @@ export default function CheckoutPage() {
           name: paymentData.name || 'BookBharat',
           description: paymentData.description || 'Order Payment',
           handler: function(response: any) {
-            console.log('✅ Razorpay payment successful:', response);
+            logger.log('✅ Razorpay payment successful:', response);
             // Payment successful, redirect to callback URL with payment details
             const callbackUrl = `${paymentData.callback_url}?razorpay_payment_id=${response.razorpay_payment_id}&razorpay_order_id=${response.razorpay_order_id}&razorpay_signature=${response.razorpay_signature}`;
             window.location.href = callbackUrl;
@@ -1204,17 +1202,17 @@ export default function CheckoutPage() {
           },
           modal: {
             ondismiss: function() {
-              console.log('⚠️ Razorpay payment cancelled by user');
+              logger.log('⚠️ Razorpay payment cancelled by user');
               setIsProcessing(false);
             }
           }
         };
-        console.log('🚀 Opening Razorpay checkout with options:', options);
+        logger.log('🚀 Opening Razorpay checkout with options:', options);
         const rzp = new (window as any).Razorpay(options);
         rzp.open();
       };
       script.onerror = () => {
-        console.error('❌ Failed to load Razorpay script');
+        logger.error('❌ Failed to load Razorpay script');
         setError('Failed to load payment gateway. Please try again.');
         setIsProcessing(false);
       };
@@ -1223,23 +1221,23 @@ export default function CheckoutPage() {
   };
 
   const onSubmit = async (data: CheckoutForm) => {
-    console.log('🚀 Form submitted successfully!');
-    console.log('Form data:', data);
-    console.log('Payment method selected:', data.paymentMethod);
-    console.log('Cart:', cart);
-    console.log('Is Authenticated:', isAuthenticated);
-    console.log('Selected Shipping Address:', selectedShippingAddress);
-    console.log('Selected Billing Address:', selectedBillingAddress);
+    logger.log('🚀 Form submitted successfully!');
+    logger.log('Form data:', data);
+    logger.log('Payment method selected:', data.paymentMethod);
+    logger.log('Cart:', cart);
+    logger.log('Is Authenticated:', isAuthenticated);
+    logger.log('Selected Shipping Address:', selectedShippingAddress);
+    logger.log('Selected Billing Address:', selectedBillingAddress);
 
     if (!cart) {
-      console.error('❌ No cart found');
+      logger.error('❌ No cart found');
       setError('No cart found');
       return;
     }
 
     // For authenticated users with selected address, validate differently
     if (isAuthenticated && !selectedShippingAddress) {
-      console.error('❌ No shipping address selected');
+      logger.error('❌ No shipping address selected');
       setError('Please select a shipping address');
       return;
     }
@@ -1249,14 +1247,14 @@ export default function CheckoutPage() {
     const isCODWithAdvance = paymentType === 'cod' && codConfig?.advance_payment?.required;
 
     if (!isPureCOD && !data.paymentMethod && !selectedPaymentMethod) {
-      console.error('❌ No payment method selected');
+      logger.error('❌ No payment method selected');
       setError('Please select a payment method');
       return;
     }
 
     // CRITICAL: For COD with advance payment, ensure a gateway is selected
     if (isCODWithAdvance && !data.paymentMethod && !selectedPaymentMethod) {
-      console.error('❌ COD with advance payment requires gateway selection');
+      logger.error('❌ COD with advance payment requires gateway selection');
       setError('Please select a payment gateway for advance payment');
       return;
     }
@@ -1287,8 +1285,8 @@ export default function CheckoutPage() {
             first_name: data.firstName,
             last_name: data.lastName,
             phone: data.phone,
-            address_line_1: data.houseNo || '',
-            address_line_2: data.landmark || '',
+            address_line_1: data.houseNo || '?',
+            address_line_2: data.landmark || '?',
             city: data.city,
             state: data.state,
             postal_code: data.pincode,
@@ -1298,8 +1296,8 @@ export default function CheckoutPage() {
             first_name: data.firstName,
             last_name: data.lastName,
             phone: data.phone,
-            address_line_1: data.houseNo || '',
-            address_line_2: data.landmark || '',
+            address_line_1: data.houseNo || '?',
+            address_line_2: data.landmark || '?',
             city: data.city,
             state: data.state,
             postal_code: data.pincode,
@@ -1308,8 +1306,8 @@ export default function CheckoutPage() {
             first_name: data.billing_firstName,
             last_name: data.billing_lastName,
             phone: data.billing_phone,
-            address_line_1: data.billing_houseNo || '',
-            address_line_2: data.billing_landmark || '',
+            address_line_1: data.billing_houseNo || '?',
+            address_line_2: data.billing_landmark || '?',
             city: data.billing_city,
             state: data.billing_state,
             postal_code: data.billing_pincode,
@@ -1321,15 +1319,15 @@ export default function CheckoutPage() {
         // If COD with advance OR online, send the selected gateway from form
         payment_method: (paymentType === 'cod' && !codConfig?.advance_payment?.required) ? 'cod' : (selectedPaymentMethod || data.paymentMethod),
         // REMOVED: shipping_cost - backend calculates from delivery address (security)
-        notes: data.notes || '',
+        notes: data.notes || '?',
         coupon_code: activeCouponCode,
         coupon_discount: couponDiscount
       };
       
-      console.log('📦 Order Data being sent:', orderData);
+      logger.log('📦 Order Data being sent:', orderData);
       
       const response = await orderApi.createOrder(orderData);
-      console.log('✅ Order API Response:', response);
+      logger.log('✅ Order API Response:', response);
 
       if (response?.success) {
         // Don't clear cart immediately - wait for payment confirmation
@@ -1343,7 +1341,7 @@ export default function CheckoutPage() {
         const paymentDetails = response.payment_details;
         const requiresRedirect = response.requires_redirect;
         if (requiresRedirect && paymentDetails) {
-          console.log('💳 Payment redirect required:', { paymentDetails, method: data.paymentMethod });
+          logger.log('💳 Payment redirect required:', { paymentDetails, method: data.paymentMethod });
 
           // For PayU and similar gateways that need form POST submission
           if (data.paymentMethod === 'payu' && paymentDetails.payment_data) {
@@ -1352,7 +1350,7 @@ export default function CheckoutPage() {
           // For redirect-based gateways (like Cashfree)
           else if (response.redirect_url || paymentDetails.payment_url) {
             const redirectUrl = response.redirect_url || paymentDetails.payment_url;
-            console.log('🔗 Redirecting to:', redirectUrl);
+            logger.log('🔗 Redirecting to:', redirectUrl);
             window.location.href = redirectUrl;
           }
           // Fallback to handlePaymentRedirect for other gateways
@@ -1371,7 +1369,7 @@ export default function CheckoutPage() {
         setError(response?.message || response?.error || 'Failed to create order. Please try again.');
       }
     } catch (err: any) {
-      console.error('Checkout failed:', err);
+      logger.error('Checkout failed:', err);
       setError(err?.response?.data?.message || 'Failed to create order. Please try again.');
     } finally {
       setIsProcessing(false);
@@ -1414,7 +1412,7 @@ export default function CheckoutPage() {
     );
   }
 
-  console.log('Current step in render:', currentStep, 'Hash:', window.location.hash);
+  logger.log('Current step in render:', currentStep, 'Hash:', window.location.hash);
 
   if (!cart || !cart.items.length) {
     return (
@@ -1536,7 +1534,7 @@ export default function CheckoutPage() {
               if (isAuthenticated && selectedShippingAddress) {
                 // Manually call onSubmit with current form values
                 const formData = getValues();
-                formData.paymentMethod = selectedPaymentMethod || '';
+                formData.paymentMethod = selectedPaymentMethod || '?';
 
                 // Ensure email is set
                 if (!formData.email) {
@@ -1554,7 +1552,7 @@ export default function CheckoutPage() {
               } else {
                 // For guest checkout, use normal validation
                 handleSubmit(onSubmit, (errors) => {
-                  console.error('Form validation errors:', errors);
+                  logger.error('Form validation errors:', errors);
                   setError('Please fix the form errors before submitting');
                 })(e);
               }
@@ -2125,7 +2123,7 @@ export default function CheckoutPage() {
                                 <input
                                   {...register('paymentMethod', {
                                     onChange: (e) => {
-                                      console.log('Payment method selected:', e.target.value);
+                                      logger.log('Payment method selected:', e.target.value);
                                     }
                                   })}
                                   type="radio"
@@ -2683,3 +2681,4 @@ export default function CheckoutPage() {
     </ProtectedRoute>
   );
 }
+

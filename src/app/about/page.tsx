@@ -162,8 +162,12 @@ export default async function AboutPage() {
 
       {/* Hero Section */}
       <div className="text-center mb-16">
-        <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6"
-            dangerouslySetInnerHTML={{ __html: heroTitle.replace('Knowledge', '<span class="text-primary">Knowledge</span>') }} />
+        <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6">
+          {heroTitle.split('Knowledge').reduce((acc: (JSX.Element | string)[], part, idx) => {
+            if (idx === 0) return [part];
+            return acc.concat(<span key={`k${idx}`} className="text-primary">Knowledge</span>, part);
+          }, [])}
+        </h1>
         <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
           {heroSubtitle}
         </p>
