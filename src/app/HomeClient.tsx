@@ -10,11 +10,9 @@ import { Product, Category } from '@/types';
 import HeroSection from '@/components/hero/HeroSection';
 import ProductCard from '@/components/ui/product-card';
 import { CategoriesSection } from '@/components/home/CategoriesSection';
+import { PromotionalBannersSection } from '@/components/home/PromotionalBannersSection';
 import { getProductCardProps, getProductGridClasses } from '@/lib/product-card-config';
 import {
-  Truck,
-  Shield,
-  RotateCcw,
   ArrowRight,
   ChevronRight,
   Loader2,
@@ -88,32 +86,6 @@ export default function HomeClient({
     }
   };
 
-  const features = homepageConfig?.promotional_banners?.filter(banner => banner.enabled) || [
-    {
-      title: 'Free Shipping',
-      description: `On orders above ${siteConfig?.payment?.currency_symbol || '₹'}${siteConfig?.payment?.free_shipping_threshold || 499}`,
-      icon: 'truck'
-    },
-    {
-      title: 'Easy Returns',
-      description: '30-day return policy',
-      icon: 'refresh'
-    },
-    {
-      title: 'Secure Payment',
-      description: '100% secure transactions',
-      icon: 'shield'
-    }
-  ];
-
-  const getIconComponent = (iconName: string) => {
-    switch (iconName) {
-      case 'truck': return Truck;
-      case 'refresh': return RotateCcw;
-      case 'shield': return Shield;
-      default: return Shield;
-    }
-  };
 
   // Default hero config fallback
   const defaultHeroConfig = {
@@ -147,30 +119,8 @@ export default function HomeClient({
         }}
       />
 
-      {/* Compact Features Section - Mobile Optimized */}
-      <section className="py-4 sm:py-6 md:py-12 bg-muted/30">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3 md:gap-8">
-            {features.map((feature, index) => {
-              const IconComponent = getIconComponent(feature.icon);
-              return (
-                <div
-                  key={index}
-                  className="flex items-center space-x-2.5 sm:space-x-3 p-2.5 sm:p-3 md:p-4 bg-white/50 rounded-lg md:rounded-xl hover:bg-white/80 transition-colors duration-200 touch-target"
-                >
-                  <div className="bg-primary/10 text-primary rounded-full p-1.5 sm:p-2 md:p-3 flex-shrink-0">
-                    <IconComponent className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-6 md:w-6" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-foreground text-xs sm:text-sm md:text-base truncate">{feature.title}</h3>
-                    <p className="text-[10px] sm:text-xs md:text-sm text-muted-foreground line-clamp-1">{feature.description}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      {/* Promotional Banners Section - Dynamic from Admin */}
+      <PromotionalBannersSection />
 
       {/* Mobile-Optimized Featured Books Section */}
       <section className="py-6 sm:py-8 md:py-16">

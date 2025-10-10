@@ -953,6 +953,11 @@ class ApiClient {
   async searchFaqs(query: string) {
     return this.get('/faqs/search', { params: { q: query } });
   }
+
+  // Promotional Banners API methods
+  async getActivePromotionalBanners() {
+    return this.get('/promotional-banners/active');
+  }
 }
 
 // Create and export a singleton instance
@@ -1168,4 +1173,8 @@ export const faqApi = {
   getFaqCategories: apiClient.getFaqCategories.bind(apiClient),
   getFaq: apiClient.getFaq.bind(apiClient),
   searchFaqs: apiClient.searchFaqs.bind(apiClient),
+};
+
+export const promotionalBannersApi = {
+  getActivePromotionalBanners: apiClient.getActivePromotionalBanners.bind(apiClient),
 };

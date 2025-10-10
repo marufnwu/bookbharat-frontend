@@ -1,5 +1,5 @@
 import { headers } from 'next/headers';
-import HomeClient from './HomeClient';
+import HomeClient from './HomeClientDynamic';
 
 // Server-side data fetching
 async function getHeroConfig() {
@@ -47,13 +47,29 @@ async function getFeaturedProducts() {
   return [];
 }
 
+async function getHomepageSections() {
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/homepage-layout/sections`, {
+      next: { revalidate: 1800 } // Cache for 30 minutes
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.success ? data.data : [];
+    }
+  } catch (error) {
+    console.error('Failed to fetch homepage sections:', error);
+  }
+  return [];
+}
+
 // Server Component (default)
 export default async function Home() {
   // Fetch all data in parallel on the server
-  const [heroConfig, categories, featuredBooks] = await Promise.all([
+  const [heroConfig, categories, featuredBooks, homepageSections] = await Promise.all([
     getHeroConfig(),
     getCategories(),
     getFeaturedProducts(),
+    getHomepageSections(),
   ]);
 
   // Detect mobile from headers (optional, can also be done client-side)
@@ -66,6 +82,7 @@ export default async function Home() {
       heroConfig={heroConfig}
       categories={categories}
       featuredBooks={featuredBooks}
+      homepageSections={homepageSections}
       isMobile={isMobile}
     />
   );
