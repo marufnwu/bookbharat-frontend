@@ -4,7 +4,7 @@ import HomeClient from './HomeClientDynamic';
 // Server-side data fetching
 async function getHeroConfig() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/configuration/hero-config`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/hero/active`, {
       next: { revalidate: 3600 } // Cache for 1 hour
     });
     if (res.ok) {

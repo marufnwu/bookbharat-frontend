@@ -53,14 +53,28 @@ export default function HeroConfigManager() {
   const loadConfigs = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/hero`);
+
+      // Get auth token from localStorage
+      const token = localStorage.getItem('adminToken');
+
+      if (!token) {
+        toast.error('Please login as admin first');
+        setLoading(false);
+        return;
+      }
+
+      const response = await axios.get(`${API_BASE_URL}/admin/hero-config`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (response.data.success) {
         setConfigs(response.data.data);
       }
     } catch (error: any) {
       console.error('Failed to load hero configurations:', error);
-      toast.error('Failed to load hero configurations');
+      toast.error(error.response?.data?.message || 'Failed to load hero configurations');
     } finally {
       setLoading(false);
     }

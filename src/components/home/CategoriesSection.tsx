@@ -3,21 +3,31 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { CategoryCard } from '@/components/categories/CategoryCard';
+import { ImageCategoryCard } from '@/components/categories/ImageCategoryCard';
+import { MobileCategorySlider } from '@/components/categories/MobileCategorySlider';
 import { Button } from '@/components/ui/button';
 import { getCategoryIcon, getCategoryColor } from '@/lib/category-utils';
 import { Category } from '@/types';
-import { ChevronRight, Grid3x3, Sparkles } from 'lucide-react';
+import { ChevronRight, Sparkles, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CategoriesSectionProps {
   categories: Category[];
   className?: string;
+  variant?: 'default' | 'image-hero' | 'image-overlay' | 'image-side';
 }
 
-export function CategoriesSection({ categories, className }: CategoriesSectionProps) {
+export function CategoriesSection({
+  categories,
+  className,
+  variant = 'image-hero'
+}: CategoriesSectionProps) {
   const [showAll, setShowAll] = useState(false);
   const displayCategories = showAll ? categories : categories.slice(0, 8);
-  
+
+  // Use image-focused card if variant is specified
+  const useImageCard = variant !== 'default';
+
   return (
     <section className={cn("py-12 md:py-16 relative overflow-hidden", className)}>
       {/* Background decoration */}
@@ -29,9 +39,9 @@ export function CategoriesSection({ categories, className }: CategoriesSectionPr
         {/* Section Header */}
         <div className="text-center mb-10 md:mb-12">
           <div className="inline-flex items-center justify-center space-x-2 mb-4">
-            <Grid3x3 className="w-6 h-6 text-primary" />
+            <ImageIcon className="w-6 h-6 text-primary" />
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              Explore Categories
+              Browse by Category
             </h2>
             <Sparkles className="w-6 h-6 text-primary" />
           </div>
@@ -40,19 +50,47 @@ export function CategoriesSection({ categories, className }: CategoriesSectionPr
           </p>
         </div>
 
-        {/* Categories Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-          {displayCategories.map((category, index) => (
-            <CategoryCard
-              key={category.id}
-              category={category}
-              icon={getCategoryIcon(category.name)}
-              colorClass={getCategoryColor(index)}
-              variant="default"
-              showDescription={false}
-              showProductCount={true}
+        {/* Responsive Layout: Mobile Slider + Desktop Grid */}
+        <div className="mb-8">
+          {/* Mobile: Single Row Horizontal Slider (hidden on md+) */}
+          <div className="block md:hidden">
+            <MobileCategorySlider
+              categories={displayCategories}
+              icon={getCategoryIcon('')}
+              colorClass={getCategoryColor(0)}
             />
-          ))}
+          </div>
+
+          {/* Desktop: Grid Layout (hidden on mobile) */}
+          <div className={cn(
+            "hidden md:grid gap-4 md:gap-6",
+            variant === 'image-side'
+              ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-2"
+              : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4"
+          )}>
+            {displayCategories.map((category, index) => (
+              useImageCard ? (
+                <ImageCategoryCard
+                  key={category.id}
+                  category={category}
+                  icon={getCategoryIcon(category.name)}
+                  colorClass={getCategoryColor(index)}
+                  variant={variant as 'image-hero' | 'image-overlay' | 'image-side'}
+                  showProductCount={true}
+                />
+              ) : (
+                <CategoryCard
+                  key={category.id}
+                  category={category}
+                  icon={getCategoryIcon(category.name)}
+                  colorClass={getCategoryColor(index)}
+                  variant="default"
+                  showDescription={false}
+                  showProductCount={true}
+                />
+              )
+            ))}
+          </div>
         </div>
 
         {/* View More/Less Button */}

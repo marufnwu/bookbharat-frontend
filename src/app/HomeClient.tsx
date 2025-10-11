@@ -159,9 +159,13 @@ export default function HomeClient({
         </div>
       </section>
 
-      {/* Categories Section - Improved Design */}
+      {/* Categories Section - Image-Focused Design */}
       {categories.length > 0 && (
-        <CategoriesSection categories={categories} className="bg-muted/20" />
+        <CategoriesSection 
+          categories={categories} 
+          className="bg-muted/20"
+          variant="image-hero"  {/* Options: default, image-hero, image-overlay, image-side */}
+        />
       )}
 
       {/* Category Product Sections - Now with proper lazy loading */}
