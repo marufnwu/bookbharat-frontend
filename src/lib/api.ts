@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { ApiResponse, PaginatedResponse } from '@/types';
 import { authStore } from '@/stores/auth';
+import { seededRandom } from './seeded-random';
 // Lightweight dev logger to avoid runtime import issues
 const __isDev = process.env.NODE_ENV === 'development';
 const devLog = (...args: any[]) => { if (__isDev && typeof console !== 'undefined') console.log(...args); };
@@ -126,7 +127,7 @@ class ApiClient {
     
     if (!sessionId) {
       // Generate a new session ID (UUID-like)
-      sessionId = 'sess_' + Date.now().toString(36) + Math.random().toString(36).substr(2);
+      sessionId = 'sess_' + Date.now().toString(36) + seededRandom().toString(36).substr(2);
       localStorage.setItem(sessionKey, sessionId);
     }
     

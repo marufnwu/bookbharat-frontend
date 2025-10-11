@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { LucideIcon, TrendingUp, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface MobileCategorySliderProps {
+  // Displays categories in a 2-row horizontal scrolling grid layout optimized for mobile
   categories: Array<{
     id: number;
     name: string;
@@ -72,7 +73,7 @@ export function MobileCategorySlider({
   const scroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return;
 
-    const scrollAmount = 180; // Scroll by card width + gap (96px + 12px)
+    const scrollAmount = 210; // Scroll by 2 cards width + gaps (96px * 2 + 18px gaps)
     const newScrollLeft = scrollRef.current.scrollLeft + (direction === 'left' ? -scrollAmount : scrollAmount);
 
     // Ensure we don't scroll beyond bounds
@@ -132,16 +133,16 @@ export function MobileCategorySlider({
         </div>
       )}
 
-      {/* Scrollable Container */}
+      {/* Scrollable Container - 2 Row Grid Layout */}
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex gap-3 overflow-x-auto overflow-y-hidden scrollbar-hide scroll-smooth pb-2 px-12 min-w-0"
+        className="grid grid-rows-2 gap-3 overflow-x-auto overflow-y-hidden scrollbar-hide scroll-smooth pb-2 px-12 min-w-0"
         style={{
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
           WebkitOverflowScrolling: 'touch', // Enable momentum scrolling on iOS
-          scrollBehavior: 'smooth',
+          // 2-row grid that flows horizontally
+          gridTemplateRows: 'repeat(2, auto)',
+          gridAutoFlow: 'column',
           // Ensure minimum width for scrolling calculation
           minWidth: '100%'
         }}
@@ -219,16 +220,6 @@ export function MobileCategorySlider({
         })}
       </div>
 
-      {/* Custom scrollbar styles */}
-      <style jsx>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
     </div>
   );
 }

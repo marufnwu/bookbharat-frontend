@@ -17,10 +17,24 @@ import {
   TrendingUp,
   Award,
   Truck,
-  Shield
+  Shield,
+  CheckCircle,
+  Quote,
+  Gift,
+  Timer,
+  Zap,
+  Eye,
+  MousePointer,
+  Calendar,
+  PlayCircle,
+  Camera,
+  ShoppingBag,
+  Heart,
+  Sparkles
 } from 'lucide-react';
 import { Product } from '@/types';
 import type { LucideIcon } from 'lucide-react';
+import { seededRandom, seededRandomFloat, seededRandomInt } from '@/lib/seeded-random';
 
 // Icon map for dynamic loading
 const iconMap: Record<string, React.ComponentType<any>> = {
@@ -256,10 +270,10 @@ export function HeroSection({ config, className }: HeroSectionProps) {
               key={i}
               className="absolute animate-float opacity-30"
               style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 5}s`,
-                animationDuration: `${4 + Math.random() * 3}s`
+                left: `${seededRandom() * 100}%`,
+                top: `${seededRandom() * 100}%`,
+                animationDelay: `${seededRandom() * 5}s`,
+                animationDuration: `${4 + seededRandom() * 3}s`
               }}
             >
               <div className="w-1 h-1 bg-white/60 rounded-full"></div>
@@ -411,13 +425,13 @@ export function HeroSection({ config, className }: HeroSectionProps) {
               key={i}
               className="absolute animate-pulse"
               style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 5}s`,
-                animationDuration: `${2 + Math.random() * 4}s`
+                left: `${seededRandom() * 100}%`,
+                top: `${seededRandom() * 100}%`,
+                animationDelay: `${seededRandom() * 5}s`,
+                animationDuration: `${2 + seededRandom() * 4}s`
               }}
             >
-              <div className={`w-${Math.random() > 0.5 ? '1' : '2'} h-${Math.random() > 0.5 ? '1' : '2'} bg-white/${Math.random() > 0.5 ? '40' : '60'} rounded-full`}></div>
+              <div className={`w-${seededRandom() > 0.5 ? '1' : '2'} h-${seededRandom() > 0.5 ? '1' : '2'} bg-white/${seededRandom() > 0.5 ? '40' : '60'} rounded-full`}></div>
             </div>
           ))}
         </div>
@@ -617,7 +631,7 @@ export function HeroSection({ config, className }: HeroSectionProps) {
                       
                       {/* Floating count badge */}
                       <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-xs font-bold text-gray-900 shadow-lg">
-                        {Math.floor(Math.random() * 500) + 100}+ books
+                        {seededRandomInt(100, 600)}+ books
                       </div>
                     </div>
                     
@@ -678,10 +692,10 @@ export function HeroSection({ config, className }: HeroSectionProps) {
               key={i}
               className="absolute animate-float opacity-60"
               style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 5}s`,
-                animationDuration: `${5 + Math.random() * 3}s`
+                left: `${seededRandom() * 100}%`,
+                top: `${seededRandom() * 100}%`,
+                animationDelay: `${seededRandom() * 5}s`,
+                animationDuration: `${5 + seededRandom() * 3}s`
               }}
             >
               <div className="w-2 h-2 bg-white/80 rounded-full"></div>
@@ -952,10 +966,10 @@ export function HeroSection({ config, className }: HeroSectionProps) {
                   key={i}
                   className="absolute animate-float opacity-20"
                   style={{
-                    left: `${Math.random() * 100}%`,
-                    top: `${Math.random() * 100}%`,
-                    animationDelay: `${Math.random() * 5}s`,
-                    animationDuration: `${4 + Math.random() * 3}s`
+                    left: `${seededRandom() * 100}%`,
+                    top: `${seededRandom() * 100}%`,
+                    animationDelay: `${seededRandom() * 5}s`,
+                    animationDuration: `${4 + seededRandom() * 3}s`
                   }}
                 >
                   <div className="w-2 h-2 bg-white rounded-full"></div>
@@ -1442,10 +1456,10 @@ export function HeroSection({ config, className }: HeroSectionProps) {
                 key={i}
                 className="absolute animate-pulse"
                 style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  animationDelay: `${Math.random() * 3}s`,
-                  animationDuration: `${3 + Math.random() * 2}s`
+                  left: `${seededRandom() * 100}%`,
+                  top: `${seededRandom() * 100}%`,
+                  animationDelay: `${seededRandom() * 3}s`,
+                  animationDuration: `${3 + seededRandom() * 2}s`
                 }}
               >
                 <div className="w-1 h-1 bg-white/20 rounded-full"></div>

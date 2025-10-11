@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Product } from '@/types';
+import { seededRandom, seededRandomInt } from '@/lib/seeded-random';
 import {
   BookOpen,
   Settings,
@@ -172,11 +173,11 @@ export function ProductDetailsTabs({ product, className = '' }: ProductDetailsTa
                 <div className="flex-1 bg-muted rounded-full h-2">
                   <div
                     className="bg-yellow-400 h-2 rounded-full"
-                    style={{ width: `${Math.random() * 100}%` }}
+                    style={{ width: `${seededRandom() * 100}%` }}
                   />
                 </div>
                 <span className="text-sm text-muted-foreground w-8">
-                  {Math.floor(Math.random() * 50)}
+                  {seededRandomInt(0, 50)}
                 </span>
               </div>
             ))}

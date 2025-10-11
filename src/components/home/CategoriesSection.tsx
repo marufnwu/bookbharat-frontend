@@ -52,7 +52,7 @@ export function CategoriesSection({
 
         {/* Responsive Layout: Mobile Slider + Desktop Grid */}
         <div className="mb-8">
-          {/* Mobile: Single Row Horizontal Slider (hidden on md+) */}
+          {/* Mobile: 2-Row Horizontal Slider (hidden on md+) */}
           <div className="block md:hidden">
             <MobileCategorySlider
               categories={displayCategories}

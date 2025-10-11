@@ -1,23 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { HeaderDynamic as Header } from "@/components/layout/HeaderDynamic";
-import Script from "next/script";
-import dynamic from "next/dynamic";
 import { ConfigProvider } from "@/contexts/ConfigContext";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as SonnerToaster } from "sonner";
-
-// Lazy load Footer component (below-the-fold content)
-const FooterServer = dynamic(() => import("@/components/layout/FooterServer"), {
-  loading: () => <div className="h-96 bg-background border-t border-border" />
-});
-
-// Lazy load non-critical providers (Auth, Cart)
-const ClientProviders = dynamic(() => import("@/components/providers/ClientProviders").then(mod => ({ default: mod.ClientProviders })), {
-  ssr: true,
-  loading: () => <div>Loading...</div>
-});
 
 const inter = Inter({
   subsets: ["latin"],
@@ -63,34 +47,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans`} suppressHydrationWarning>
-        <Script id="logger-global" strategy="beforeInteractive">
-          {`
-            (function(){
-              if (typeof window !== 'undefined' && typeof window.logger === 'undefined') {
-                window.logger = {
-                  log: console.log.bind(console),
-                  error: console.error.bind(console),
-                  warn: console.warn.bind(console),
-                  info: console.info.bind(console)
-                };
-              }
-            })();
-          `}
-        </Script>
+    <html lang="en">
+      <body className={`${inter.variable} font-sans`}>
         <ConfigProvider>
-          <ClientProviders>
-            <div className="min-h-screen flex flex-col">
-              <Header />
-              <main className="flex-1">
-                {children}
-              </main>
-              <FooterServer />
-              <Toaster />
-              <SonnerToaster />
-            </div>
-          </ClientProviders>
+          {children}
         </ConfigProvider>
       </body>
     </html>

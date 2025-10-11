@@ -8,6 +8,7 @@ import { useConfig } from '@/contexts/ConfigContext';
 import { useCartStore } from '@/stores/cart';
 import { useWishlistStore } from '@/stores/wishlist';
 import { Product } from '@/types';
+import { seededRandom } from '@/lib/seeded-random';
 import { toast } from 'sonner';
 import {
   Star,
@@ -120,7 +121,7 @@ export function ProductInfo({ product, className = '' }: ProductInfoProps) {
     setCheckingPincode(true);
     // Simulate API call
     setTimeout(() => {
-      setDeliveryAvailable(Math.random() > 0.3);
+      setDeliveryAvailable(seededRandom() > 0.3);
       setCheckingPincode(false);
     }, 1000);
   };

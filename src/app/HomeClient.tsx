@@ -164,7 +164,7 @@ export default function HomeClient({
         <CategoriesSection 
           categories={categories} 
           className="bg-muted/20"
-          variant="image-hero"  {/* Options: default, image-hero, image-overlay, image-side */}
+          variant="image-hero"
         />
       )}
 
