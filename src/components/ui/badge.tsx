@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef } from 'react';
+import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 const badgeVariants = {
@@ -23,7 +23,7 @@ interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: keyof typeof badgeSizes;
 }
 
-const Badge = forwardRef<HTMLDivElement, BadgeProps>(({
+const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(({
   className,
   variant = 'default',
   size = 'default',

@@ -1,7 +1,8 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { ReactNode, InputHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes, forwardRef } from 'react';
+import * as React from 'react';
+import { ReactNode } from 'react';
 import { Eye, EyeOff, Info } from 'lucide-react';
 import { useState } from 'react';
 
@@ -64,7 +65,7 @@ interface ResponsiveInputProps extends InputHTMLAttributes<HTMLInputElement> {
   rightIcon?: ReactNode;
 }
 
-export const ResponsiveInput = forwardRef<HTMLInputElement, ResponsiveInputProps>(
+export const ResponsiveInput = React.forwardRef<HTMLInputElement, ResponsiveInputProps>(
   ({ className, error, helperText, leftIcon, rightIcon, type = 'text', ...props }, ref) => {
     const [showPassword, setShowPassword] = useState(false);
     const isPassword = type === 'password';
@@ -142,7 +143,7 @@ interface ResponsiveTextareaProps extends TextareaHTMLAttributes<HTMLTextAreaEle
   helperText?: string;
 }
 
-export const ResponsiveTextarea = forwardRef<HTMLTextAreaElement, ResponsiveTextareaProps>(
+export const ResponsiveTextarea = React.forwardRef<HTMLTextAreaElement, ResponsiveTextareaProps>(
   ({ className, error, helperText, ...props }, ref) => {
     return (
       <div className="w-full">
@@ -187,7 +188,7 @@ interface ResponsiveSelectProps extends SelectHTMLAttributes<HTMLSelectElement> 
   placeholder?: string;
 }
 
-export const ResponsiveSelect = forwardRef<HTMLSelectElement, ResponsiveSelectProps>(
+export const ResponsiveSelect = React.forwardRef<HTMLSelectElement, ResponsiveSelectProps>(
   ({ className, error, helperText, options, placeholder, ...props }, ref) => {
     return (
       <div className="w-full">

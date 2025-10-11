@@ -1,7 +1,8 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { ButtonHTMLAttributes, forwardRef } from 'react';
+import * as React from 'react';
+import { ButtonHTMLAttributes } from 'react';
 import { Loader2 } from 'lucide-react';
 
 interface MobileButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -12,7 +13,7 @@ interface MobileButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children?: React.ReactNode;
 }
 
-export const MobileButton = forwardRef<HTMLButtonElement, MobileButtonProps>(
+export const MobileButton = React.forwardRef<HTMLButtonElement, MobileButtonProps>(
   ({ 
     className, 
     variant = 'primary', 

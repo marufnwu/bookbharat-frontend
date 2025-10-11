@@ -7,6 +7,18 @@ import { useCartStore } from '@/stores/cart';
 import { productApi, cartApi } from '@/lib/api';
 import { toast } from 'sonner';
 
+// Fallback component if there are issues
+function FrequentlyBoughtTogetherError({ error }: { error: string }) {
+  return (
+    <div className="bg-white rounded-lg p-6 text-center">
+      <p className="text-muted-foreground">Unable to load frequently bought together products.</p>
+      {process.env.NODE_ENV === 'development' && (
+        <p className="text-xs text-red-500 mt-2">{error}</p>
+      )}
+    </div>
+  );
+}
+
 interface Product {
   id: string;
   name: string;
@@ -44,11 +56,13 @@ interface FrequentlyBoughtTogetherProps {
   mainProduct: Product;
 }
 
-export default function FrequentlyBoughtTogether({ productId, mainProduct }: FrequentlyBoughtTogetherProps) {
+// Main component with error handling
+function FrequentlyBoughtTogetherComponent({ productId, mainProduct }: FrequentlyBoughtTogetherProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [bundleData, setBundleData] = useState<BundleData | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { addToCart } = useCartStore();
 
   // Helper function to get the product image URL
@@ -85,6 +99,7 @@ export default function FrequentlyBoughtTogether({ productId, mainProduct }: Fre
 
   const fetchFrequentlyBoughtTogether = async () => {
     try {
+      setError(null);
       const response = await productApi.getFrequentlyBoughtTogether(productId);
       if (response.success) {
         setProducts(response.data.products || []);
@@ -92,9 +107,12 @@ export default function FrequentlyBoughtTogether({ productId, mainProduct }: Fre
         // Select all products by default
         const productIds = response.data.products?.map((p: Product) => p.id) || [];
         setSelectedProducts(new Set(productIds));
+      } else {
+        setError('Failed to load frequently bought together products');
       }
     } catch (error) {
       console.error('Error fetching frequently bought together:', error);
+      setError('Failed to load frequently bought together products');
     } finally {
       setLoading(false);
     }
@@ -185,8 +203,29 @@ export default function FrequentlyBoughtTogether({ productId, mainProduct }: Fre
     }
   };
 
-  if (loading || products.length === 0) {
-    return null;
+  // Handle loading state
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="space-y-2">
+                <div className="aspect-square bg-gray-200 rounded"></div>
+                <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle error state
+  if (error || products.length === 0) {
+    return <FrequentlyBoughtTogetherError error={error || 'No products available'} />;
   }
 
   const bundle = calculateBundlePrice();
@@ -331,4 +370,14 @@ export default function FrequentlyBoughtTogether({ productId, mainProduct }: Fre
       </div>
     </div>
   );
+}
+
+// Export with error boundary
+export default function FrequentlyBoughtTogether(props: FrequentlyBoughtTogetherProps) {
+  try {
+    return <FrequentlyBoughtTogetherComponent {...props} />;
+  } catch (error) {
+    console.error('FrequentlyBoughtTogether component error:', error);
+    return <FrequentlyBoughtTogetherError error="Component failed to render" />;
+  }
 }

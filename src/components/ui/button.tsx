@@ -1,6 +1,7 @@
 'use client';
 
-import { forwardRef, cloneElement } from 'react';
+import * as React from 'react';
+import { cloneElement } from 'react';
 import { cn } from '@/lib/utils';
 import { ButtonProps } from '@/types';
 import { Loader2 } from 'lucide-react';
@@ -25,7 +26,7 @@ const buttonSizes = {
   lg: 'h-9 sm:h-12 px-4 sm:px-6 text-sm sm:text-base',
 };
 
-const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   className,
   variant = 'primary',
   size = 'md',

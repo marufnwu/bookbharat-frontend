@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef } from 'react';
+import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -9,7 +9,7 @@ interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement
   helpText?: string;
 }
 
-const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(({
+const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({
   className,
   label,
   error,

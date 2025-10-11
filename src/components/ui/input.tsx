@@ -1,10 +1,10 @@
 'use client';
 
-import { forwardRef } from 'react';
+import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { InputProps } from '@/types';
 
-const Input = forwardRef<HTMLInputElement, InputProps>(({
+const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   className,
   label,
   error,
