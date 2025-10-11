@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
@@ -102,12 +102,113 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({ config, className }: HeroSectionProps) {
+  const [particles, setParticles] = useState<{
+    interactivePromotional: Array<{
+      id: number;
+      left: string;
+      top: string;
+      animationDelay: string;
+      animationDuration: string;
+      width: string;
+      height: string;
+      opacity: string;
+    }>;
+    lifestyleStorytelling: Array<{
+      id: number;
+      left: string;
+      top: string;
+      animationDelay: string;
+      animationDuration: string;
+    }>;
+    seasonalCampaign: Array<{
+      id: number;
+      left: string;
+      top: string;
+      animationDelay: string;
+      animationDuration: string;
+    }>;
+    videoHero: Array<{
+      id: number;
+      left: string;
+      top: string;
+      animationDelay: string;
+      animationDuration: string;
+    }>;
+    modern: Array<{
+      id: number;
+      left: string;
+      top: string;
+      animationDelay: string;
+      animationDuration: string;
+    }>;
+  }>({
+    interactivePromotional: [],
+    lifestyleStorytelling: [],
+    seasonalCampaign: [],
+    videoHero: [],
+    modern: []
+  });
+
   const getIconComponent = (iconName?: string) => {
     if (!iconName) return BookOpen;
 
     // Use the iconMap for loaded icons, fallback to BookOpen
     return iconMap[iconName] || BookOpen;
   };
+
+  // Generate particles on client side only to prevent hydration mismatch
+  useEffect(() => {
+    if (config.variant === 'interactive-promotional') {
+      const generatedParticles = [...Array(100)].map((_, i) => ({
+        id: i,
+        left: `${seededRandom() * 100}%`,
+        top: `${seededRandom() * 100}%`,
+        animationDelay: `${seededRandom() * 5}s`,
+        animationDuration: `${2 + seededRandom() * 4}s`,
+        width: seededRandom() > 0.5 ? 'w-1' : 'w-2',
+        height: seededRandom() > 0.5 ? 'h-1' : 'h-2',
+        opacity: seededRandom() > 0.5 ? 'bg-white/40' : 'bg-white/60'
+      }));
+      setParticles(prev => ({ ...prev, interactivePromotional: generatedParticles }));
+    } else if (config.variant === 'lifestyle-storytelling') {
+      const generatedParticles = [...Array(30)].map((_, i) => ({
+        id: i,
+        left: `${seededRandom() * 100}%`,
+        top: `${seededRandom() * 100}%`,
+        animationDelay: `${seededRandom() * 5}s`,
+        animationDuration: `${4 + seededRandom() * 3}s`
+      }));
+      setParticles(prev => ({ ...prev, lifestyleStorytelling: generatedParticles }));
+    } else if (config.variant === 'seasonal-campaign') {
+      const generatedParticles = [...Array(50)].map((_, i) => ({
+        id: i,
+        left: `${seededRandom() * 100}%`,
+        top: `${seededRandom() * 100}%`,
+        animationDelay: `${seededRandom() * 5}s`,
+        animationDuration: `${5 + seededRandom() * 3}s`
+      }));
+      setParticles(prev => ({ ...prev, seasonalCampaign: generatedParticles }));
+    } else if (config.variant === 'video-hero' && !config.videoUrl) {
+      // Only generate for video-hero when there's no video (fallback case)
+      const generatedParticles = [...Array(20)].map((_, i) => ({
+        id: i,
+        left: `${seededRandom() * 100}%`,
+        top: `${seededRandom() * 100}%`,
+        animationDelay: `${seededRandom() * 5}s`,
+        animationDuration: `${4 + seededRandom() * 3}s`
+      }));
+      setParticles(prev => ({ ...prev, videoHero: generatedParticles }));
+    } else if (config.variant === 'modern') {
+      const generatedParticles = [...Array(20)].map((_, i) => ({
+        id: i,
+        left: `${seededRandom() * 100}%`,
+        top: `${seededRandom() * 100}%`,
+        animationDelay: `${seededRandom() * 3}s`,
+        animationDuration: `${3 + seededRandom() * 2}s`
+      }));
+      setParticles(prev => ({ ...prev, modern: generatedParticles }));
+    }
+  }, [config.variant, config.videoUrl]);
 
   // Variant 1: Minimal & Product-Focused - Ultra Mobile-First Design
   if (config.variant === 'minimal-product') {
@@ -263,17 +364,17 @@ export function HeroSection({ config, className }: HeroSectionProps) {
           </div>
         )}
         
-        {/* Atmospheric particles */}
+        {/* Atmospheric particles - generated client-side only */}
         <div className="absolute inset-0">
-          {[...Array(30)].map((_, i) => (
+          {particles.lifestyleStorytelling?.map((particle) => (
             <div
-              key={i}
+              key={particle.id}
               className="absolute animate-float opacity-30"
               style={{
-                left: `${seededRandom() * 100}%`,
-                top: `${seededRandom() * 100}%`,
-                animationDelay: `${seededRandom() * 5}s`,
-                animationDuration: `${4 + seededRandom() * 3}s`
+                left: particle.left,
+                top: particle.top,
+                animationDelay: particle.animationDelay,
+                animationDuration: particle.animationDuration
               }}
             >
               <div className="w-1 h-1 bg-white/60 rounded-full"></div>
@@ -419,19 +520,19 @@ export function HeroSection({ config, className }: HeroSectionProps) {
           <div className="absolute bottom-32 right-20 w-96 h-96 bg-gradient-to-br from-pink-400/20 to-purple-500/20 rounded-full blur-3xl animate-float" style={{animationDelay: '2s'}}></div>
           <div className="absolute top-1/2 left-1/4 w-48 h-48 bg-gradient-to-br from-blue-400/20 to-cyan-500/20 rounded-full blur-3xl animate-float" style={{animationDelay: '1s'}}></div>
           
-          {/* Animated particles */}
-          {[...Array(100)].map((_, i) => (
+          {/* Animated particles - generated client-side only */}
+          {particles.interactivePromotional?.map((particle) => (
             <div
-              key={i}
+              key={particle.id}
               className="absolute animate-pulse"
               style={{
-                left: `${seededRandom() * 100}%`,
-                top: `${seededRandom() * 100}%`,
-                animationDelay: `${seededRandom() * 5}s`,
-                animationDuration: `${2 + seededRandom() * 4}s`
+                left: particle.left,
+                top: particle.top,
+                animationDelay: particle.animationDelay,
+                animationDuration: particle.animationDuration
               }}
             >
-              <div className={`w-${seededRandom() > 0.5 ? '1' : '2'} h-${seededRandom() > 0.5 ? '1' : '2'} bg-white/${seededRandom() > 0.5 ? '40' : '60'} rounded-full`}></div>
+              <div className={`${particle.width} ${particle.height} ${particle.opacity} rounded-full`}></div>
             </div>
           ))}
         </div>
@@ -684,18 +785,18 @@ export function HeroSection({ config, className }: HeroSectionProps) {
           </div>
         )}
         
-        {/* Festive floating elements */}
+        {/* Festive floating elements - generated client-side only */}
         <div className="absolute inset-0">
           {/* Snowflakes/particles */}
-          {[...Array(50)].map((_, i) => (
+          {particles.seasonalCampaign?.map((particle) => (
             <div
-              key={i}
+              key={particle.id}
               className="absolute animate-float opacity-60"
               style={{
-                left: `${seededRandom() * 100}%`,
-                top: `${seededRandom() * 100}%`,
-                animationDelay: `${seededRandom() * 5}s`,
-                animationDuration: `${5 + seededRandom() * 3}s`
+                left: particle.left,
+                top: particle.top,
+                animationDelay: particle.animationDelay,
+                animationDuration: particle.animationDuration
               }}
             >
               <div className="w-2 h-2 bg-white/80 rounded-full"></div>
@@ -959,17 +1060,17 @@ export function HeroSection({ config, className }: HeroSectionProps) {
           </div>
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-gray-800">
-            {/* Fallback animated background */}
+            {/* Fallback animated background - generated client-side only */}
             <div className="absolute inset-0">
-              {[...Array(20)].map((_, i) => (
+              {particles.videoHero?.map((particle) => (
                 <div
-                  key={i}
+                  key={particle.id}
                   className="absolute animate-float opacity-20"
                   style={{
-                    left: `${seededRandom() * 100}%`,
-                    top: `${seededRandom() * 100}%`,
-                    animationDelay: `${seededRandom() * 5}s`,
-                    animationDuration: `${4 + seededRandom() * 3}s`
+                    left: particle.left,
+                    top: particle.top,
+                    animationDelay: particle.animationDelay,
+                    animationDuration: particle.animationDuration
                   }}
                 >
                   <div className="w-2 h-2 bg-white rounded-full"></div>
@@ -1448,18 +1549,18 @@ export function HeroSection({ config, className }: HeroSectionProps) {
         {/* Dynamic background */}
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900"></div>
         
-        {/* Animated background patterns */}
+        {/* Animated background patterns - generated client-side only */}
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 w-full h-full">
-            {[...Array(20)].map((_, i) => (
+            {particles.modern?.map((particle) => (
               <div
-                key={i}
+                key={particle.id}
                 className="absolute animate-pulse"
                 style={{
-                  left: `${seededRandom() * 100}%`,
-                  top: `${seededRandom() * 100}%`,
-                  animationDelay: `${seededRandom() * 3}s`,
-                  animationDuration: `${3 + seededRandom() * 2}s`
+                  left: particle.left,
+                  top: particle.top,
+                  animationDelay: particle.animationDelay,
+                  animationDuration: particle.animationDuration
                 }}
               >
                 <div className="w-1 h-1 bg-white/20 rounded-full"></div>

@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import Script from "next/script";
 import { ConfigProvider } from "@/contexts/ConfigContext";
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -48,9 +52,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} font-sans`}>
+      <body className={`${inter.variable} font-sans`} suppressHydrationWarning>
+        <Script id="logger-global" strategy="beforeInteractive">
+          {`
+            (function(){
+              if (typeof window !== 'undefined' && typeof window.logger === 'undefined') {
+                window.logger = {
+                  log: console.log.bind(console),
+                  error: console.error.bind(console),
+                  warn: console.warn.bind(console),
+                  info: console.info.bind(console)
+                };
+              }
+            })();
+          `}
+        </Script>
         <ConfigProvider>
-          {children}
+          <div className="min-h-screen flex flex-col">
+          <Header />
+
+          <main className="flex-1">
+            {children}
+          </main>
+
+          <Footer />
+          </div>
         </ConfigProvider>
       </body>
     </html>
