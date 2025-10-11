@@ -1,3 +1,3 @@
 deploy:
-	docker compose build frontend
-	docker compose up -d frontend
+	docker compose build bb-front
+	docker compose up -d bb-front
