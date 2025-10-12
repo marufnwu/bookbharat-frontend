@@ -5,16 +5,55 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # Pass build arguments for NEXT_PUBLIC_ variables
+      args:
+        NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://v2s.bookbharat.com/api/v1}"
+        NEXT_PUBLIC_SITE_URL: "${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}"
+        NEXT_PUBLIC_SITE_NAME: "${NEXT_PUBLIC_SITE_NAME:-BookBharat}"
+        NEXT_PUBLIC_ENABLE_WISHLIST: "${NEXT_PUBLIC_ENABLE_WISHLIST:-true}"
+        NEXT_PUBLIC_ENABLE_REVIEWS: "${NEXT_PUBLIC_ENABLE_REVIEWS:-true}"
+        NEXT_PUBLIC_ENABLE_CHAT_SUPPORT: "${NEXT_PUBLIC_ENABLE_CHAT_SUPPORT:-true}"
     image: bb-front:latest
+    container_name: bookbharat-frontend
     ports:
       - "3000:3000"
     environment:
-      # Add runtime environment variables here
-      NEXT_PUBLIC_API_URL: "https://v2s.bookbharat.com/api/v1"
-      NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
-      NEXT_PUBLIC_SITE_NAME: "BookBharat"
-      NEXT_PUBLIC_ENABLE_WISHLIST: "true"
-      NEXT_PUBLIC_ENABLE_REVIEWS: "true"
-      NEXT_PUBLIC_ENABLE_CHAT_SUPPORT: "true"
+      # Runtime environment variables (can override build-time vars if needed)
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://v2s.bookbharat.com/api/v1}"
+      NEXT_PUBLIC_SITE_URL: "${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}"
+      NEXT_PUBLIC_SITE_NAME: "${NEXT_PUBLIC_SITE_NAME:-BookBharat}"
+      NEXT_PUBLIC_ENABLE_WISHLIST: "${NEXT_PUBLIC_ENABLE_WISHLIST:-true}"
+      NEXT_PUBLIC_ENABLE_REVIEWS: "${NEXT_PUBLIC_ENABLE_REVIEWS:-true}"
+      NEXT_PUBLIC_ENABLE_CHAT_SUPPORT: "${NEXT_PUBLIC_ENABLE_CHAT_SUPPORT:-true}"
     restart: unless-stopped
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Resource limits (adjust based on your needs)
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Networks (optional, for multi-container setups)
+    # networks:
+    #   - bookbharat-network
 
+# Optional: Define networks
+# networks:
+#   bookbharat-network:
+#     driver: bridge
