@@ -29,29 +29,29 @@ export function CategoriesSection({
   const useImageCard = variant !== 'default';
 
   return (
-    <section className={cn("py-12 md:py-16 relative overflow-hidden", className)}>
-      {/* Background decoration */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 pointer-events-none" />
-      <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-secondary/10 rounded-full blur-3xl pointer-events-none" />
+    <section className={cn("py-6 md:py-8 lg:py-10 relative overflow-hidden", className)}>
+      {/* Background decoration - more subtle */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/3 via-transparent to-secondary/3 pointer-events-none" />
+      <div className="absolute -top-12 -right-12 w-48 h-48 bg-primary/5 rounded-full blur-2xl pointer-events-none hidden md:block" />
+      <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-secondary/5 rounded-full blur-2xl pointer-events-none hidden md:block" />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-        {/* Section Header */}
-        <div className="text-center mb-10 md:mb-12">
-          <div className="inline-flex items-center justify-center space-x-2 mb-4">
-            <ImageIcon className="w-6 h-6 text-primary" />
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 relative">
+        {/* Section Header - Compact */}
+        <div className="text-center mb-4 md:mb-6">
+          <div className="inline-flex items-center justify-center space-x-1.5 mb-2">
+            <ImageIcon className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+            <h2 className="text-lg md:text-xl lg:text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               Browse by Category
             </h2>
-            <Sparkles className="w-6 h-6 text-primary" />
+            <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-primary" />
           </div>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-xs md:text-sm text-muted-foreground max-w-2xl mx-auto">
             Discover your next favorite book from our wide range of categories
           </p>
         </div>
 
         {/* Responsive Layout: Mobile Slider + Desktop Grid */}
-        <div className="mb-8">
+        <div className="mb-4 md:mb-6">
           {/* Mobile: 2-Row Horizontal Slider (hidden on md+) */}
           <div className="block md:hidden">
             <MobileCategorySlider
@@ -63,7 +63,7 @@ export function CategoriesSection({
 
           {/* Desktop: Grid Layout (hidden on mobile) */}
           <div className={cn(
-            "hidden md:grid gap-4 md:gap-6",
+            "hidden md:grid gap-3 md:gap-4",
             variant === 'image-side'
               ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-2"
               : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4"
@@ -93,28 +93,28 @@ export function CategoriesSection({
           </div>
         </div>
 
-        {/* View More/Less Button */}
-        <div className="text-center space-y-4">
+        {/* View More/Less Button - Compact */}
+        <div className="text-center space-y-2 md:space-y-3">
           {categories.length > 8 && (
             <Button
               variant="outline"
-              size="lg"
+              size="sm"
               onClick={() => setShowAll(!showAll)}
-              className="group"
+              className="group text-xs md:text-sm"
             >
               {showAll ? 'Show Less' : `View All ${categories.length} Categories`}
               <ChevronRight className={cn(
-                "w-4 h-4 ml-2 transition-transform",
+                "w-3 h-3 md:w-4 md:h-4 ml-1.5 transition-transform",
                 showAll ? "rotate-90" : "group-hover:translate-x-1"
               )} />
             </Button>
           )}
           
-          <div className="flex items-center justify-center space-x-4">
+          <div className="flex items-center justify-center space-x-3">
             <Link href="/categories">
-              <Button variant="default" size="lg" className="group">
+              <Button size="sm" className="group text-xs md:text-sm">
                 Browse All Categories
-                <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                <ChevronRight className="w-3 h-3 md:w-4 md:h-4 ml-1.5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
           </div>
