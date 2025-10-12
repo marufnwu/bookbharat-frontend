@@ -237,6 +237,7 @@ export default function CheckoutPage() {
   const [paymentType, setPaymentType] = useState<'online' | 'cod' | null>(persistedState.paymentType || null);
   const [codConfig, setCodConfig] = useState<CODConfig | null>(null);
   const [paymentFlowSettings, setPaymentFlowSettings] = useState<PaymentFlowSettings>({ type: 'two_tier', default_payment_type: 'none' });
+  const [isProcessingPaymentTypeChange, setIsProcessingPaymentTypeChange] = useState(false);
 
   const {
     register,
@@ -292,6 +293,7 @@ export default function CheckoutPage() {
         selectedShippingAddress,
         selectedBillingAddress,
         paymentType,
+        // Don't persist the processing flag - it's only for runtime state management
       };
       localStorage.setItem('checkoutState', JSON.stringify(stateToSave));
     }
@@ -397,19 +399,19 @@ export default function CheckoutPage() {
         setValue('email', user.email);
       }
     }
-    // Load payment methods on initial load
-    loadPaymentMethods();
+    // Payment methods will be loaded when user reaches payment step (via currentStep effect)
+    // Removing initial load to prevent redundant calls
   }, [isAuthenticated, user]);
 
   // Refresh payment methods when navigating to payment step
   // This ensures we get the latest payment options from admin settings
   useEffect(() => {
-    if (currentStep === 3) { // Payment step
+    if (currentStep === 3 && !isProcessingPaymentTypeChange) { // Payment step
       logger.log('📝 Refreshing payment methods for payment step');
       const orderTotal = cart?.summary?.total || 1000;
       loadPaymentMethods(orderTotal);
     }
-  }, [currentStep, cart?.summary?.total]);
+  }, [currentStep]); // Only depend on currentStep to avoid redundant calls when total changes
 
   // Listen for hash changes and update step
   useEffect(() => {
@@ -513,7 +515,8 @@ export default function CheckoutPage() {
 
           // Calculate shipping for restored address
           if (persistedAddress.postal_code && persistedAddress.postal_code.length === 6) {
-            calculateShipping(persistedAddress.postal_code);
+            // Set delivery pincode to trigger shipping calculation later
+            setDeliveryPincode(persistedAddress.postal_code);
           }
         } else {
           // Otherwise, use default shipping address
@@ -527,7 +530,8 @@ export default function CheckoutPage() {
 
             // Calculate shipping for default address
             if (defaultShipping.postal_code && defaultShipping.postal_code.length === 6) {
-              calculateShipping(defaultShipping.postal_code);
+              // Set delivery pincode to trigger shipping calculation later
+              setDeliveryPincode(defaultShipping.postal_code);
             }
           }
         }
@@ -600,10 +604,12 @@ export default function CheckoutPage() {
 
           // Handle default payment type from admin settings
           // ONLY if there's no persisted payment type (fresh visit, not user selection)
+          // AND we're not in the middle of a payment type change
           const hasPersistedPaymentType = persistedState.paymentType !== undefined && persistedState.paymentType !== null;
           const defaultPaymentType = (response as any).payment_flow?.default_payment_type;
-          if (!hasPersistedPaymentType && !paymentType) {
+          if (!hasPersistedPaymentType && !paymentType && !isProcessingPaymentTypeChange) {
             if (defaultPaymentType && defaultPaymentType !== 'none') {
+              logger.log('🎯 Setting default payment type from admin:', defaultPaymentType);
               // Admin has set a default (online or cod) - apply it
               setPaymentType(defaultPaymentType as 'online' | 'cod');
             }
@@ -674,12 +680,10 @@ export default function CheckoutPage() {
   const handleShippingAddressSelect = (address: Address) => {
     setSelectedShippingAddress(address);
     setSelectedAddressId(address.id);
-    populateFormFromAddress(address);
+    populateFormFromAddress(address); // This already calls setDeliveryPincode
     
-    // Trigger shipping calculation when address is selected
-    if (address.postal_code && address.postal_code.length === 6) {
-      calculateShipping(address.postal_code);
-    }
+    // populateFormFromAddress already handles shipping calculation via setDeliveryPincode
+    // No need to call calculateShipping again - prevents duplicate cart API calls
   };
 
   const handleBillingAddressSelect = (address: Address) => {
@@ -714,8 +718,10 @@ export default function CheckoutPage() {
     // REMOVED: 'address' field - causes conflict with houseNo
     // We use houseNo as the primary field for address_line_1
 
+    // Don't calculate shipping here - it's already set via setDeliveryPincode
+    // This prevents redundant cart API calls
     if (address.postal_code) {
-      calculateShipping(address.postal_code);
+      setDeliveryPincode(address.postal_code);
     }
   };
 
@@ -724,13 +730,11 @@ export default function CheckoutPage() {
     if (selectedAddress) {
       setSelectedAddressId(addressId);
       setSelectedShippingAddress(selectedAddress);
-      populateFormFromAddress(selectedAddress);
+      populateFormFromAddress(selectedAddress); // This already calls setDeliveryPincode
       setShowNewAddressForm(false);
       
-      // Trigger shipping calculation when address is selected
-      if (selectedAddress.postal_code && selectedAddress.postal_code.length === 6) {
-        calculateShipping(selectedAddress.postal_code);
-      }
+      // populateFormFromAddress already handles shipping calculation via setDeliveryPincode
+      // No need to call calculateShipping again - prevents duplicate cart API calls
     }
   };
 
@@ -853,9 +857,11 @@ export default function CheckoutPage() {
           setCodAvailable(true);
         }
 
-        // IMPORTANT: Refresh cart with the pincode to get updated summary
-        // Pass pincode as delivery_pincode parameter so backend recalculates everything
+        // IMPORTANT: Set delivery pincode - store will handle cart refresh
+        // setDeliveryPincode already triggers cart update in the store
         setDeliveryPincode(pincode);
+        // REMOVED: Redundant getCart call - setDeliveryPincode doesn't auto-refresh
+        // We only refresh after explicit user actions (address selection)
         await getCart(pincode);
       } else {
         logger.error('Shipping calculation failed:', response);
@@ -1072,12 +1078,19 @@ export default function CheckoutPage() {
   // Fallback calculation MUST include totalCharges to match backend
   const total = cart?.summary?.total || (discountedSubtotal + calculatedShippingCost + tax + totalCharges);
 
-  // Load payment methods when total changes
+  // Load payment methods when total changes (but not during payment type changes)
+  // DISABLED: This was causing redundant calls. Payment methods are loaded:
+  // 1. When user reaches payment step (currentStep === 3)
+  // 2. When payment type changes (via payment type effect)
+  // Total changes should NOT reload payment methods
+  /*
   useEffect(() => {
-    if (total > 0) {
+    if (total > 0 && !isProcessingPaymentTypeChange) {
+      logger.log('💰 Loading payment methods for total:', total);
       loadPaymentMethods(total);
     }
-  }, [total]);
+  }, [total, isProcessingPaymentTypeChange]);
+  */
 
   const paymentMethods = availablePaymentMethods.map((method) => {
     const iconMap: { [key: string]: any } = {
@@ -1102,43 +1115,51 @@ export default function CheckoutPage() {
 
   const selectedPaymentMethod = watch('paymentMethod');
 
-  // Debug payment methods
+  // Debug payment methods and cart changes
   useEffect(() => {
-    logger.log('Available payment methods:', paymentMethods);
-    logger.log('Selected payment method:', selectedPaymentMethod);
-  }, [paymentMethods.length, selectedPaymentMethod]);
+    logger.log('💳 Available payment methods:', paymentMethods.length);
+    logger.log('💳 Selected payment method:', selectedPaymentMethod);
+    logger.log('💳 Payment type:', paymentType);
+    logger.log('💳 Cart total:', cart?.summary?.total);
+  }, [paymentMethods.length, selectedPaymentMethod, paymentType, cart?.summary?.total]);
 
   // Handle payment type change - recalculate cart with COD charges
   useEffect(() => {
+    if (!paymentType) return; // Exit early if no payment type selected
+
     const handlePaymentTypeChange = async () => {
-      if (paymentType === 'cod') {
-        logger.log('💳 COD selected, recalculating with COD charges');
-        try {
+      if (isProcessingPaymentTypeChange) {
+        logger.log('⚠️ Payment type change already in progress, skipping');
+        return;
+      }
+
+      setIsProcessingPaymentTypeChange(true);
+      logger.log('🔄 Payment type changed to:', paymentType);
+
+      try {
+        if (paymentType === 'cod') {
+          logger.log('💳 COD selected, recalculating with COD charges');
+          // Clear payment method selection first to prevent conflicts
+          setValue('paymentMethod', '');
+          // setPaymentMethod already calls getCart() internally, no need to call again
           await setPaymentMethod('cod');
-          // Force cart refresh to update UI with new charges
-          await getCart();
-        } catch (error) {
-          logger.error('Failed to update cart with COD:', error);
-        }
-      } else if (paymentType === 'online') {
-        logger.log('💳 Online payment selected, removing COD charges');
-        try {
-          // Send 'online' as payment method to remove COD charges
+        } else if (paymentType === 'online') {
+          logger.log('💳 Online payment selected, removing COD charges');
+          // Clear payment method selection first to prevent conflicts
+          setValue('paymentMethod', '');
+          // setPaymentMethod already calls getCart() internally, no need to call again
           await setPaymentMethod('online');
-          // Force cart refresh to update UI with charges removed
-          await getCart();
-        } catch (error) {
-          logger.error('Failed to update cart with online payment:', error);
         }
+      } catch (error) {
+        logger.error('Failed to update cart with payment type change:', error);
+      } finally {
+        setIsProcessingPaymentTypeChange(false);
       }
     };
 
-    // Only trigger if paymentType is set
-    if (paymentType) {
-      handlePaymentTypeChange();
-    }
+    handlePaymentTypeChange();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentType]); // Only depend on paymentType - setPaymentMethod and getCart are stable
+  }, [paymentType]); // CRITICAL: Only depend on paymentType - NOT isProcessingPaymentTypeChange to avoid loop!
 
   // Handle payment gateway redirection
   const handlePaymentRedirect = (paymentDetails: any, gateway: string) => {
@@ -2080,12 +2101,14 @@ export default function CheckoutPage() {
                       <div className="space-y-2 lg:space-y-3">
                         {/* Online Payment Option */}
                         <label
-                          className={`flex items-center p-3 lg:p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                            paymentType === 'online'
-                              ? 'border-primary bg-primary/5'
-                              : 'border-border hover:bg-muted/50'
+                          className={`flex items-center p-3 lg:p-4 border-2 rounded-lg transition-colors ${
+                            isProcessingPaymentTypeChange
+                              ? 'cursor-not-allowed opacity-60'
+                              : paymentType === 'online'
+                              ? 'border-primary bg-primary/5 cursor-pointer'
+                              : 'border-border hover:bg-muted/50 cursor-pointer'
                           }`}
-                          onClick={() => setPaymentType('online')}
+                          onClick={() => !isProcessingPaymentTypeChange && setPaymentType('online')}
                         >
                           <CreditCard className="h-5 w-5 mr-3 text-primary" />
                           <div className="flex-1">
@@ -2097,8 +2120,11 @@ export default function CheckoutPage() {
                               ? 'border-primary bg-primary'
                               : 'border-border'
                           }`}>
-                            {paymentType === 'online' && (
+                            {paymentType === 'online' && !isProcessingPaymentTypeChange && (
                               <div className="w-2.5 h-2.5 bg-primary-foreground rounded-full" />
+                            )}
+                            {isProcessingPaymentTypeChange && paymentType === 'online' && (
+                              <div className="w-2.5 h-2.5 border border-primary-foreground border-t-transparent rounded-full animate-spin" />
                             )}
                           </div>
                         </label>
@@ -2106,12 +2132,14 @@ export default function CheckoutPage() {
                         {/* COD Option (only if enabled) */}
                         {codConfig && codConfig.enabled && (
                           <label
-                            className={`flex items-center p-3 lg:p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                              paymentType === 'cod'
-                                ? 'border-primary bg-primary/5'
-                                : 'border-border hover:bg-muted/50'
+                            className={`flex items-center p-3 lg:p-4 border-2 rounded-lg transition-colors ${
+                              isProcessingPaymentTypeChange
+                                ? 'cursor-not-allowed opacity-60'
+                                : paymentType === 'cod'
+                                ? 'border-primary bg-primary/5 cursor-pointer'
+                                : 'border-border hover:bg-muted/50 cursor-pointer'
                             }`}
-                            onClick={() => setPaymentType('cod')}
+                            onClick={() => !isProcessingPaymentTypeChange && setPaymentType('cod')}
                           >
                             <DollarSign className="h-5 w-5 mr-3 text-green-600" />
                             <div className="flex-1">
@@ -2128,8 +2156,11 @@ export default function CheckoutPage() {
                                 ? 'border-primary bg-primary'
                                 : 'border-border'
                             }`}>
-                              {paymentType === 'cod' && (
+                              {paymentType === 'cod' && !isProcessingPaymentTypeChange && (
                                 <div className="w-2.5 h-2.5 bg-primary-foreground rounded-full" />
+                              )}
+                              {isProcessingPaymentTypeChange && paymentType === 'cod' && (
+                                <div className="w-2.5 h-2.5 border border-primary-foreground border-t-transparent rounded-full animate-spin" />
                               )}
                             </div>
                           </label>
@@ -2388,14 +2419,18 @@ export default function CheckoutPage() {
                         {/* COD in the same list */}
                         {codConfig && codConfig.enabled && (
                           <label
-                            className={`flex items-center p-3 lg:p-4 border rounded-lg cursor-pointer transition-colors ${
-                              selectedPaymentMethod === 'cod'
-                                ? 'border-primary bg-primary/5'
-                                : 'border-border hover:bg-muted/50'
+                            className={`flex items-center p-3 lg:p-4 border rounded-lg transition-colors ${
+                              isProcessingPaymentTypeChange
+                                ? 'cursor-not-allowed opacity-60'
+                                : selectedPaymentMethod === 'cod'
+                                ? 'border-primary bg-primary/5 cursor-pointer'
+                                : 'border-border hover:bg-muted/50 cursor-pointer'
                             }`}
                             onClick={() => {
-                              setValue('paymentMethod', 'cod');
-                              setPaymentType('cod');
+                              if (!isProcessingPaymentTypeChange) {
+                                setValue('paymentMethod', 'cod');
+                                setPaymentType('cod');
+                              }
                             }}
                           >
                             <DollarSign className="h-5 w-5 mr-3 text-green-600" />
@@ -2408,8 +2443,11 @@ export default function CheckoutPage() {
                                 ? 'border-primary bg-primary'
                                 : 'border-border'
                             }`}>
-                              {selectedPaymentMethod === 'cod' && (
+                              {selectedPaymentMethod === 'cod' && !isProcessingPaymentTypeChange && (
                                 <div className="w-2 h-2 bg-primary-foreground rounded-full m-0.5" />
+                              )}
+                              {isProcessingPaymentTypeChange && selectedPaymentMethod === 'cod' && (
+                                <div className="w-2 h-2 border border-primary-foreground border-t-transparent rounded-full animate-spin m-0.5" />
                               )}
                             </div>
                           </label>
@@ -2437,12 +2475,22 @@ export default function CheckoutPage() {
                             <Button
                               type="button"
                               className="w-full bg-green-600 hover:bg-green-700"
+                              disabled={isProcessingPaymentTypeChange}
                               onClick={() => {
-                                setValue('paymentMethod', 'cod');
-                                setPaymentType('cod');
+                                if (!isProcessingPaymentTypeChange) {
+                                  setValue('paymentMethod', 'cod');
+                                  setPaymentType('cod');
+                                }
                               }}
                             >
-                              Pay on Delivery
+                              {isProcessingPaymentTypeChange ? (
+                                <>
+                                  <div className="w-4 h-4 border border-white border-t-transparent rounded-full animate-spin mr-2" />
+                                  Processing...
+                                </>
+                              ) : (
+                                'Pay on Delivery'
+                              )}
                             </Button>
                           </div>
                         </CardContent>
@@ -2474,10 +2522,12 @@ export default function CheckoutPage() {
                             return (
                               <label
                                 key={method.id}
-                                className={`flex items-center p-3 lg:p-4 border rounded-lg cursor-pointer transition-colors ${
-                                  selectedPaymentMethod === method.id
-                                    ? 'border-primary bg-primary/5'
-                                    : 'border-border hover:bg-muted/50'
+                                className={`flex items-center p-3 lg:p-4 border rounded-lg transition-colors ${
+                                  isProcessingPaymentTypeChange
+                                    ? 'cursor-not-allowed opacity-60'
+                                    : selectedPaymentMethod === method.id
+                                    ? 'border-primary bg-primary/5 cursor-pointer'
+                                    : 'border-border hover:bg-muted/50 cursor-pointer'
                                 }`}
                               >
                                 <input
@@ -2486,7 +2536,8 @@ export default function CheckoutPage() {
                                   value={method.id}
                                   className="sr-only"
                                   checked={selectedPaymentMethod === method.id}
-                                  onChange={() => setPaymentType('online')}
+                                  disabled={isProcessingPaymentTypeChange}
+                                  onChange={() => !isProcessingPaymentTypeChange && setPaymentType('online')}
                                 />
                                 <Icon className="h-4 w-4 lg:h-5 lg:w-5 mr-3 text-muted-foreground" />
                                 <div className="flex-1">
@@ -2498,8 +2549,11 @@ export default function CheckoutPage() {
                                     ? 'border-primary bg-primary'
                                     : 'border-border'
                                 }`}>
-                                  {selectedPaymentMethod === method.id && (
+                                  {selectedPaymentMethod === method.id && !isProcessingPaymentTypeChange && (
                                     <div className="w-2 h-2 bg-primary-foreground rounded-full m-0.5" />
+                                  )}
+                                  {isProcessingPaymentTypeChange && selectedPaymentMethod === method.id && (
+                                    <div className="w-2 h-2 border border-primary-foreground border-t-transparent rounded-full animate-spin m-0.5" />
                                   )}
                                 </div>
                               </label>

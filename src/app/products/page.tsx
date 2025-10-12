@@ -213,7 +213,7 @@ export default function ProductsPage() {
 
   if (loading && products.length === 0) {
     return (
-      <div className="compact-container compact-section">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="animate-pulse compact-spacing">
           <div className="h-6 sm:h-8 bg-gray-200 rounded w-1/2 sm:w-1/4"></div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 compact-gap">
@@ -233,7 +233,7 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="compact-container compact-section">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Breadcrumb */}
       <nav className="compact-text text-muted-foreground compact-margin overflow-x-auto whitespace-nowrap scrollbar-hide">
         <Link href="/" className="hover:text-primary touch-target">Home</Link>
