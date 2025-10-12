@@ -95,6 +95,13 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
   // Watch pincode field for automatic validation
   const watchedPincode = form.watch('pincode')
 
+  // Clear pincode errors when user starts typing a new pincode
+  useEffect(() => {
+    if (watchedPincode && watchedPincode.length < 6) {
+      form.clearErrors('pincode')
+    }
+  }, [watchedPincode, form])
+
   // Validate pincode and fetch location details
   const validatePincode = async (pincode: string) => {
     if (pincode.length !== 6) return
@@ -105,11 +112,14 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
       console.log('Pincode validation response:', data)
       
       if (data.success && data.serviceable && data.zone_info?.city) {
+        // Clear any previous pincode errors
+        form.clearErrors('pincode')
+
         // Auto-fill city, state, and post name
         form.setValue('zila', data.zone_info?.city)
         form.setValue('state', data.zone_info.state)
         form.setValue('post_name', data.zone_info?.city) // Using city as post name for now
-        
+
         toast({
           title: "Pincode validated",
           description: `Delivery available to ${data.zone_info?.city}, ${data.zone_info.state}`,
@@ -590,7 +600,7 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
                 name="type"
                 control={form.control}
                 render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} defaultValue="shipping">
                     <SelectTrigger>
                       <SelectValue placeholder="Select address type" />
                     </SelectTrigger>

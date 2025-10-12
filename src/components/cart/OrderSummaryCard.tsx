@@ -82,7 +82,7 @@ export function OrderSummaryCard({
   showCheckoutButton = false,
   isProcessingOrder = false,
   onPlaceOrder,
-  hasValidShippingAddress = true,
+  hasValidShippingAddress = false,
   calculatingShipping = false,
   availableCoupons = [],
   children

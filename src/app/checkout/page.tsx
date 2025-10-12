@@ -1715,10 +1715,16 @@ export default function CheckoutPage() {
                                     <Clock className="h-3 w-3 mr-1" />
                                     {estimatedDelivery}
                                   </div>
-                                  {calculatedShippingCost === 0 && (
+                                  {hasValidShippingAddress && calculatedShippingCost === 0 && (
                                     <div className="flex items-center">
                                       <Truck className="h-3 w-3 mr-1" />
                                       FREE Delivery
+                                    </div>
+                                  )}
+                                  {!hasValidShippingAddress && cart?.summary?.requires_pincode && (
+                                    <div className="flex items-center text-orange-600">
+                                      <Truck className="h-3 w-3 mr-1" />
+                                      {cart.summary.pincode_message || 'Enter pincode to calculate shipping'}
                                     </div>
                                   )}
                                   {codAvailable && (
@@ -1810,6 +1816,46 @@ export default function CheckoutPage() {
                             <div className="text-right">
                               <p className="text-lg lg:text-xl font-bold">
                                 {currencySymbol}{calculatedShippingCost}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Shipping Calculation Pending */}
+                      {!hasValidShippingAddress && cart?.summary?.requires_pincode && (
+                        <div className="bg-orange-50 border border-orange-200 p-3 lg:p-4 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <Truck className="h-4 w-4 text-orange-600 mr-2" />
+                              <div>
+                                <p className="font-medium text-sm lg:text-base text-orange-800">Shipping Calculation Pending</p>
+                                <p className="text-xs lg:text-sm text-orange-600">
+                                  {cart.summary.pincode_message || 'Enter delivery pincode to calculate shipping charges'}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm lg:text-base font-medium text-orange-800">TBD</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Free Shipping Display */}
+                      {hasValidShippingAddress && calculatedShippingCost === 0 && (
+                        <div className="bg-green-50 border border-green-200 p-3 lg:p-4 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <Truck className="h-4 w-4 text-green-600 mr-2" />
+                              <div>
+                                <p className="font-medium text-sm lg:text-base text-green-800">FREE Delivery</p>
+                                <p className="text-xs lg:text-sm text-green-600">No delivery charges for this order</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg lg:text-xl font-bold text-green-800">
+                                {currencySymbol}0
                               </p>
                             </div>
                           </div>
@@ -2538,6 +2584,7 @@ export default function CheckoutPage() {
                 onRemoveCoupon={handleRemoveCoupon}
                 applyCouponLoading={applyCouponLoading}
                 variant="checkout"
+                hasValidShippingAddress={hasValidShippingAddress}
                 calculatingShipping={calculatingShipping}
               />
             </div>
@@ -2561,6 +2608,7 @@ export default function CheckoutPage() {
                 onRemoveCoupon={handleRemoveCoupon}
                 applyCouponLoading={applyCouponLoading}
                 variant="checkout"
+                hasValidShippingAddress={hasValidShippingAddress}
                 calculatingShipping={calculatingShipping}
               />
             </div>
