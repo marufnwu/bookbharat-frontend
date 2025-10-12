@@ -22,7 +22,13 @@ RUN \
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+
+# Copy all source files
 COPY . .
+
+# Debug: List files to verify they're copied
+RUN echo "=== Checking if layout components exist ===" && \
+    ls -la src/components/layout/ || echo "Layout directory not found!"
 
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
