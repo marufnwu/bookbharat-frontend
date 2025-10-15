@@ -125,58 +125,58 @@ export function ProductCard({
       case 'compact':
         return {
           card: 'h-auto',
-          content: 'compact-padding',
-          image: 'aspect-[4/5] mb-2',
-          imageSize: 'h-8 w-8',
-          title: 'compact-text font-medium line-clamp-2',
+          content: 'p-3',
+          image: 'aspect-[4/5] mb-3',
+          imageSize: 'h-10 w-10',
+          title: 'text-sm font-medium line-clamp-2 leading-snug',
           author: 'text-xs',
-          price: 'compact-text',
+          price: 'text-sm font-bold',
           comparePrice: 'text-xs',
-          rating: 'h-3 w-3',
-          button: 'h-7 w-7',
-          actionButton: 'h-7 px-2 text-xs'
+          rating: 'h-4 w-4',
+          button: 'h-8 w-8',
+          actionButton: 'h-8 px-3 text-xs'
         };
       case 'large':
         return {
           card: 'h-auto',
-          content: 'p-5',
+          content: 'p-6',
           image: 'aspect-[3/4] mb-4',
-          imageSize: 'h-14 w-14',
-          title: 'compact-title font-semibold line-clamp-2',
-          author: 'compact-text',
-          price: 'text-lg',
-          comparePrice: 'compact-text',
-          rating: 'h-4 w-4',
-          button: 'h-10 w-10',
-          actionButton: 'h-9 px-3 compact-text'
+          imageSize: 'h-16 w-16',
+          title: 'text-lg font-semibold line-clamp-2 leading-relaxed',
+          author: 'text-sm',
+          price: 'text-xl font-bold',
+          comparePrice: 'text-sm',
+          rating: 'h-5 w-5',
+          button: 'h-12 w-12',
+          actionButton: 'h-10 px-4 text-sm'
         };
       case 'minimal':
         return {
           card: 'h-auto border-0 shadow-none',
-          content: 'p-0',
+          content: 'p-2',
           image: 'aspect-[3/4] mb-2',
-          imageSize: 'h-10 w-10',
-          title: 'compact-text font-medium line-clamp-2',
+          imageSize: 'h-8 w-8',
+          title: 'text-sm font-medium line-clamp-2 leading-snug',
           author: 'text-xs',
-          price: 'compact-text',
+          price: 'text-sm font-bold',
           comparePrice: 'text-xs',
           rating: 'h-3 w-3',
           button: 'h-6 w-6',
-          actionButton: 'h-6 px-1.5 text-xs'
+          actionButton: 'h-6 px-2 text-xs'
         };
       default:
         return {
           card: 'h-auto',
-          content: 'compact-padding',
+          content: 'p-4',
           image: 'aspect-[3/4] mb-3',
-          imageSize: 'h-10 w-10',
-          title: 'compact-heading line-clamp-2',
-          author: 'compact-text',
-          price: 'compact-heading',
-          comparePrice: 'compact-text',
-          rating: 'h-3 w-3',
-          button: 'h-8 w-8',
-          actionButton: 'h-8 px-2.5 compact-text'
+          imageSize: 'h-12 w-12',
+          title: 'text-base font-semibold line-clamp-2 leading-snug',
+          author: 'text-sm',
+          price: 'text-base font-bold',
+          comparePrice: 'text-sm',
+          rating: 'h-4 w-4',
+          button: 'h-10 w-10',
+          actionButton: 'h-9 px-3 text-sm'
         };
     }
   };
@@ -275,25 +275,25 @@ export function ProductCard({
         </div>
 
         {/* Product Info */}
-        <div className="system-compact">
+        <div className="space-y-2">
           {showCategory && product.category?.name && (
             <p className="text-xs text-primary font-medium uppercase tracking-wider">
               {product.category.name}
             </p>
           )}
-          
+
           <h3 className={cn('group-hover:text-primary transition-colors', styles.title)}>
             <Link href={`/products/${product.slug || product.id}`}>
               {product.name}
             </Link>
           </h3>
-          
+
           {showAuthor && product.brand && (
             <p className={cn('text-muted-foreground', styles.author)}>
               by {product.brand}
             </p>
           )}
-          
+
           {showRating && (
             <div className="flex items-center gap-1">
               <div className="flex">
@@ -304,9 +304,9 @@ export function ProductCard({
               <span className="text-xs text-muted-foreground ml-1">(4.5)</span>
             </div>
           )}
-          
+
           {/* Price */}
-          <div className="flex items-center compact-gap">
+          <div className="flex items-center gap-2">
             <span className={cn('font-bold text-foreground', styles.price)}>
               {currencySymbol}{product.price}
             </span>
@@ -316,10 +316,10 @@ export function ProductCard({
               </span>
             )}
           </div>
-          
+
           {/* Action Buttons */}
           {product.in_stock && (
-            <div className="flex items-center compact-gap pt-1.5">
+            <div className="flex items-center gap-2 pt-2">
               {showAddToCart && (
                 <Button
                   size="sm"
@@ -341,7 +341,7 @@ export function ProductCard({
                   )}
                 </Button>
               )}
-              
+
               {showBuyNow && (
                 <Button
                   size="sm"

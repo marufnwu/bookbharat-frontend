@@ -6,6 +6,7 @@ import Script from "next/script";
 import { ConfigProvider } from "@/contexts/ConfigContext";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -69,13 +70,14 @@ export default function RootLayout({
         </Script>
         <ConfigProvider>
           <div className="min-h-screen flex flex-col">
-          <Header />
+            <Header />
 
-          <main className="flex-1">
-            {children}
-          </main>
+            <main className="flex-1 pb-16 md:pb-0">
+              {children}
+            </main>
 
-          <Footer />
+            <Footer />
+            <MobileBottomNav />
           </div>
         </ConfigProvider>
       </body>

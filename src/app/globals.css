@@ -296,6 +296,44 @@ body {
   display: none;
 }
 
+/* Mobile Bottom Navigation Styles */
+@supports (padding: max(0px)) {
+  .mobile-bottom-nav {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* iOS Safari bottom navigation fix */
+@supports (-webkit-touch-callout: none) {
+  .mobile-bottom-nav {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Mobile navigation animation */
+.mobile-nav-item {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-nav-item:active {
+  transform: scale(0.95);
+}
+
+/* Badge animation for mobile nav */
+.mobile-nav-badge {
+  animation: badge-pulse 2s infinite;
+}
+
+@keyframes badge-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
 /* Enhanced focus styles for accessibility */
 .focus-visible {
   outline: 2px solid hsl(var(--ring));

@@ -41,14 +41,22 @@ export function MobileCategorySlider({
   // Calculate total pages and current scroll index
   useEffect(() => {
     const calculatePages = () => {
-      if (!scrollRef.current) return;
+      if (!scrollRef.current || !categories.length) {
+        setTotalPages(1);
+        return;
+      }
 
-      const { scrollWidth, clientWidth } = scrollRef.current;
-      const cardWidth = 88; // 76px card + 12px gap
-      const visibleCards = Math.floor(clientWidth / cardWidth);
-      const totalPossiblePages = Math.ceil(categories.length / (visibleCards * 2)); // 2 rows
+      try {
+        const { scrollWidth, clientWidth } = scrollRef.current;
+        const cardWidth = 88; // 76px card + 12px gap
+        const visibleCards = Math.max(1, Math.floor(clientWidth / cardWidth));
+        const totalPossiblePages = Math.ceil(categories.length / (visibleCards * 2)); // 2 rows
 
-      setTotalPages(Math.max(1, totalPossiblePages));
+        setTotalPages(Math.max(1, Math.min(10, totalPossiblePages)));
+      } catch (error) {
+        console.error('Error calculating pages:', error);
+        setTotalPages(1);
+      }
     };
 
     calculatePages();
@@ -270,9 +278,9 @@ export function MobileCategorySlider({
       </div>
 
       {/* Dot Indicators */}
-      {totalPages > 1 && (
+      {totalPages > 1 && totalPages <= 10 && (
         <div className="flex justify-center items-center mt-3 space-x-2">
-          {Array.from({ length: totalPages }, (_, index) => (
+          {Array.from({ length: Math.max(1, Math.min(totalPages, 10)) }, (_, index) => (
             <button
               key={index}
               onClick={() => scrollToPage(index)}
