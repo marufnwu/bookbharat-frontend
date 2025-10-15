@@ -45,13 +45,14 @@ export function CategoryCard({
     return (
       <Link href={href} className="group">
         <Card className={cn(
-          "h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-0 overflow-hidden",
+          "h-full transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 border-0 overflow-hidden bg-transparent",
           className
         )}>
-          <CardContent className="p-4">
-            <div className="flex flex-col items-center text-center space-y-3">
-              {categoryImage ? (
-                <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl overflow-hidden transition-transform group-hover:scale-110 relative">
+          <CardContent className="p-2">
+            <div className="flex flex-col items-center text-center">
+              {/* Circular Image */}
+              <div className="relative w-12 h-12 md:w-14 md:h-14 aspect-square overflow-hidden transition-transform group-hover:scale-110 rounded-full border-2 border-background shadow-md">
+                {categoryImage ? (
                   <Image
                     src={categoryImage}
                     alt={category.name}
@@ -59,25 +60,22 @@ export function CategoryCard({
                     height={56}
                     className="w-full h-full object-cover"
                   />
-                </div>
-              ) : (
-                <div className={cn(
-                  "w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
-                  colorClass.replace('text-', 'bg-').replace('600', '100'),
-                  colorClass
-                )}>
-                  <Icon className="w-6 h-6 md:w-7 md:h-7" />
-                </div>
-              )}
-              <div className="space-y-1">
-                <h3 className="font-semibold text-sm md:text-base line-clamp-1 group-hover:text-primary transition-colors">
+                ) : (
+                  <div className={cn(
+                    "w-full h-full rounded-full flex items-center justify-center transition-transform group-hover:scale-110",
+                    colorClass.replace('text-', 'bg-').replace('600', '100'),
+                    colorClass
+                  )}>
+                    <Icon className="w-5 h-5 md:w-6 md:h-6" />
+                  </div>
+                )}
+              </div>
+
+              {/* Category Name Only */}
+              <div className="mt-1.5">
+                <h3 className="font-semibold text-xs md:text-sm text-center line-clamp-1 group-hover:text-primary transition-colors px-1">
                   {category.name}
                 </h3>
-                {showProductCount && productCount !== undefined && (
-                  <p className="text-xs text-muted-foreground">
-                    {productCount} Books
-                  </p>
-                )}
               </div>
             </div>
           </CardContent>
@@ -149,63 +147,50 @@ export function CategoryCard({
     );
   }
 
-  // Default variant
+  // Default variant - Circular with name at bottom
   return (
     <Link href={href} className="group">
       <Card className={cn(
-        "h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-0 overflow-hidden",
-        "bg-gradient-to-br from-background to-muted/10",
+        "h-full transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 border-0 overflow-hidden bg-transparent",
         className
       )}>
-        <CardContent className="p-5">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+        <CardContent className="p-2">
+          <div className="flex flex-col items-center text-center">
+            {/* Circular Image */}
+            <div className="relative w-12 h-12 md:w-14 md:h-14 aspect-square overflow-hidden transition-transform group-hover:scale-110 rounded-full border-2 border-background shadow-md">
               {categoryImage ? (
-                <div className="w-14 h-14 rounded-xl overflow-hidden transition-transform group-hover:scale-110 relative">
-                  <Image
-                    src={categoryImage}
-                    alt={category.name}
-                    width={56}
-                    height={56}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+                <Image
+                  src={categoryImage}
+                  alt={category.name}
+                  width={56}
+                  height={56}
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <div className={cn(
-                  "w-14 h-14 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
+                  "w-full h-full rounded-full flex items-center justify-center transition-transform group-hover:scale-110",
                   colorClass.replace('text-', 'bg-').replace('600', '100'),
                   colorClass
                 )}>
-                  <Icon className="w-7 h-7" />
+                  <Icon className="w-5 h-5 md:w-6 md:h-6" />
                 </div>
               )}
+
+              {/* Featured Badge */}
               {category.featured && (
-                <Badge variant="secondary" className="bg-primary/10 text-primary border-0">
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                  Trending
-                </Badge>
+                <div className="absolute top-0 right-0 z-10">
+                  <Badge className="bg-yellow-400 text-yellow-900 border-0 text-[8px] font-semibold shadow-lg p-0.5">
+                    <Sparkles className="w-2 h-2" />
+                  </Badge>
+                </div>
               )}
             </div>
 
-            <div className="space-y-2">
-              <h3 className="font-semibold text-base md:text-lg group-hover:text-primary transition-colors">
+            {/* Category Name Only */}
+            <div className="mt-1.5">
+              <h3 className="font-semibold text-xs md:text-sm text-center line-clamp-1 group-hover:text-primary transition-colors px-1">
                 {category.name}
               </h3>
-
-              {showDescription && category.description && (
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {category.description}
-                </p>
-              )}
-
-              {showProductCount && productCount !== undefined && (
-                <div className="flex items-center justify-between pt-2">
-                  <span className="text-sm text-muted-foreground">
-                    {productCount} Books
-                  </span>
-                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                </div>
-              )}
             </div>
           </div>
         </CardContent>
