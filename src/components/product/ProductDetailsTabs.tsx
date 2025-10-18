@@ -43,10 +43,13 @@ export function ProductDetailsTabs({ product, className = '' }: ProductDetailsTa
 
   const renderDescriptionTab = () => (
     <div className="space-y-4">
-      <div className="prose max-w-none">
-        <div className="text-muted-foreground leading-relaxed whitespace-pre-line">
-          {product.description || product.short_description || 'No description available for this product.'}
-        </div>
+      <div className="prose prose-sm md:prose-base max-w-none">
+        <div 
+          className="text-muted-foreground leading-relaxed product-description"
+          dangerouslySetInnerHTML={{
+            __html: product.description || product.short_description || 'No description available for this product.'
+          }}
+        />
       </div>
 
       {/* Additional Product Information */}
