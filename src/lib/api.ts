@@ -377,8 +377,17 @@ class ApiClient {
     });
   }
 
-  async addToCart(productId: number, quantity: number) {
-    const response = await this.post('/cart/add', { product_id: productId, quantity });
+  async addToCart(productId: number, quantity: number, bundleVariantId?: number) {
+    const payload: any = { 
+      product_id: productId, 
+      quantity 
+    };
+    
+    if (bundleVariantId) {
+      payload.bundle_variant_id = bundleVariantId;
+    }
+    
+    const response = await this.post('/cart/add', payload);
 
     if (response.success && response.data?.items) {
       response.data.items = this.transformItemsWithProducts(response.data.items);

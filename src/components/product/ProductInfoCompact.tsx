@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { useConfig } from '@/contexts/ConfigContext';
 import { useCartStore } from '@/stores/cart';
 import { useWishlistStore } from '@/stores/wishlist';
-import { Product } from '@/types';
+import { Product, ProductBundleVariant } from '@/types';
 import { toast } from 'sonner';
+import BundleVariantSelector from '@/components/product/BundleVariantSelector';
 import {
   Star,
   Heart,
@@ -40,9 +41,13 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
+  const [selectedBundleVariant, setSelectedBundleVariant] = useState<ProductBundleVariant | null>(null);
 
   const currencySymbol = siteConfig?.payment?.currency_symbol || '₹';
   const isWishlisted = isInWishlist(product.id);
+
+  // Get active bundle variants
+  const activeBundleVariants = product.active_bundle_variants || product.bundle_variants || [];
 
   const getDiscountPercentage = () => {
     if (!product.compare_price || product.compare_price <= product.price) return 0;
@@ -52,8 +57,13 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
   const handleAddToCart = async () => {
     try {
       setAddingToCart(true);
-      await addToCart(product, quantity);
-      toast.success('Added to cart!');
+      await addToCart(product, quantity, selectedBundleVariant?.id);
+      
+      const successMessage = selectedBundleVariant 
+        ? `${selectedBundleVariant.name} added to cart!` 
+        : 'Added to cart!';
+      
+      toast.success(successMessage);
     } catch (error) {
       toast.error('Failed to add to cart');
     } finally {
@@ -64,7 +74,7 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
   const handleBuyNow = async () => {
     try {
       setBuyingNow(true);
-      await addToCart(product, quantity);
+      await addToCart(product, quantity, selectedBundleVariant?.id);
       window.location.href = '/checkout';
     } catch (error) {
       toast.error('Failed to proceed');
@@ -237,6 +247,18 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
           )}
         </div>
       </div>
+
+      {/* Bundle Variant Selector */}
+      {activeBundleVariants.length > 0 && (
+        <BundleVariantSelector
+          productId={product.id}
+          productName={product.name}
+          productPrice={product.price}
+          bundleVariants={activeBundleVariants}
+          onVariantSelect={setSelectedBundleVariant}
+          selectedVariantId={selectedBundleVariant?.id}
+        />
+      )}
 
       {/* Quantity Selector - Compact - Hidden on mobile (uses mobile action bar) */}
       {product.in_stock && (

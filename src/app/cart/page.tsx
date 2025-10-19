@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useCartStore } from '@/stores/cart';
 import { useCartSummary } from '@/hooks/useCartSummary';
 import { useConfig } from '@/contexts/ConfigContext';
@@ -183,10 +184,36 @@ export default function CartPage() {
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-3 p-4 lg:p-0">
             {cart.items.map((item) => (
-              <Card key={item.id} className="p-3 lg:p-6">
+              <Card key={item.id} className={`p-3 lg:p-6 ${item.bundle_variant_id ? 'border-2 border-green-200 bg-green-50/30' : ''}`}>
+                {/* Bundle Header Badge */}
+                {item.bundle_variant_id && item.attributes?.bundle_name && (
+                  <div className="mb-3 pb-3 border-b border-green-200">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-green-600 text-white p-1.5 rounded-lg">
+                        <Gift className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-bold text-green-900">
+                            {item.attributes.bundle_name}
+                          </span>
+                          <Badge className="bg-green-600 text-white text-xs">
+                            Bundle Pack
+                          </Badge>
+                        </div>
+                        {item.attributes.bundle_quantity && (
+                          <div className="text-xs text-green-700 mt-0.5">
+                            {item.attributes.bundle_quantity} items per bundle • Total: {item.quantity} × {item.attributes.bundle_quantity} = {item.quantity * item.attributes.bundle_quantity} items
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex gap-3 lg:gap-4">
                   {/* Image */}
-                  <div className="w-20 h-24 lg:w-24 lg:h-32 bg-muted rounded flex-shrink-0 overflow-hidden">
+                  <div className="w-20 h-24 lg:w-24 lg:h-32 bg-muted rounded flex-shrink-0 overflow-hidden relative">
                     {item.product?.images?.[0]?.image_url || item.product?.images?.[0]?.url ? (
                       <Image
                         src={item.product.images[0].image_url || item.product.images[0].url || ''}
@@ -198,6 +225,12 @@ export default function CartPage() {
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <BookOpen className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    )}
+                    {/* Bundle Badge Overlay */}
+                    {item.bundle_variant_id && item.attributes?.bundle_quantity && (
+                      <div className="absolute top-1 right-1 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">
+                        ×{item.attributes.bundle_quantity}
                       </div>
                     )}
                   </div>
@@ -229,20 +262,46 @@ export default function CartPage() {
                     </div>
 
                     {/* Price */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-base lg:text-lg font-bold">
-                        {cartSummary.currencySymbol}{item.product.price}
-                      </span>
-                      {item.product.compare_price > item.product.price && (
-                        <span className="text-xs text-muted-foreground line-through">
-                          {cartSummary.currencySymbol}{item.product.compare_price}
-                        </span>
+                    <div className="mb-2">
+                      {item.bundle_variant_id ? (
+                        // Bundle Price Display
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base lg:text-lg font-bold text-green-700">
+                              {cartSummary.currencySymbol}{parseFloat(String(item.unit_price || item.price || 0)).toFixed(2)}
+                            </span>
+                            <Badge className="bg-green-600 text-white text-xs">Bundle Price</Badge>
+                          </div>
+                          {item.attributes?.bundle_quantity && (
+                            <div className="text-xs text-green-700">
+                              ({cartSummary.currencySymbol}{(parseFloat(String(item.unit_price || item.price || 0)) / item.attributes.bundle_quantity).toFixed(2)} per item)
+                            </div>
+                          )}
+                          {item.product.price && (
+                            <div className="text-xs text-gray-500 line-through">
+                              Regular: {cartSummary.currencySymbol}{(parseFloat(String(item.product.price)) * (item.attributes?.bundle_quantity || 1)).toFixed(2)}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        // Regular Price Display
+                        <div className="flex items-center gap-2">
+                          <span className="text-base lg:text-lg font-bold">
+                            {cartSummary.currencySymbol}{parseFloat(String(item.unit_price || item.price || item.product.price)).toFixed(2)}
+                          </span>
+                          {item.product.compare_price && item.product.compare_price > item.product.price && (
+                            <span className="text-xs text-muted-foreground line-through">
+                              {cartSummary.currencySymbol}{parseFloat(String(item.product.compare_price)).toFixed(2)}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
 
                     {/* Quantity & Remove */}
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center bg-muted rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center bg-muted rounded-lg">
                         <button
                           onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
                           disabled={updating === item.id}
@@ -265,6 +324,14 @@ export default function CartPage() {
                           <Plus className="h-3 w-3 lg:h-4 lg:w-4" />
                         </button>
                       </div>
+                      
+                      {/* Bundle Quantity Label */}
+                      {item.bundle_variant_id && (
+                        <span className="text-xs text-green-700 font-medium">
+                          {item.quantity} bundle{item.quantity > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
 
                       <button
                         onClick={() => handleRemoveItem(item.id)}

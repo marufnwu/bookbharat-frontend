@@ -25,7 +25,8 @@ import {
   Loader2,
   AlertCircle,
   Clock,
-  XCircle
+  XCircle,
+  Gift
 } from 'lucide-react';
 
 export default function OrderDetailPage() {
@@ -309,24 +310,53 @@ export default function OrderDetailPage() {
             <CardContent>
               <div className="space-y-4">
                 {(order.order_items || order.items || []).map((item: any) => (
-                  <div key={item.id} className="flex space-x-4 pb-4 border-b border-border last:border-b-0">
-                    <div className="w-16 h-20 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
-                      {item.product?.image_url ? (
-                        <Image 
-                          src={item.product.image_url} 
-                          alt={item.product.title}
-                          width={64}
-                          height={80}
-                          className="object-cover rounded"
-                        />
-                      ) : (
-                        <BookOpen className="h-6 w-6 text-gray-400" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold">
-                        {item.product?.name || item.product_name || 'Product'}
-                      </h4>
+                  <div key={item.id} className={`p-4 rounded-lg ${item.is_bundle ? 'bg-green-50 border-2 border-green-200' : 'pb-4 border-b border-border last:border-b-0'}`}>
+                    {/* Bundle Header */}
+                    {item.is_bundle && item.bundle_variant_name && (
+                      <div className="flex items-center gap-2 mb-3 pb-3 border-b border-green-200">
+                        <div className="bg-green-600 text-white p-1.5 rounded">
+                          <Gift className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-bold text-green-900">
+                              {item.bundle_variant_name}
+                            </span>
+                            <Badge className="bg-green-600 text-white text-xs">Bundle Pack</Badge>
+                          </div>
+                          {item.bundle_quantity && (
+                            <div className="text-xs text-green-700 mt-0.5">
+                              {item.bundle_quantity} items per bundle • Purchased: {item.quantity} bundle{item.quantity > 1 ? 's' : ''} = {item.quantity * item.bundle_quantity} items total
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex space-x-4">
+                      <div className="w-16 h-20 bg-gray-100 rounded flex items-center justify-center flex-shrink-0 relative">
+                        {item.product?.image_url ? (
+                          <Image 
+                            src={item.product.image_url} 
+                            alt={item.product.title}
+                            width={64}
+                            height={80}
+                            className="object-cover rounded"
+                          />
+                        ) : (
+                          <BookOpen className="h-6 w-6 text-gray-400" />
+                        )}
+                        {/* Bundle Quantity Badge on Image */}
+                        {item.is_bundle && item.bundle_quantity && (
+                          <div className="absolute top-0.5 right-0.5 bg-green-600 text-white text-[9px] font-bold px-1 py-0.5 rounded shadow">
+                            ×{item.bundle_quantity}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold">
+                          {item.display_name || item.product?.name || item.product_name || 'Product'}
+                        </h4>
                       {(() => {
                         try {
                           if (item.product?.metadata) {
@@ -360,11 +390,27 @@ export default function OrderDetailPage() {
                         }
                       })()}
                       <div className="flex items-center justify-between mt-2">
-                        <p className="text-sm">Quantity: {item.quantity}</p>
-                        <p className="font-medium">₹{item.total_price || item.total || (item.unit_price * item.quantity)}</p>
+                        {item.is_bundle ? (
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium text-green-700">
+                              {item.quantity} bundle{item.quantity > 1 ? 's' : ''} × ₹{parseFloat(String(item.unit_price || 0)).toFixed(2)}
+                            </p>
+                            {item.bundle_quantity && (
+                              <p className="text-xs text-gray-600">
+                                (₹{(parseFloat(String(item.unit_price || 0)) / item.bundle_quantity).toFixed(2)} per item)
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-sm">Quantity: {item.quantity}</p>
+                        )}
+                        <p className="font-bold text-lg">
+                          ₹{parseFloat(String(item.total_price || item.total || (item.unit_price * item.quantity) || 0)).toFixed(2)}
+                        </p>
                       </div>
                     </div>
                   </div>
+                </div>
                 ))}
               </div>
             </CardContent>

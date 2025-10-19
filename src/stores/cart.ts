@@ -15,7 +15,7 @@ interface CartState {
 
   // Actions
   getCart: (deliveryPincode?: string, paymentMethod?: string) => Promise<void>;
-  addToCart: (product: Product, quantity?: number) => Promise<void>;
+  addToCart: (product: Product, quantity?: number, bundleVariantId?: number) => Promise<void>;
   updateQuantity: (itemId: number, quantity: number) => Promise<void>;
   removeItem: (itemId: number) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -109,18 +109,22 @@ export const useCartStore = create<CartState>()(
         }
       },
 
-      addToCart: async (product: Product, quantity = 1) => {
+      addToCart: async (product: Product, quantity = 1, bundleVariantId?: number) => {
         try {
           // Don't set global loading - components have their own loading states
-          await cartApi.addToCart(product.id, quantity);
+          await cartApi.addToCart(product.id, quantity, bundleVariantId);
 
           // Refresh cart from server (without pincode/payment)
           await get().getCart(undefined, undefined);
 
           // Show success toast
+          const itemDescription = bundleVariantId 
+            ? `Bundle added to your cart` 
+            : `${product.title || product.name} has been added to your cart`;
+          
           toast({
             title: "Added to cart",
-            description: `${product.title || product.name} has been added to your cart.`,
+            description: itemDescription,
             variant: "success",
           });
         } catch (error) {

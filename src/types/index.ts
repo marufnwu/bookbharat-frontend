@@ -40,6 +40,29 @@ export interface AuthResponse {
   expires_at: string;
 }
 
+// Product Bundle Variant Types
+export interface ProductBundleVariant {
+  id: number;
+  product_id: number;
+  name: string;
+  sku: string;
+  quantity: number;
+  pricing_type: 'percentage_discount' | 'fixed_price' | 'fixed_discount';
+  discount_percentage?: number;
+  fixed_price?: number;
+  fixed_discount?: number;
+  compare_price?: number;
+  stock_management_type: 'use_main_product' | 'separate_stock';
+  stock_quantity?: number;
+  is_active: boolean;
+  sort_order: number;
+  calculated_price?: number;
+  savings_amount?: number;
+  savings_percentage?: number;
+  effective_stock?: number;
+  formatted_name?: string;
+}
+
 // Product Types
 export interface Product {
   id: number;
@@ -75,6 +98,8 @@ export interface Product {
     keywords?: string[];
   };
   images?: ProductImage[];
+  bundle_variants?: ProductBundleVariant[];
+  active_bundle_variants?: ProductBundleVariant[];
   created_at: string;
   updated_at: string;
 }
@@ -112,9 +137,18 @@ export interface CartItem {
   id: number;
   product_id: number;
   product: Product;
+  bundle_variant_id?: number;
   quantity: number;
   price: number;
+  unit_price?: number;
   total: number;
+  total_price?: number;
+  is_bundle?: boolean;
+  attributes?: {
+    bundle_name?: string;
+    bundle_quantity?: number;
+    [key: string]: any;
+  };
   created_at: string;
   updated_at: string;
 }
@@ -238,9 +272,19 @@ export interface OrderItem {
   order_id: number;
   product_id: number;
   product: Product;
+  bundle_variant_id?: number;
+  bundle_quantity?: number;
+  bundle_variant_name?: string;
+  product_name?: string;
+  product_sku?: string;
   quantity: number;
+  unit_price?: number;
   price: number;
   total: number;
+  total_price?: number;
+  is_bundle?: boolean;
+  display_name?: string;
+  product_attributes?: string;
 }
 
 // Wishlist Types
