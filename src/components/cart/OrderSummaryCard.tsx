@@ -16,7 +16,9 @@ import {
   Truck,
   Shield,
   CheckCircle,
-  Tag
+  Tag,
+  Info,
+  HelpCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -467,15 +469,32 @@ export function OrderSummaryCard({
             </span>
           </div>
 
-          {/* Additional Charges */}
+          {/* Additional Charges - Enhanced with COD Service Charge highlighting */}
           {summary.charges && summary.charges.length > 0 && (
             <>
-              {summary.charges.map((charge: any, index: number) => (
-                <div key={index} className="flex justify-between text-sm">
-                  <span>{charge.display_label || charge.name}</span>
-                  <span>{summary.currencySymbol}{parseFloat(String(charge.amount)).toFixed(2)}</span>
-                </div>
-              ))}
+              {summary.charges.map((charge: any, index: number) => {
+                const isCODCharge = charge.code?.toLowerCase().includes('cod') || 
+                                   charge.name?.toLowerCase().includes('cod') ||
+                                   charge.type?.toLowerCase().includes('cod');
+                return (
+                  <div key={index} className="flex justify-between text-sm">
+                    <span className="flex items-center gap-1.5">
+                      {charge.display_label || charge.name}
+                      {isCODCharge && (
+                        <span 
+                          className="inline-flex items-center cursor-help" 
+                          title="Service charge for Cash on Delivery orders"
+                        >
+                          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground transition-colors" />
+                        </span>
+                      )}
+                    </span>
+                    <span className={isCODCharge ? 'text-orange-600 font-medium' : ''}>
+                      {summary.currencySymbol}{parseFloat(String(charge.amount)).toFixed(2)}
+                    </span>
+                  </div>
+                );
+              })}
             </>
           )}
 

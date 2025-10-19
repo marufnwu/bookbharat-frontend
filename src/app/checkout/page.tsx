@@ -25,6 +25,7 @@ import { Cart, Order, Address } from '@/types';
 import AddressManager from '@/components/AddressManager';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { OrderSummaryCard } from '@/components/cart/OrderSummaryCard';
+import { GatewayIcon } from '@/components/payment/GatewayIcon';
 import { logger } from '@/lib/logger';
 import { 
   BookOpen,
@@ -1093,22 +1094,12 @@ export default function CheckoutPage() {
   */
 
   const paymentMethods = availablePaymentMethods.map((method) => {
-    const iconMap: { [key: string]: any } = {
-      'razorpay': CreditCard,
-      'cashfree': CreditCard,
-      'payu': CreditCard,
-      'phonepe': CreditCard,
-      'cod': Circle,
-      'cod_with_advance': Circle,
-      'cod_percentage_advance': Circle,
-      'bank_transfer': Circle,
-    };
-
     return {
       id: method.payment_method,
       name: method.display_name,
       description: method.description,
-      icon: iconMap[method.payment_method] || Circle,
+      gateway: method.payment_method, // Pass gateway name for GatewayIcon
+      icon: () => <GatewayIcon gateway={method.payment_method} className="text-current" size={20} />,
       advance_payment: method.advance_payment || null
     };
   });
@@ -1166,10 +1157,13 @@ export default function CheckoutPage() {
     logger.log('🔄 handlePaymentRedirect called with:', { paymentDetails, gateway });
 
     // Extract payment data and URL from the response structure
+    // Backend returns: payment_details.payment_data (contains all gateway fields)
+    // Backend also returns: payment_details.payment_url (extracted for convenience)
     const paymentData = paymentDetails.payment_data || paymentDetails;
     const paymentUrl = paymentDetails.payment_url || paymentData.payment_url;
 
     logger.log('💳 Extracted payment data:', { paymentData, paymentUrl });
+    logger.log('💳 PaymentData keys:', Object.keys(paymentData));
 
     // Create a form dynamically and submit it for gateways that require POST
     if (gateway === 'payu') {
@@ -1180,8 +1174,10 @@ export default function CheckoutPage() {
       form.style.display = 'none';
 
       // Add all PayU required fields as hidden inputs
-      // Skip meta fields
-      const skipFields = ['payment_url', 'payment_id', 'method', 'success', 'message', 'data'];
+      // Skip meta fields that are not part of PayU's expected parameters
+      const skipFields = ['payment_url', 'payment_id', 'method', 'success', 'message', 'data', 'gateway', 'timestamp'];
+      const submittedFields: any = {};
+      
       Object.entries(paymentData).forEach(([key, value]) => {
         if (value !== null && value !== undefined && !skipFields.includes(key)) {
           const input = document.createElement('input');
@@ -1189,6 +1185,7 @@ export default function CheckoutPage() {
           input.name = key;
           input.value = String(value);
           form.appendChild(input);
+          submittedFields[key] = String(value);
         }
       });
 
@@ -1196,6 +1193,8 @@ export default function CheckoutPage() {
       document.body.appendChild(form);
       logger.log('✅ Submitting PayU form with action:', form.action);
       logger.log('📋 PayU form fields count:', form.querySelectorAll('input').length);
+      logger.log('📋 PayU submitted fields:', submittedFields);
+      logger.log('🔑 PayU hash being submitted:', submittedFields.hash);
       form.submit();
     } else if (gateway === 'razorpay' && (paymentData.key && paymentData.razorpay_order_id)) {
       // Handle Razorpay checkout with JavaScript SDK
@@ -2187,7 +2186,6 @@ export default function CheckoutPage() {
                             </div>
                           )}
                           {paymentMethods.map((method) => {
-                            const Icon = method.icon;
                             return (
                               <label
                                 key={method.id}
@@ -2208,7 +2206,7 @@ export default function CheckoutPage() {
                                   className="sr-only"
                                   checked={selectedPaymentMethod === method.id}
                                 />
-                                <Icon className="h-4 w-4 lg:h-5 lg:w-5 mr-3 text-muted-foreground" />
+                                <div className="mr-3 flex-shrink-0">{method.icon()}</div>
                                 <div className="flex-1">
                                   <div className="font-medium text-sm lg:text-base">{method.name}</div>
                                   <div className="text-xs lg:text-sm text-muted-foreground">{method.description}</div>
@@ -2307,7 +2305,6 @@ export default function CheckoutPage() {
                                   </div>
                                 )}
                                 {paymentMethods.map((method) => {
-                                  const Icon = method.icon;
                                   return (
                                     <label
                                       key={method.id}
@@ -2324,7 +2321,7 @@ export default function CheckoutPage() {
                                         className="sr-only"
                                         checked={selectedPaymentMethod === method.id}
                                       />
-                                      <Icon className="h-4 w-4 mr-3 text-muted-foreground" />
+                                      <div className="mr-3 flex-shrink-0">{method.icon()}</div>
                                       <div className="flex-1">
                                         <div className="font-medium text-sm">{method.name}</div>
                                       </div>
@@ -2367,9 +2364,8 @@ export default function CheckoutPage() {
                   </>
                   )}
 
-                  {/* Payment Flow: SINGLE LIST - DEPRECATED/UNUSED - All gateways in one list */}
-                  {/* FIXME: This flow is not configured in admin and is untested. Consider removing. */}
-                  {false && paymentFlowSettings.type === 'single_list' && (
+                  {/* Payment Flow: SINGLE LIST - All gateways in one list */}
+                  {paymentFlowSettings.type === 'single_list' && (
                   <Card>
                     <CardHeader className="pb-3 lg:pb-4">
                       <CardTitle className="flex items-center text-sm lg:text-base">
@@ -2381,7 +2377,6 @@ export default function CheckoutPage() {
                       <div className="space-y-2 lg:space-y-3">
                         {/* All gateways including COD in single list */}
                         {paymentMethods.map((method) => {
-                          const Icon = method.icon;
                           return (
                             <label
                               key={method.id}
@@ -2398,7 +2393,7 @@ export default function CheckoutPage() {
                                 className="sr-only"
                                 checked={selectedPaymentMethod === method.id}
                               />
-                              <Icon className="h-4 w-4 lg:h-5 lg:w-5 mr-3 text-muted-foreground" />
+                              <div className="mr-3 flex-shrink-0">{method.icon()}</div>
                               <div className="flex-1">
                                 <div className="font-medium text-sm lg:text-base">{method.name}</div>
                                 <div className="text-xs lg:text-sm text-muted-foreground">{method.description}</div>
@@ -2518,7 +2513,6 @@ export default function CheckoutPage() {
                       <CardContent className="space-y-3 lg:space-y-4">
                         <div className="space-y-2 lg:space-y-3">
                           {paymentMethods.map((method) => {
-                            const Icon = method.icon;
                             return (
                               <label
                                 key={method.id}
@@ -2539,7 +2533,7 @@ export default function CheckoutPage() {
                                   disabled={isProcessingPaymentTypeChange}
                                   onChange={() => !isProcessingPaymentTypeChange && setPaymentType('online')}
                                 />
-                                <Icon className="h-4 w-4 lg:h-5 lg:w-5 mr-3 text-muted-foreground" />
+                                <div className="mr-3 flex-shrink-0">{method.icon()}</div>
                                 <div className="flex-1">
                                   <div className="font-medium text-sm lg:text-base">{method.name}</div>
                                   <div className="text-xs lg:text-sm text-muted-foreground">{method.description}</div>
