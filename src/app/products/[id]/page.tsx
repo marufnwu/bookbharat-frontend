@@ -141,18 +141,19 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Breadcrumb - Compact */}
-      <div className="border-b bg-muted/20">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-3">
+    <div className="min-h-screen bg-white sm:bg-background overflow-x-hidden">
+      {/* Mobile-First Breadcrumb */}
+      <div className="border-b border-gray-100 bg-white sm:bg-muted/20 sm:border-gray-200">
+        <div className="max-w-7xl mx-auto px-3 py-2 sm:px-4 sm:py-3 lg:px-6">
           <ProductBreadcrumb product={product} />
         </div>
       </div>
 
-      {/* Main Product Content - Compact & Mobile-Friendly */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 md:py-6">
-        <div className="grid md:grid-cols-2 gap-4 md:gap-6 lg:gap-8">
-          {/* Left: Image Gallery - Sticky on desktop */}
+      {/* Mobile-First Main Product Content */}
+      <div className="max-w-7xl mx-auto px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-6 pb-40 md:pb-0">
+        {/* Mobile-First Grid: Stack on mobile, 2-col on tablet+ */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-8">
+          {/* Image Gallery - Full width on mobile, sticky on desktop */}
           <div className="md:sticky md:top-4 md:self-start">
             <ProductImageGallery
               images={product.images || []}
@@ -160,20 +161,20 @@ export default function ProductDetailPage() {
             />
           </div>
 
-          {/* Right: Product Information */}
-          <div className="space-y-4 md:space-y-6">
+          {/* Product Information - Mobile-optimized */}
+          <div className="space-y-3 sm:space-y-4 lg:space-y-6">
             <ProductInfoCompact product={product} />
           </div>
         </div>
 
-        {/* Product Details Tabs - Compact spacing */}
-        <div className="mt-8 md:mt-12">
+        {/* Mobile-First Tabs - Responsive spacing */}
+        <div className="mt-6 sm:mt-8 lg:mt-12">
           <ProductDetailsTabs product={product} />
         </div>
 
-        {/* Frequently Bought Together - Compact spacing */}
+        {/* Mobile-First Frequently Bought Together */}
         {product.in_stock && (
-          <div className="mt-8 md:mt-12">
+          <div className="mt-6 sm:mt-8 lg:mt-12">
             <FrequentlyBoughtTogether
               productId={params.id as string}
               mainProduct={product}
@@ -181,8 +182,8 @@ export default function ProductDetailPage() {
           </div>
         )}
 
-        {/* Related Products - Compact spacing */}
-        <div className="mt-8 md:mt-12">
+        {/* Mobile-First Related Products */}
+        <div className="mt-6 sm:mt-8 lg:mt-12">
           <RelatedProducts
             productId={params.id as string}
             categoryId={product.category?.id}
@@ -190,34 +191,31 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* Mobile Action Bar - Fixed at bottom on mobile only */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t p-3 z-40 shadow-lg">
-        <div className="flex gap-2">
+      {/* Mobile-First Action Bar - Positioned above bottom nav */}
+      <div className="md:hidden fixed bottom-16 left-0 right-0 bg-white border-t-2 border-gray-300 z-40 shadow-2xl">
+        <div className="flex gap-2 w-full p-3">
           <button
-            className="flex-1 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 active:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={!product.in_stock}
             onClick={() => {
               const event = new CustomEvent('addToCart', { detail: { product, quantity: 1 } });
               window.dispatchEvent(event);
             }}
           >
-            {product.in_stock ? 'Add to Cart' : 'Out of Stock'}
+            {product.in_stock ? '🛒 Add to Cart' : '❌ Out of Stock'}
           </button>
           <button
-            className="flex-1 px-4 py-2.5 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-3 bg-orange-600 text-white rounded-lg text-sm font-bold hover:bg-orange-700 active:bg-orange-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={!product.in_stock}
             onClick={() => {
               const event = new CustomEvent('buyNow', { detail: { product, quantity: 1 } });
               window.dispatchEvent(event);
             }}
           >
-            Buy Now
+            ⚡ Buy Now
           </button>
         </div>
       </div>
-
-      {/* Add bottom padding on mobile for fixed action bar */}
-      <div className="md:hidden h-16" />
     </div>
   );
 }

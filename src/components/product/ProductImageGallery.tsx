@@ -75,7 +75,7 @@ export function ProductImageGallery({ images, productName, className = '' }: Pro
           src="/book-placeholder.svg"
           alt={productName}
           fill
-          className="object-contain p-8"
+          className="object-contain p-6 sm:p-8"
           priority
         />
       </div>
@@ -83,9 +83,9 @@ export function ProductImageGallery({ images, productName, className = '' }: Pro
   }
 
   return (
-    <div className={`space-y-4 ${className}`}>
-      {/* Main Image */}
-      <div className="relative bg-white rounded-lg border overflow-hidden aspect-square group">
+    <div className={`space-y-2 sm:space-y-4 ${className}`}>
+      {/* Mobile-First Main Image */}
+      <div className="relative bg-white rounded-lg border border-gray-200 overflow-hidden aspect-square group">
         <div
           className="relative w-full h-full cursor-zoom-in"
           onClick={openLightbox}
@@ -94,7 +94,7 @@ export function ProductImageGallery({ images, productName, className = '' }: Pro
             src={getImageUrl(images[selectedIndex], selectedIndex)}
             alt={`${productName} - Image ${selectedIndex + 1}`}
             fill
-            className="object-contain p-8 transition-transform group-hover:scale-105"
+            className="object-contain p-4 sm:p-6 md:p-8 transition-transform group-hover:scale-105"
             priority
           />
 
@@ -131,9 +131,9 @@ export function ProductImageGallery({ images, productName, className = '' }: Pro
         </div>
       </div>
 
-      {/* Thumbnail Gallery */}
+      {/* Mobile-First Thumbnail Gallery */}
       {images.length > 1 && (
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5 sm:gap-2">
           {images.slice(0, 5).map((_, index) => (
             <button
               key={index}
@@ -148,7 +148,7 @@ export function ProductImageGallery({ images, productName, className = '' }: Pro
                 src={getImageUrl(images[index], index)}
                 alt={`${productName} - Thumbnail ${index + 1}`}
                 fill
-                className="object-contain p-1"
+                className="object-contain p-0.5 sm:p-1"
               />
               {selectedIndex === index && (
                 <div className="absolute inset-0 bg-primary/10" />
@@ -158,9 +158,9 @@ export function ProductImageGallery({ images, productName, className = '' }: Pro
         </div>
       )}
 
-      {/* Image Counter */}
+      {/* Mobile-First Image Counter */}
       {images.length > 1 && (
-        <div className="text-center text-sm text-muted-foreground">
+        <div className="text-center text-xs sm:text-sm text-muted-foreground">
           {selectedIndex + 1} of {images.length}
         </div>
       )}

@@ -1453,7 +1453,7 @@ export default function CheckoutPage() {
 
   return (
     <ProtectedRoute>
-    <div className="bg-gradient-to-br from-primary/5 via-background to-accent/5 min-h-screen">
+    <div className="bg-gradient-to-br from-primary/5 via-background to-accent/5 min-h-screen pb-40 lg:pb-0">
       <div className="container mx-auto px-4 py-4 lg:py-8">
         {/* Breadcrumb */}
         <nav className="text-sm text-muted-foreground mb-4 lg:mb-6">
@@ -2707,17 +2707,17 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      {/* Mobile Sticky Bottom Navigation - Buttons Only */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex gap-3">
+      {/* Mobile Sticky Bottom Navigation - Buttons Only - Positioned above nav */}
+      <div className="lg:hidden fixed bottom-16 left-0 right-0 bg-background border-t border-border shadow-lg z-40">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex gap-2">
             {currentStep > 1 ? (
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={prevStep}
                 size="default"
-                className="flex-1"
+                className="flex-1 font-bold"
               >
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Back
@@ -2728,7 +2728,7 @@ export default function CheckoutPage() {
                 variant="outline" 
                 asChild
                 size="default"
-                className="flex-1"
+                className="flex-1 font-bold"
               >
                 <Link href="/cart">
                   <ChevronLeft className="w-4 h-4 mr-1" />
@@ -2742,7 +2742,7 @@ export default function CheckoutPage() {
                 type="submit"
                 disabled={isProcessing || !isCurrentStepValid()}
                 size="default"
-                className="flex-1"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold"
                 form="checkout-form"
               >
                 {isProcessing ? (
@@ -2753,7 +2753,7 @@ export default function CheckoutPage() {
                 ) : (
                   <>
                     <Lock className="h-4 w-4 mr-1" />
-                    Place Order
+                    🔐 Place Order
                   </>
                 )}
               </Button>
@@ -2763,7 +2763,7 @@ export default function CheckoutPage() {
                 onClick={handleContinueToNext}
                 disabled={!isCurrentStepValid()}
                 size="default"
-                className="flex-1"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold"
               >
                 Continue
                 <ChevronRight className="w-4 h-4 ml-1" />

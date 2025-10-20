@@ -136,50 +136,45 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
       window.removeEventListener('addToCart' as any, handleAddToCartEvent);
       window.removeEventListener('buyNow' as any, handleBuyNowEvent);
     };
-  }, [product.id, quantity]);
+  }, [product.id, handleAddToCart, handleBuyNow]);
 
   return (
     <div className={cn("space-y-4", className)}>
-      {/* Title and Badges - Compact */}
-      <div>
-        <div className="flex flex-wrap items-center gap-1.5 mb-2">
-          {product.category?.name && (
-            <Badge variant="secondary" className="text-xs px-2 py-0.5">
-              {product.category.name}
+      {/* Mobile-First Header - Name and Author */}
+      <div className="space-y-1">
+        <div className="flex flex-wrap gap-1 sm:gap-2">
+          {product.is_featured && (
+            <Badge className="bg-purple-500 hover:bg-purple-600 text-white text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2">
+              <Award className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
+              Featured
             </Badge>
           )}
           {product.is_bestseller && (
-            <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-xs px-2 py-0.5">
-              <TrendingUp className="h-3 w-3 mr-1" />
+            <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2">
+              <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
               Bestseller
-            </Badge>
-          )}
-          {product.is_featured && (
-            <Badge className="bg-purple-500 hover:bg-purple-600 text-white text-xs px-2 py-0.5">
-              <Award className="h-3 w-3 mr-1" />
-              Featured
             </Badge>
           )}
         </div>
 
-        <h1 className="text-xl md:text-2xl font-bold text-foreground mb-1.5 leading-tight">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground leading-tight">
           {product.name}
         </h1>
 
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs sm:text-sm text-muted-foreground">
           by <span className="font-medium text-foreground">{product.brand || product.author || 'Unknown Author'}</span>
         </p>
       </div>
 
-      {/* Rating - Compact */}
-      <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-        <div className="flex items-center gap-2">
-          <div className="flex">
+      {/* Mobile-First Rating */}
+      <div className="flex items-center justify-between p-2 sm:p-3 bg-muted/30 rounded-lg">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex gap-0.5">
             {[...Array(5)].map((_, i) => (
               <Star
                 key={i}
                 className={cn(
-                  "h-4 w-4",
+                  "h-3 w-3 sm:h-4 sm:w-4",
                   i < Math.floor(product.rating || 4.5)
                     ? "text-yellow-400 fill-current"
                     : "text-gray-300"
@@ -187,61 +182,87 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
               />
             ))}
           </div>
-          <span className="font-semibold text-sm">{product.rating || '4.5'}</span>
-          <span className="text-xs text-muted-foreground">({product.total_reviews || 150})</span>
+          <span className="font-semibold text-xs sm:text-sm">{product.rating || '4.5'}</span>
+          <span className="text-[10px] sm:text-xs text-muted-foreground">({product.total_reviews || 150})</span>
         </div>
       </div>
 
-      {/* Price - Compact */}
-      <div className="space-y-2">
-        <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="text-3xl md:text-4xl font-bold text-foreground">
-            {currencySymbol}{parseFloat(String(product.price)).toFixed(2)}
-          </span>
-          {product.compare_price && product.compare_price > product.price && (
-            <>
-              <span className="text-lg text-muted-foreground line-through">
-                {currencySymbol}{parseFloat(String(product.compare_price)).toFixed(2)}
+      {/* Mobile-First Price Display */}
+      <div className="space-y-1">
+        {selectedBundleVariant ? (
+          // Bundle pricing display
+          <div className="space-y-1">
+            <div className="text-[10px] sm:text-xs text-green-700 font-medium">
+              {selectedBundleVariant.name} Selected
+            </div>
+            <div className="flex items-baseline gap-1 sm:gap-2 flex-wrap">
+              <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-green-700">
+                {currencySymbol}{parseFloat(String(selectedBundleVariant.calculated_price || 0)).toFixed(2)}
               </span>
-              {getDiscountPercentage() > 0 && (
-                <Badge className="bg-red-500 text-white hover:bg-red-600 px-2 py-0.5">
-                  {getDiscountPercentage()}% OFF
+              <span className="text-xs sm:text-base sm:text-lg text-muted-foreground line-through">
+                {currencySymbol}{(product.price * selectedBundleVariant.quantity).toFixed(2)}
+              </span>
+              {selectedBundleVariant.savings_percentage && selectedBundleVariant.savings_percentage > 0 && (
+                <Badge className="bg-green-600 text-white hover:bg-green-700 text-[9px] sm:text-xs px-1 sm:px-2 py-0.5">
+                  SAVE {Math.round(selectedBundleVariant.savings_percentage)}%
                 </Badge>
               )}
-            </>
-          )}
-        </div>
+            </div>
+            <div className="text-xs sm:text-sm text-green-600">
+              You save {currencySymbol}{parseFloat(String(selectedBundleVariant.savings_amount || 0)).toFixed(2)} with this bundle!
+            </div>
+          </div>
+        ) : (
+          // Regular pricing display
+          <div className="flex items-baseline gap-1 sm:gap-2 flex-wrap">
+            <span className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
+              {currencySymbol}{parseFloat(String(product.price)).toFixed(2)}
+            </span>
+            {product.compare_price && product.compare_price > product.price && (
+              <>
+                <span className="text-xs sm:text-base sm:text-lg text-muted-foreground line-through">
+                  {currencySymbol}{parseFloat(String(product.compare_price)).toFixed(2)}
+                </span>
+                {getDiscountPercentage() > 0 && (
+                  <Badge className="bg-red-500 text-white hover:bg-red-600 text-[9px] sm:text-xs px-1 sm:px-2 py-0.5">
+                    {getDiscountPercentage()}% OFF
+                  </Badge>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
           <Shield className="h-3 w-3" />
           <span>Inclusive of all taxes</span>
         </div>
       </div>
 
-      {/* Stock Status - Compact */}
+      {/* Mobile-First Stock Status */}
       <div className={cn(
-        "flex items-center gap-2 p-3 rounded-lg",
+        "flex items-center gap-2 p-2 sm:p-3 rounded-lg",
         product.in_stock ? "bg-green-50" : "bg-red-50"
       )}>
         <div className={cn(
-          "flex items-center justify-center w-6 h-6 rounded-full",
+          "flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full flex-shrink-0",
           product.in_stock ? "bg-green-100" : "bg-red-100"
         )}>
           {product.in_stock ? (
-            <Check className="h-4 w-4 text-green-600" />
+            <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
           ) : (
-            <X className="h-4 w-4 text-red-600" />
+            <X className="h-3 w-3 sm:h-4 sm:w-4 text-red-600" />
           )}
         </div>
         <div>
           <div className={cn(
-            "font-medium text-sm",
+            "font-medium text-xs sm:text-sm",
             product.in_stock ? "text-green-800" : "text-red-800"
           )}>
             {product.in_stock ? 'In Stock' : 'Out of Stock'}
           </div>
           {product.in_stock && product.stock_quantity && product.stock_quantity < 10 && (
-            <div className="text-xs text-green-600">
+            <div className="text-[10px] sm:text-xs text-green-600">
               Only {product.stock_quantity} left
             </div>
           )}
@@ -260,106 +281,114 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
         />
       )}
 
-      {/* Quantity Selector - Compact - Hidden on mobile (uses mobile action bar) */}
+      {/* Mobile-First Quantity Selector - Hidden on mobile (uses mobile action bar) */}
       {product.in_stock && (
-        <div className="hidden md:flex items-center gap-3">
-          <span className="text-sm font-medium">Quantity:</span>
+        <div className="hidden md:flex items-center gap-2 lg:gap-3">
+          <span className="text-xs sm:text-sm font-medium">
+            {selectedBundleVariant ? 'Number of Bundles:' : 'Quantity:'}
+          </span>
           <div className="flex items-center border rounded-lg">
             <button
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              className="p-2 hover:bg-muted transition-colors"
+              className="p-1.5 hover:bg-muted transition-colors"
               disabled={quantity <= 1}
             >
-              <Minus className="h-4 w-4" />
+              <Minus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </button>
-            <span className="px-4 font-medium min-w-[3rem] text-center">{quantity}</span>
+            <span className="px-3 sm:px-4 font-medium min-w-[2.5rem] text-center text-sm">{quantity}</span>
             <button
               onClick={() => setQuantity(quantity + 1)}
-              className="p-2 hover:bg-muted transition-colors"
+              className="p-1.5 hover:bg-muted transition-colors"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </button>
           </div>
+          {selectedBundleVariant && selectedBundleVariant.quantity && (
+            <span className="text-[10px] sm:text-xs text-green-700">
+              = {quantity * selectedBundleVariant.quantity} total items
+            </span>
+          )}
         </div>
       )}
 
-      {/* Action Buttons - Compact - Hidden on mobile */}
+      {/* Mobile-First Action Buttons - Hidden on mobile */}
       {product.in_stock && (
         <div className="hidden md:grid grid-cols-2 gap-2">
           <Button
             onClick={handleAddToCart}
             disabled={addingToCart}
-            className="w-full"
-            variant="outline"
+            className={`w-full text-sm ${selectedBundleVariant ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
+            variant={selectedBundleVariant ? 'default' : 'outline'}
           >
             {addingToCart ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 animate-spin" />
             ) : (
-              <ShoppingCart className="h-4 w-4 mr-2" />
+              <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
             )}
-            Add to Cart
+            {selectedBundleVariant ? 'Add Bundle to Cart' : 'Add to Cart'}
           </Button>
           <Button
             onClick={handleBuyNow}
             disabled={buyingNow}
-            className="w-full bg-orange-500 hover:bg-orange-600"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-sm"
           >
             {buyingNow ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 animate-spin" />
             ) : (
-              <Zap className="h-4 w-4 mr-2" />
+              <Zap className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
             )}
-            Buy Now
+            {selectedBundleVariant ? 'Buy Bundle Now' : 'Buy Now'}
           </Button>
         </div>
       )}
 
-      {/* Wishlist and Share - Compact */}
-      <div className="flex gap-2">
+      {/* Mobile-First Wishlist and Share */}
+      <div className="flex gap-1.5 sm:gap-2">
         <Button
           variant="outline"
           size="sm"
           onClick={handleWishlistToggle}
-          className="flex-1"
+          className="flex-1 text-xs sm:text-sm h-8 sm:h-9"
         >
           <Heart className={cn(
-            "h-4 w-4 mr-2",
+            "h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1",
             isWishlisted && "fill-red-500 text-red-500"
           )} />
-          {isWishlisted ? 'Wishlisted' : 'Wishlist'}
+          <span className="hidden xs:inline">{isWishlisted ? 'Wishlisted' : 'Wishlist'}</span>
+          <span className="xs:hidden">{isWishlisted ? '❤️' : '🤍'}</span>
         </Button>
         <Button
           variant="outline"
           size="sm"
           onClick={handleShare}
-          className="flex-1"
+          className="flex-1 text-xs sm:text-sm h-8 sm:h-9"
         >
-          <Share2 className="h-4 w-4 mr-2" />
-          Share
+          <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
+          <span className="hidden xs:inline">Share</span>
         </Button>
       </div>
 
-      {/* Key Features - Compact */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t">
-        <div className="flex items-start gap-2">
-          <Truck className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+      {/* Mobile-First Key Features */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 pt-2 sm:pt-3 border-t">
+        <div className="flex items-start gap-1.5 sm:gap-2">
+          <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary mt-0.5 flex-shrink-0" />
           <div>
-            <div className="text-xs font-medium">Free Delivery</div>
-            <div className="text-xs text-muted-foreground">On orders above ₹499</div>
+            <div className="text-[10px] sm:text-xs font-medium">Free Delivery</div>
+            <div className="text-[9px] sm:text-xs text-muted-foreground">On orders above ₹499</div>
           </div>
         </div>
-        <div className="flex items-start gap-2">
-          <RotateCcw className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+        <div className="flex items-start gap-1.5 sm:gap-2">
+          <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary mt-0.5 flex-shrink-0" />
           <div>
-            <div className="text-xs font-medium">Easy Returns</div>
-            <div className="text-xs text-muted-foreground">7 days return policy</div>
+            <div className="text-[10px] sm:text-xs font-medium">Easy Returns</div>
+            <div className="text-[9px] sm:text-xs text-muted-foreground">7 days return policy</div>
           </div>
         </div>
-        <div className="flex items-start gap-2">
-          <Shield className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+        <div className="flex items-start gap-1.5 sm:gap-2">
+          <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary mt-0.5 flex-shrink-0" />
           <div>
-            <div className="text-xs font-medium">Secure Payment</div>
-            <div className="text-xs text-muted-foreground">100% secure</div>
+            <div className="text-[10px] sm:text-xs font-medium">Secure Payment</div>
+            <div className="text-[9px] sm:text-xs text-muted-foreground">100% secure</div>
           </div>
         </div>
       </div>

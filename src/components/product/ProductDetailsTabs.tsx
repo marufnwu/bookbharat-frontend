@@ -42,40 +42,40 @@ export function ProductDetailsTabs({ product, className = '' }: ProductDetailsTa
   };
 
   const renderDescriptionTab = () => (
-    <div className="space-y-4">
-      <div className="prose prose-sm md:prose-base max-w-none">
+    <div className="space-y-3 sm:space-y-4">
+      <div className="prose prose-sm max-w-none md:prose-base">
         <div 
-          className="text-muted-foreground leading-relaxed product-description"
+          className="text-xs sm:text-sm text-muted-foreground leading-relaxed product-description"
           dangerouslySetInnerHTML={{
             __html: product.description || product.short_description || 'No description available for this product.'
           }}
         />
       </div>
 
-      {/* Additional Product Information */}
+      {/* Mobile-First Key Highlights */}
       {product.highlights && product.highlights.length > 0 && (
-        <div className="mt-6">
-          <h4 className="font-semibold text-lg mb-3">Key Highlights</h4>
-          <ul className="space-y-2">
+        <div className="mt-3 sm:mt-6">
+          <h4 className="font-semibold text-sm sm:text-base md:text-lg mb-2 sm:mb-3">Key Highlights</h4>
+          <ul className="space-y-1.5 sm:space-y-2">
             {product.highlights.map((highlight, index) => (
               <li key={index} className="flex items-start gap-2">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                <span className="text-muted-foreground">{highlight}</span>
+                <div className="w-1.5 h-1.5 bg-primary rounded-full mt-1.5 sm:mt-2 flex-shrink-0" />
+                <span className="text-xs sm:text-sm text-muted-foreground">{highlight}</span>
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      {/* Tags/Keywords */}
+      {/* Mobile-First Tags */}
       {product.tags && product.tags.length > 0 && (
-        <div className="mt-6">
-          <h4 className="font-semibold text-lg mb-3">Tags</h4>
-          <div className="flex flex-wrap gap-2">
+        <div className="mt-3 sm:mt-6">
+          <h4 className="font-semibold text-sm sm:text-base md:text-lg mb-2 sm:mb-3">Tags</h4>
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             {product.tags.map((tag, index) => (
               <span
                 key={index}
-                className="px-3 py-1 bg-muted text-muted-foreground rounded-full text-sm hover:bg-muted/80 transition-colors"
+                className="px-2 sm:px-3 py-0.5 sm:py-1 bg-muted text-muted-foreground rounded-full text-xs sm:text-sm hover:bg-muted/80 transition-colors"
               >
                 {tag}
               </span>

@@ -33,6 +33,7 @@ export default function CartPage() {
   const [clearingCart, setClearingCart] = useState(false);
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [couponCode, setCouponCode] = useState('');
 
   const {
     cart,
@@ -142,7 +143,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-32 lg:pb-0">
+    <div className="min-h-screen bg-background pb-40 lg:pb-0">
       {/* Mobile Header */}
       <div className="sticky top-0 bg-background border-b px-4 py-3 flex items-center justify-between z-10 lg:hidden">
         <div className="flex items-center gap-3">
@@ -384,8 +385,8 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* Mobile Fixed Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg lg:hidden z-50">
+      {/* Mobile Fixed Bottom Bar - Positioned above bottom nav */}
+      <div className="fixed bottom-16 left-0 right-0 bg-background border-t shadow-lg lg:hidden z-40">
         {/* Collapsed Summary - Always Visible */}
         <div className="px-4 py-3 border-b">
           <div className="flex items-center justify-between mb-2">
@@ -470,6 +471,64 @@ export default function CartPage() {
 
             <div className="border-t pt-2.5"></div>
 
+            {/* Mobile Coupon Input */}
+            {cartSummary.couponDiscount === 0 && (
+              <div className="space-y-2 bg-blue-50 border border-blue-200 rounded-lg p-3 -mx-1">
+                <div className="flex items-center gap-2 text-xs font-medium text-blue-900">
+                  <Tag className="h-3.5 w-3.5" />
+                  <span>Apply Coupon Code</span>
+                </div>
+                <div className="flex gap-1">
+                  <input
+                    type="text"
+                    placeholder="Enter code"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    className="flex-1 px-2 py-1.5 text-xs border border-blue-200 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                  <button
+                    onClick={async () => {
+                      if (couponCode.trim()) {
+                        setApplyingCoupon(true);
+                        try {
+                          await handleApplyCoupon(couponCode);
+                          setCouponCode('');
+                        } catch (error) {
+                          // Error handled in handleApplyCoupon
+                        } finally {
+                          setApplyingCoupon(false);
+                        }
+                      }
+                    }}
+                    disabled={applyingCoupon || !couponCode.trim()}
+                    className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {applyingCoupon ? '...' : 'Apply'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Show remove coupon button if one is applied */}
+            {cartSummary.couponDiscount > 0 && (
+              <button
+                onClick={async () => {
+                  setApplyingCoupon(true);
+                  try {
+                    await handleRemoveCoupon();
+                  } catch (error) {
+                    // Error handled in handleRemoveCoupon
+                  } finally {
+                    setApplyingCoupon(false);
+                  }
+                }}
+                disabled={applyingCoupon}
+                className="w-full px-3 py-1.5 text-xs bg-red-50 text-red-600 font-medium rounded border border-red-200 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {applyingCoupon ? 'Removing...' : 'Remove Coupon'}
+              </button>
+            )}
+
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Delivery</span>
               {cartSummary.requiresPincode ? (
@@ -519,11 +578,11 @@ export default function CartPage() {
           </div>
         )}
 
-        {/* Checkout Button */}
-        <div className="p-3">
-          <Button asChild className="w-full h-12 text-base font-semibold shadow-md">
-            <Link href="/checkout">
-              <ShoppingCart className="h-5 w-5 mr-2" />
+        {/* Checkout Button - Mobile Optimized */}
+        <div className="p-2 bg-white">
+          <Button asChild className="w-full h-11 text-sm md:h-14 md:text-base font-bold shadow-md bg-blue-600 hover:bg-blue-700 text-white">
+            <Link href="/checkout" className="flex items-center justify-center gap-2">
+              <ShoppingCart className="h-5 w-5 md:h-6 md:w-6" />
               Proceed to Checkout
             </Link>
           </Button>
