@@ -7,15 +7,15 @@ import { ButtonProps } from '@/types';
 import { Loader2 } from 'lucide-react';
 
 const buttonVariantsConfig = {
-  primary: 
+  primary:
     'bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary',
-  secondary: 
+  secondary:
     'bg-secondary text-secondary-foreground hover:bg-secondary/80 focus:ring-secondary',
-  outline: 
+  outline:
     'border border-border bg-background hover:bg-muted focus:ring-ring',
-  ghost: 
+  ghost:
     'hover:bg-muted focus:ring-ring',
-  destructive: 
+  destructive:
     'bg-destructive text-destructive-foreground hover:bg-destructive/90 focus:ring-destructive',
 };
 
