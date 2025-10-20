@@ -437,6 +437,10 @@ class ApiClient {
     });
   }
 
+  async trackAbandonedCart(cartData: any) {
+    return this.post('/cart/abandoned', cartData);
+  }
+
   // Wishlist API methods
   async getWishlist() {
     const response = await this.get('/wishlist');
@@ -1017,6 +1021,7 @@ export const cartApi = {
   getAvailableCoupons: apiClient.getAvailableCoupons.bind(apiClient),
   calculateShipping: apiClient.calculateCartShipping.bind(apiClient),
   setPaymentMethod: apiClient.setCartPaymentMethod.bind(apiClient),
+  trackAbandonedCart: apiClient.trackAbandonedCart.bind(apiClient),
 };
 
 export const wishlistApi = {

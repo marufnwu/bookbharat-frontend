@@ -12,6 +12,16 @@ interface CartState {
   availableCoupons: any[];
   deliveryPincode: string | null;
   selectedPaymentMethod: string | null;
+  
+  // Cart persistence and recovery
+  lastCartUpdate: number | null;
+  cartRecoveryEnabled: boolean;
+  abandonedCartTimer: NodeJS.Timeout | null;
+  cartRecoveryData: {
+    items: any[];
+    timestamp: number;
+    userEmail?: string;
+  } | null;
 
   // Actions
   getCart: (deliveryPincode?: string, paymentMethod?: string) => Promise<void>;
@@ -25,6 +35,15 @@ interface CartState {
   calculateShipping: (pincode: string, pickupPincode?: string) => Promise<void>;
   setDeliveryPincode: (pincode: string) => void;
   setPaymentMethod: (paymentMethod: string | null) => Promise<void>;
+
+  // Cart persistence and recovery actions
+  saveCartToStorage: () => void;
+  loadCartFromStorage: () => void;
+  startAbandonedCartTimer: () => void;
+  clearAbandonedCartTimer: () => void;
+  recoverAbandonedCart: () => Promise<void>;
+  enableCartRecovery: (email?: string) => void;
+  disableCartRecovery: () => void;
 
   // Local state helpers
   getTotalItems: () => number;
@@ -40,6 +59,12 @@ export const useCartStore = create<CartState>()(
       availableCoupons: [],
       deliveryPincode: null,
       selectedPaymentMethod: null,
+      
+      // Cart persistence and recovery state
+      lastCartUpdate: null,
+      cartRecoveryEnabled: false,
+      abandonedCartTimer: null,
+      cartRecoveryData: null,
 
       getCart: async (deliveryPincode?: string, paymentMethod?: string) => {
         try {
@@ -262,6 +287,145 @@ export const useCartStore = create<CartState>()(
           throw error;
         }
       },
+
+      // Cart persistence and recovery methods
+      saveCartToStorage: () => {
+        const { cart, lastCartUpdate } = get();
+        if (cart && cart.items.length > 0) {
+          const cartData = {
+            cart,
+            timestamp: Date.now(),
+            lastUpdate: lastCartUpdate || Date.now()
+          };
+          
+          try {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('bookbharat_cart_backup', JSON.stringify(cartData));
+            }
+            set({ lastCartUpdate: Date.now() });
+          } catch (error) {
+            console.warn('Failed to save cart to storage:', error);
+          }
+        }
+      },
+
+      loadCartFromStorage: () => {
+        if (typeof window === 'undefined') return false;
+        
+        try {
+          const savedCart = localStorage.getItem('bookbharat_cart_backup');
+          if (savedCart) {
+            const cartData = JSON.parse(savedCart);
+            const now = Date.now();
+            const cartAge = now - cartData.timestamp;
+            
+            // Only restore cart if it's less than 7 days old
+            if (cartAge < 7 * 24 * 60 * 60 * 1000) {
+              set({ 
+                cart: cartData.cart,
+                lastCartUpdate: cartData.lastUpdate 
+              });
+              return true;
+            } else {
+              // Remove expired cart
+              localStorage.removeItem('bookbharat_cart_backup');
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to load cart from storage:', error);
+        }
+        return false;
+      },
+
+      startAbandonedCartTimer: () => {
+        const { cartRecoveryEnabled, cart } = get();
+        
+        if (!cartRecoveryEnabled || !cart || cart.items.length === 0) {
+          return;
+        }
+
+        // Clear existing timer
+        get().clearAbandonedCartTimer();
+
+        // Set timer for 30 minutes (1800000 ms)
+        const timer = setTimeout(() => {
+          get().recoverAbandonedCart();
+        }, 30 * 60 * 1000);
+
+        set({ abandonedCartTimer: timer });
+      },
+
+      clearAbandonedCartTimer: () => {
+        const { abandonedCartTimer } = get();
+        if (abandonedCartTimer) {
+          clearTimeout(abandonedCartTimer);
+          set({ abandonedCartTimer: null });
+        }
+      },
+
+      recoverAbandonedCart: async () => {
+        const { cart, cartRecoveryData } = get();
+        
+        if (!cart || cart.items.length === 0) {
+          return;
+        }
+
+        try {
+          // Save cart data for recovery
+          const recoveryData = {
+            items: cart.items.map(item => ({
+              product_id: item.product.id,
+              quantity: item.quantity,
+              bundle_variant_id: item.bundle_variant_id,
+              attributes: item.attributes
+            })),
+            timestamp: Date.now(),
+            userEmail: cartRecoveryData?.userEmail
+          };
+
+          set({ cartRecoveryData: recoveryData });
+
+          // Send abandoned cart data to backend
+          await cartApi.trackAbandonedCart(recoveryData);
+
+          // Show recovery notification
+          toast.info('Your cart is waiting for you! Complete your purchase to get your books.', {
+            duration: 10000,
+            action: {
+              label: 'View Cart',
+              onClick: () => window.location.href = '/cart'
+            }
+          });
+
+        } catch (error) {
+          console.warn('Failed to track abandoned cart:', error);
+        }
+      },
+
+      enableCartRecovery: (email?: string) => {
+        set({ 
+          cartRecoveryEnabled: true,
+          cartRecoveryData: {
+            items: [],
+            timestamp: Date.now(),
+            userEmail: email
+          }
+        });
+        
+        // Start timer if cart has items
+        const { cart } = get();
+        if (cart && cart.items.length > 0) {
+          get().startAbandonedCartTimer();
+        }
+      },
+
+      disableCartRecovery: () => {
+        get().clearAbandonedCartTimer();
+        set({ 
+          cartRecoveryEnabled: false,
+          cartRecoveryData: null 
+        });
+      },
     }),
     {
       name: 'cart-store',
@@ -269,6 +433,9 @@ export const useCartStore = create<CartState>()(
         cart: state.cart,
         deliveryPincode: state.deliveryPincode,
         selectedPaymentMethod: state.selectedPaymentMethod,
+        lastCartUpdate: state.lastCartUpdate,
+        cartRecoveryEnabled: state.cartRecoveryEnabled,
+        cartRecoveryData: state.cartRecoveryData,
       }),
     }
   )

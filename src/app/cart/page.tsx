@@ -7,9 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useCartStore } from '@/stores/cart';
+import { useWishlistStore } from '@/stores/wishlist';
+import { useAuthStore } from '@/stores/auth';
 import { useCartSummary } from '@/hooks/useCartSummary';
+import { useCartPersistence } from '@/hooks/useCartPersistence';
 import { useConfig } from '@/contexts/ConfigContext';
+import { useAnalytics } from '@/lib/analytics';
+import { ANALYTICS_EVENTS } from '@/lib/analytics';
 import { OrderSummaryCard } from '@/components/cart/OrderSummaryCard';
+import { QuickSocialLogin } from '@/components/auth/QuickSocialLogin';
+import { MobileGestureCard, MobileQuantityControls } from '@/components/mobile/MobileGestureCard';
 import {
   Minus,
   Plus,
@@ -22,7 +29,11 @@ import {
   ChevronUp,
   BookOpen,
   Tag,
-  Gift
+  Gift,
+  Heart,
+  Share2,
+  AlertCircle,
+  CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -48,7 +59,17 @@ export default function CartPage() {
     getAvailableCoupons
   } = useCartStore();
 
+  const { 
+    addToWishlist, 
+    isInWishlist, 
+    bulkMoveToCart,
+    shareWishlist 
+  } = useWishlistStore();
+
   const { siteConfig } = useConfig();
+  const { cartRestored, cartRecoveryEnabled } = useCartPersistence();
+  const analytics = useAnalytics();
+  const { isAuthenticated } = useAuthStore();
 
   const cartSummary = useCartSummary(cart, (siteConfig?.payment?.currency_symbol || '?'));
 
@@ -63,11 +84,28 @@ export default function CartPage() {
     loadCart();
   }, [getCart, getAvailableCoupons]);
 
+  // Track cart view
+  useEffect(() => {
+    if (cart && cart.items.length > 0) {
+      analytics.trackCartView(cart);
+    }
+  }, [cart, analytics]);
+
   const handleQuantityChange = async (itemId: number, newQuantity: number) => {
     if (newQuantity <= 0) return;
     setUpdating(itemId);
     try {
       await updateQuantity(itemId, newQuantity);
+      
+      // Track quantity change
+      const item = cart?.items.find(i => i.id === itemId);
+      if (item) {
+        if (newQuantity > item.quantity) {
+          analytics.trackAddToCart(item.product, newQuantity - item.quantity, item.bundle_variant_id);
+        } else {
+          analytics.trackRemoveFromCart(item.product, item.quantity - newQuantity);
+        }
+      }
     } finally {
       setUpdating(null);
     }
@@ -76,7 +114,14 @@ export default function CartPage() {
   const handleRemoveItem = async (itemId: number) => {
     setRemoving(itemId);
     try {
+      const item = cart?.items.find(i => i.id === itemId);
       await removeItem(itemId);
+      
+      // Track item removal
+      if (item) {
+        analytics.trackRemoveFromCart(item.product, item.quantity);
+      }
+      
       toast.success('Removed from cart');
     } finally {
       setRemoving(null);
@@ -157,6 +202,21 @@ export default function CartPage() {
 
       {/* Desktop Container */}
       <div className="container mx-auto px-4 py-6 lg:py-8">
+        {/* Quick Login for Guest Users */}
+        {!isAuthenticated && (
+          <div className="mb-6">
+            <QuickSocialLogin 
+              onSuccess={() => {
+                // Refresh cart after login
+                getCart();
+                analytics.track('cart_login_success', {
+                  context: 'cart_page'
+                });
+              }}
+            />
+          </div>
+        )}
+
         {/* Desktop Header */}
         <div className="hidden lg:flex items-center justify-between mb-6">
           <div>
@@ -175,6 +235,23 @@ export default function CartPage() {
               {clearingCart ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
               <span className="ml-2">Clear Cart</span>
             </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  const wishlistItemIds = cart.items.map(item => item.id);
+                  await bulkMoveToCart(wishlistItemIds);
+                  await clearCart();
+                  toast.success('All items saved to wishlist!');
+                } catch (error) {
+                  toast.error('Failed to save items to wishlist');
+                }
+              }}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              <Heart className="h-4 w-4" />
+              <span className="ml-2">Save for Later</span>
+            </Button>
             <Button asChild>
               <Link href="/products">Continue Shopping</Link>
             </Button>
@@ -185,7 +262,28 @@ export default function CartPage() {
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-3 p-4 lg:p-0">
             {cart.items.map((item) => (
-              <Card key={item.id} className={`p-3 lg:p-6 ${item.bundle_variant_id ? 'border-2 border-green-200 bg-green-50/30' : ''}`}>
+              <MobileGestureCard
+                key={item.id}
+                onDelete={() => handleRemoveItem(item.id)}
+                onWishlist={() => {
+                  addToWishlist(item.product);
+                  analytics.trackWishlistAdd(item.product);
+                }}
+                onShare={() => {
+                  if (navigator.share) {
+                    navigator.share({
+                      title: item.product.name,
+                      text: `Check out this book: ${item.product.name}`,
+                      url: `${window.location.origin}/products/${item.product.slug}`
+                    });
+                  } else {
+                    navigator.clipboard.writeText(`${window.location.origin}/products/${item.product.slug}`);
+                    toast.success('Product link copied to clipboard!');
+                  }
+                }}
+                className="block"
+              >
+                <Card className={`p-3 lg:p-6 ${item.bundle_variant_id ? 'border-2 border-green-200 bg-green-50/30' : ''}`}>
                 {/* Bundle Header Badge */}
                 {item.bundle_variant_id && item.attributes?.bundle_name && (
                   <div className="mb-3 pb-3 border-b border-green-200">
@@ -244,22 +342,33 @@ export default function CartPage() {
                           {item.product.name}
                         </h3>
                         <p className="text-xs lg:text-sm text-muted-foreground">
-                          {item.product.author || 'Unknown'}
+                          {(item.product as any).author || 'Unknown'}
                         </p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRemoveItem(item.id)}
-                        disabled={removing === item.id}
-                        className="hidden lg:flex text-muted-foreground hover:text-destructive"
-                      >
-                        {removing === item.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => addToWishlist(item.product)}
+                          className="text-muted-foreground hover:text-red-500"
+                          title="Add to Wishlist"
+                        >
+                          <Heart className={`h-4 w-4 ${isInWishlist(item.product.id) ? 'fill-red-500 text-red-500' : ''}`} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveItem(item.id)}
+                          disabled={removing === item.id}
+                          className="hidden lg:flex text-muted-foreground hover:text-destructive"
+                        >
+                          {removing === item.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Price */}
@@ -301,30 +410,12 @@ export default function CartPage() {
 
                     {/* Quantity & Remove */}
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center bg-muted rounded-lg">
-                        <button
-                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                          disabled={updating === item.id}
-                          className="p-2 disabled:opacity-50"
-                        >
-                          <Minus className="h-3 w-3 lg:h-4 lg:w-4" />
-                        </button>
-                        <span className="px-3 lg:px-4 text-sm lg:text-base font-medium min-w-[40px] text-center">
-                          {updating === item.id ? (
-                            <Loader2 className="h-3 w-3 lg:h-4 lg:w-4 animate-spin mx-auto" />
-                          ) : (
-                            item.quantity
-                          )}
-                        </span>
-                        <button
-                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                          disabled={updating === item.id}
-                          className="p-2 disabled:opacity-50"
-                        >
-                          <Plus className="h-3 w-3 lg:h-4 lg:w-4" />
-                        </button>
-                      </div>
+                      <MobileQuantityControls
+                        quantity={item.quantity}
+                        onIncrease={() => handleQuantityChange(item.id, item.quantity + 1)}
+                        onDecrease={() => handleQuantityChange(item.id, item.quantity - 1)}
+                        disabled={updating === item.id}
+                      />
                       
                       {/* Bundle Quantity Label */}
                       {item.bundle_variant_id && (
@@ -334,21 +425,22 @@ export default function CartPage() {
                       )}
                     </div>
 
-                      <button
-                        onClick={() => handleRemoveItem(item.id)}
-                        disabled={removing === item.id}
-                        className="p-2 text-destructive lg:hidden"
-                      >
-                        {removing === item.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
+                    {/* Mobile Remove Button */}
+                    <button
+                      onClick={() => handleRemoveItem(item.id)}
+                      disabled={removing === item.id}
+                      className="p-2 text-destructive lg:hidden"
+                    >
+                      {removing === item.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </button>
                   </div>
                 </div>
               </Card>
+              </MobileGestureCard>
             ))}
           </div>
 
@@ -580,7 +672,15 @@ export default function CartPage() {
 
         {/* Checkout Button - Mobile Optimized */}
         <div className="p-2 bg-white">
-          <Button asChild className="w-full h-11 text-sm md:h-14 md:text-base font-bold shadow-md bg-blue-600 hover:bg-blue-700 text-white">
+          <Button 
+            asChild 
+            className="w-full h-11 text-sm md:h-14 md:text-base font-bold shadow-md bg-blue-600 hover:bg-blue-700 text-white"
+            onClick={() => {
+              if (cart) {
+                analytics.trackCheckoutStarted(cart);
+              }
+            }}
+          >
             <Link href="/checkout" className="flex items-center justify-center gap-2">
               <ShoppingCart className="h-5 w-5 md:h-6 md:w-6" />
               Proceed to Checkout
