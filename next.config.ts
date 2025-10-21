@@ -12,6 +12,13 @@ const nextConfig: NextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
+      // Production Backend
+      {
+        protocol: 'https',
+        hostname: 'v2s.bookbharat.com',
+        pathname: '/**',
+      },
+      // Local Development
       {
         protocol: 'http',
         hostname: 'localhost',
@@ -29,6 +36,7 @@ const nextConfig: NextConfig = {
         hostname: 'localhost',
         pathname: '/**',
       },
+      // External Image Services
       {
         protocol: 'https',
         hostname: 'placehold.co',
@@ -39,7 +47,6 @@ const nextConfig: NextConfig = {
         hostname: 'via.placeholder.com',
         pathname: '/**',
       },
-      // Add specific external hosts here as needed (avoid wildcards)
       {
         protocol: 'https',
         hostname: 'picsum.photos',

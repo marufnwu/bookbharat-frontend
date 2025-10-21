@@ -27,13 +27,20 @@ export function ProductImageGallery({ images, productName, className = '' }: Pro
   const getImageUrl = useCallback((image: ProductImage, index: number = 0) => {
     if (!image) return '/book-placeholder.svg';
 
+    // Priority order: url > image_url > construct from image_path
     if (image.url) return image.url;
     if (image.image_url) return image.image_url;
+    
+    // Fallback: construct URL from image_path (should rarely be needed)
     if (image.image_path) {
+      // If image_path is already a full URL, return it
+      if (image.image_path.startsWith('http')) {
+        return image.image_path;
+      }
+      
+      // Otherwise, construct the URL (fallback for legacy data)
       const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:8000';
-      return image.image_path.startsWith('http')
-        ? image.image_path
-        : `${baseUrl}/storage/${image.image_path}`;
+      return `${baseUrl}/storage/${image.image_path}`;
     }
 
     return '/book-placeholder.svg';
