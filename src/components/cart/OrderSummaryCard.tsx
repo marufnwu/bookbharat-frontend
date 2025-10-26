@@ -511,7 +511,7 @@ export function OrderSummaryCard({
             </>
           ) : (
             <div className="flex justify-between">
-              <span>Tax (GST 18%)</span>
+              <span>Tax</span>
               <span>{summary.currencySymbol}{parseFloat(String(summary.tax)).toFixed(2)}</span>
             </div>
           )}

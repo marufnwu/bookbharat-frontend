@@ -656,7 +656,7 @@ export default function CartPage() {
               </>
             ) : (
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground text-xs">Tax (GST 18%)</span>
+                <span className="text-muted-foreground text-xs">Tax</span>
                 <span className="font-medium text-xs">+{cartSummary.currencySymbol}{cartSummary.tax.toFixed(2)}</span>
               </div>
             )}

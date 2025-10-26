@@ -214,7 +214,7 @@ export default function CartPage() {
               <span className="text-green-600">FREE</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Tax (18%)</span>
+              <span className="text-gray-600">Tax</span>
               <span>₹{cartSummary.tax.toFixed(2)}</span>
             </div>
             <div className="flex justify-between font-semibold pt-2 border-t">

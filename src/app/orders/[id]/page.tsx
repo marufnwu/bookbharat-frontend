@@ -484,7 +484,7 @@ export default function OrderDetailPage() {
               )}
               {order.tax_amount !== undefined && (
                 <div className="flex justify-between text-sm">
-                  <span>Tax (GST)</span>
+                  <span>Tax</span>
                   <span>₹{order.tax_amount}</span>
                 </div>
               )}

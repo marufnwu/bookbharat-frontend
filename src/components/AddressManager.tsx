@@ -52,10 +52,18 @@ interface Address {
 interface PincodeDetails {
   success: boolean
   serviceable: boolean
+  pincode: string
   zone_info?: {
     city: string
+    district: string
     state: string
+    region: string
+    office_name: string
+    delivery_status: string
   }
+  estimated_delivery?: string
+  free_shipping_threshold?: number
+  cod_available?: boolean
   message?: string
 }
 
@@ -115,14 +123,17 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
         // Clear any previous pincode errors
         form.clearErrors('pincode')
 
-        // Auto-fill city, state, and post name
-        form.setValue('zila', data.zone_info?.city)
-        form.setValue('state', data.zone_info.state)
-        form.setValue('post_name', data.zone_info?.city) // Using city as post name for now
+        // Auto-fill city, state, and post name with proper form update
+        form.setValue('zila', data.zone_info?.district || data.zone_info?.city, { shouldValidate: true, shouldDirty: true })
+        form.setValue('state', data.zone_info.state, { shouldValidate: true, shouldDirty: true })
+        form.setValue('post_name', data.zone_info?.office_name || data.zone_info?.city, { shouldValidate: true, shouldDirty: true })
+
+        // Trigger form re-render to ensure UI updates
+        form.trigger(['zila', 'state', 'post_name'])
 
         toast({
           title: "Pincode validated",
-          description: `Delivery available to ${data.zone_info?.city}, ${data.zone_info.state}`,
+          description: `Delivery available to ${data.zone_info?.district || data.zone_info?.city}, ${data.zone_info.state}`,
         })
       } else {
         form.setError('pincode', {
@@ -170,7 +181,7 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
 
   useEffect(() => {
     if (editingAddress) {
-      form.reset({
+      const addressData = {
         type: editingAddress.type as 'billing' | 'shipping',
         first_name: editingAddress.first_name,
         last_name: editingAddress.last_name,
@@ -184,7 +195,17 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
         state: editingAddress.state,
         post_name: editingAddress.post_name,
         country: editingAddress.country,
-      })
+      }
+      
+      form.reset(addressData)
+      
+      // Trigger pincode validation if pincode is valid
+      if (editingAddress.pincode && editingAddress.pincode.length === 6) {
+        // Small delay to ensure form is properly reset
+        setTimeout(() => {
+          validatePincode(editingAddress.pincode)
+        }, 100)
+      }
     } else {
       form.reset({
         type: 'shipping',
@@ -202,7 +223,7 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
         country: 'India',
       })
     }
-  }, [editingAddress, form])
+  }, [editingAddress])
 
   const fetchAddresses = async () => {
     try {
@@ -599,17 +620,19 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
               <Controller
                 name="type"
                 control={form.control}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value} defaultValue="shipping">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select address type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="shipping">Shipping</SelectItem>
-                      <SelectItem value="billing">Billing</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
+                render={({ field }) => {
+                  return (
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue="shipping">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select address type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="shipping">Shipping</SelectItem>
+                        <SelectItem value="billing">Billing</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )
+                }}
               />
             </div>
 

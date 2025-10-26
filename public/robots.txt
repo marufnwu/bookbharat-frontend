@@ -1,0 +1,45 @@
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Disallow private and dynamic areas
+Disallow: /api/
+Disallow: /admin/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /payment/
+Disallow: /auth/
+Disallow: /profile
+Disallow: /settings
+Disallow: /orders
+Disallow: /_next/data/
+
+# Allow important pages
+Allow: /products/
+Allow: /categories/
+Allow: /_next/static/
+Allow: /_next/image
+
+# Sitemaps
+Sitemap: https://v2.bookbharat.com/sitemap.xml
+Sitemap: https://v2.bookbharat.com/product-sitemap.xml
+Sitemap: https://v2.bookbharat.com/category-sitemap.xml
+
+# Product Feed for Google Merchant Center
+# Access at: https://v2.bookbharat.com/product-feed.xml
+
+# Specific bot rules
+User-agent: Googlebot
+Crawl-delay: 0
+Allow: /
+
+User-agent: Bingbot
+Crawl-delay: 1
+
+# Disallow AI crawlers from training on content (optional)
+User-agent: GPTBot
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+

@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ProductCard } from '@/components/ui/product-card';
+import { CategorySchema } from '@/components/seo/CategorySchema';
 import { categoryApi, productApi } from '@/lib/api';
 import { Category, Product } from '@/types';
 import { getProductCardProps, getProductGridClasses } from '@/lib/product-card-config';
@@ -284,6 +285,15 @@ export default function CategoryPage() {
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
+      )}
+
+      {/* SEO: Category ItemList Structured Data */}
+      {category && products.length > 0 && (
+        <CategorySchema 
+          category={category} 
+          products={products}
+          totalProducts={totalPages * products.length}
+        />
       )}
     </div>
   );

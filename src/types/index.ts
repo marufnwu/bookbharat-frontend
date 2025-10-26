@@ -87,6 +87,16 @@ export interface Product {
   category_id: number;
   category?: Category;
   brand?: string;
+  author?: string;
+  publisher?: string;
+  isbn?: string;
+  pages?: number;
+  format?: 'Hardcover' | 'Paperback' | 'Ebook' | 'Audiobook';
+  language?: string;
+  publication_date?: string;
+  rating?: number;
+  total_reviews?: number;
+  reviews?: Review[];
   status: 'active' | 'inactive' | 'draft';
   is_featured: boolean;
   is_digital: boolean;

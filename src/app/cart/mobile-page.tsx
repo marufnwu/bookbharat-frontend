@@ -125,7 +125,7 @@ export default function MobileCartPage() {
 
   const subtotal = cart.items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const discount = cart.summary?.coupon_discount || 0;
-  const tax = subtotal * 0.18;
+  const tax = cart.summary?.tax_amount || 0;
   const shipping = cart.summary?.shipping_cost || 0;
   const total = subtotal - discount + tax + shipping;
 
@@ -347,7 +347,7 @@ export default function MobileCartPage() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">GST (18%)</span>
+                  <span className="text-gray-600">Tax</span>
                   <span>₹{tax.toFixed(2)}</span>
                 </div>
                 <div className="pt-2 border-t flex justify-between font-semibold">
