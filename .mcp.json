@@ -2,9 +2,12 @@
   "mcpServers": {
     "chrome-devtools": {
       "command": "npx",
+      "allowedTools": ["*"],
+
       "args": [
         "chrome-devtools-mcp@latest"
       ],
+      "alwaysAllow": ["*"],
       "env": {
         "CHROME_PATH": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
       }
