@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { PaymentStatusChecker } from '@/components/PaymentStatusChecker';
 import { Loader2 } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 // Disable static generation for this page as it requires query parameters
 export const dynamic = 'force-dynamic';
@@ -31,7 +32,7 @@ function PaymentStatusContent() {
       orderId={parseInt(orderId)}
       paymentId={paymentId || undefined}
       onStatusChange={(status, data) => {
-        console.log('Payment status changed:', status, data);
+        logger.log('Payment status changed:', status, data);
       }}
       autoRefresh={true}
       maxRetries={20} // Check for up to 1 minute

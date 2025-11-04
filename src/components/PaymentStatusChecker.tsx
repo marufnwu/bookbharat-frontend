@@ -24,10 +24,10 @@ interface PaymentStatusCheckerProps {
   maxRetries?: number;
 }
 
-export function PaymentStatusChecker({ 
-  orderId, 
-  paymentId, 
-  onStatusChange, 
+export function PaymentStatusChecker({
+  orderId,
+  paymentId,
+  onStatusChange,
   autoRefresh = true,
   maxRetries = 10
 }: PaymentStatusCheckerProps) {
@@ -37,53 +37,126 @@ export function PaymentStatusChecker({
   const [retryCount, setRetryCount] = useState(0);
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [timeElapsed, setTimeElapsed] = useState(0);
+  const [lastChecked, setLastChecked] = useState<Date>(new Date());
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [verificationAttempts, setVerificationAttempts] = useState(0);
   const router = useRouter();
 
-  const checkPaymentStatus = useCallback(async () => {
+  const checkPaymentStatus = useCallback(async (isRetry = false) => {
     try {
       setLoading(true);
       setError(null);
-      
+      setLastChecked(new Date());
+
+      if (isRetry) {
+        setIsRetrying(true);
+      }
+
       const response = await paymentApi.getPaymentStatus(orderId);
-      
+
       if (response.success) {
         const paymentStatus = response.data.status || response.data.payment_status;
+        const previousStatus = status;
+
         setStatus(paymentStatus);
-        
+        setVerificationAttempts(prev => prev + 1);
+
+        // Log status change for debugging
+        if (previousStatus !== paymentStatus) {
+          console.log(`Payment status changed from ${previousStatus} to ${paymentStatus} for order ${orderId}`);
+        }
+
         // Fetch order details if payment is successful
-        if (paymentStatus === 'success' || paymentStatus === 'completed') {
+        if (['success', 'completed', 'paid'].includes(paymentStatus)) {
           try {
             const orderResponse = await orderApi.getOrder(orderId);
             if (orderResponse.success) {
               setOrderDetails(orderResponse.data);
+
+              // Store successful order in localStorage for recovery
+              if (typeof window !== 'undefined') {
+                localStorage.setItem(`payment_success_${orderId}`, JSON.stringify({
+                  orderId,
+                  status: paymentStatus,
+                  timestamp: new Date().toISOString(),
+                  orderData: orderResponse.data
+                }));
+              }
             }
           } catch (orderError) {
             console.error('Failed to fetch order details:', orderError);
           }
         }
-        
+
+        // Clear any existing timeout status if we get a valid response
+        if (paymentStatus !== 'timeout') {
+          setError(null);
+        }
+
         onStatusChange?.(paymentStatus, response.data);
-        
+
         // Stop auto-refresh for final states
-        if (['success', 'completed', 'failed', 'cancelled', 'expired'].includes(paymentStatus)) {
+        if (['success', 'completed', 'paid', 'failed', 'cancelled', 'expired'].includes(paymentStatus)) {
           setLoading(false);
+          setIsRetrying(false);
           return true; // Payment resolved
         }
-        
-        setRetryCount(prev => prev + 1);
+
+        // Only increment retry count if this isn't the first check
+        if (verificationAttempts > 0) {
+          setRetryCount(prev => prev + 1);
+        }
       } else {
-        setError(response.message || 'Failed to check payment status');
+        const errorMessage = response.message || 'Failed to check payment status';
+        setError(errorMessage);
+
+        // Don't set status to error immediately, allow retries
+        if (retryCount >= maxRetries - 1) {
+          setStatus('error');
+        }
       }
     } catch (err: any) {
       console.error('Payment status check error:', err);
-      setError(err.response?.data?.message || 'Failed to check payment status');
+
+      // Handle different error types
+      let errorMessage = 'Failed to check payment status';
+
+      if (err.response?.status === 404) {
+        errorMessage = 'Order not found. Please check your order number.';
+        setStatus('not_found');
+      } else if (err.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please try again.';
+        setStatus('auth_error');
+      } else if (err.response?.status >= 500) {
+        errorMessage = 'Server error. Please try again in a moment.';
+      } else if (err.code === 'NETWORK_ERROR' || err.code === 'ECONNABORTED') {
+        errorMessage = 'Network error. Please check your connection.';
+      }
+
+      setError(errorMessage);
+
+      // Only set error status after multiple failed attempts
+      if (retryCount >= Math.floor(maxRetries / 2)) {
+        setStatus('error');
+      }
+
       setRetryCount(prev => prev + 1);
     } finally {
       setLoading(false);
+      setIsRetrying(false);
     }
-    
+
     return false; // Payment not resolved
-  }, [orderId, onStatusChange]);
+  }, [orderId, onStatusChange, status, verificationAttempts, retryCount, maxRetries]);
+
+  // Manual retry function
+  const handleManualRetry = useCallback(async () => {
+    setRetryCount(0);
+    setVerificationAttempts(0);
+    setStatus('checking');
+    setError(null);
+    await checkPaymentStatus(true);
+  }, [checkPaymentStatus]);
 
   // Timer effect
   useEffect(() => {

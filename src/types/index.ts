@@ -354,22 +354,6 @@ export interface ReviewForm {
   comment: string;
 }
 
-// Address Types
-export interface Address {
-  id?: number;
-  type: 'billing' | 'shipping';
-  first_name: string;
-  last_name: string;
-  company?: string;
-  address_line_1: string;
-  address_line_2?: string;
-  city: string;
-  state: string;
-  postal_code: string;
-  country: string;
-  phone?: string;
-  is_default?: boolean;
-}
 
 // Shipping Types
 export interface ShippingZone {

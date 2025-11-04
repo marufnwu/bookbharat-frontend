@@ -1,6 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Save, Bell, Mail, MessageSquare, Send, Smartphone, Moon, Sun, Check, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'

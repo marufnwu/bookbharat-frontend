@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { addressApi, shippingApi } from '@/lib/api'
+import { logger } from '@/lib/logger'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -117,7 +118,7 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
     setPincodeLoading(true)
     try {
       const data: PincodeDetails = await shippingApi.checkPincode(pincode)
-      console.log('Pincode validation response:', data)
+      logger.log('Pincode validation response:', data)
       
       if (data.success && data.serviceable && data.zone_info?.city) {
         // Clear any previous pincode errors

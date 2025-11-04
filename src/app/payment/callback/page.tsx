@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 // Disable static generation for this page as it requires query parameters
 export const dynamic = 'force-dynamic';
@@ -20,7 +21,7 @@ export default function PaymentCallbackPage() {
       try {
         // Get all query parameters
         const params = Object.fromEntries(searchParams.entries());
-        console.log('Payment callback params:', params);
+        logger.log('Payment callback params:', params);
 
         // Check for success indicators from different gateways
         const isSuccess =

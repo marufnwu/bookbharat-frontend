@@ -1022,6 +1022,38 @@ export const cartApi = {
   calculateShipping: apiClient.calculateCartShipping.bind(apiClient),
   setPaymentMethod: apiClient.setCartPaymentMethod.bind(apiClient),
   trackAbandonedCart: apiClient.trackAbandonedCart.bind(apiClient),
+
+  // Cart Recovery API methods
+  async getAbandonedCarts() {
+    return apiClient.get('/cart-recovery/abandoned-carts');
+  },
+
+  async triggerRecovery(data: { cart_id: number; method: 'email' | 'sms' | 'push'; force?: boolean }) {
+    return apiClient.post('/cart-recovery/trigger-recovery', data);
+  },
+
+  async trackUserBehavior(data: {
+    session_id: string;
+    exit_intent_detected?: boolean;
+    session_duration?: number;
+    time_on_page?: number;
+    scroll_depth?: number;
+    device_type?: 'desktop' | 'mobile' | 'tablet';
+  }) {
+    return publicClient.post('/cart-recovery/track-behavior', data);
+  },
+
+  async getRecoveryStats() {
+    return apiClient.get('/cart-recovery/admin/stats');
+  },
+
+  async getRecoveryAnalytics() {
+    return apiClient.get('/cart-recovery/admin/analytics');
+  },
+
+  async getHighPriorityCarts() {
+    return apiClient.get('/cart-recovery/admin/high-priority');
+  },
 };
 
 export const wishlistApi = {
@@ -1064,6 +1096,28 @@ export const orderApi = {
   cancelOrder: apiClient.cancelOrder.bind(apiClient),
   downloadInvoice: apiClient.downloadInvoice.bind(apiClient),
   downloadReceipt: apiClient.downloadReceipt.bind(apiClient),
+
+  // Order Tracking API methods
+  async getOrderTracking(orderId: number) {
+    return apiClient.get(`/orders/${orderId}/tracking`);
+  },
+
+  async getUserOrdersWithTracking() {
+    return apiClient.get('/orders/tracking/all');
+  },
+
+  // Public tracking methods
+  async trackOrder(data: { order_id: number; tracking_number?: string }) {
+    return publicClient.post('/tracking/track', data);
+  },
+
+  async trackByOrderNumber(orderNumber: string) {
+    return publicClient.get(`/tracking/order/${orderNumber}`);
+  },
+
+  async trackShipment(data: { carrier: string; tracking_number: string }) {
+    return publicClient.post('/tracking/shipment', data);
+  },
 };
 
 export const shippingApi = {

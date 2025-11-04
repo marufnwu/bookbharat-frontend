@@ -5,6 +5,21 @@ const nextConfig: NextConfig = {
   // App directory is stable in Next.js 13+, no need for experimental flag
   pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
 
+  // Disable static generation for all pages
+  trailingSlash: false,
+  distDir: '.next',
+
+  // Allow dynamic pages for development
+  experimental: {
+    runtime: 'nodejs',
+    serverComponentsExternalPackages: ['@prisma/client'],
+  },
+
+  // Skip static generation for pages that use dynamic features
+  generateBuildId: async () => {
+    return 'build'
+  },
+
   // Enable compression
   compress: true,
 
