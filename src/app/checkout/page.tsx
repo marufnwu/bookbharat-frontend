@@ -3,7 +3,7 @@
 // TODO: Replace console.log statements with logger from '@/lib/logger' for production
 // Currently 34 console.log statements used for debugging
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -454,12 +454,24 @@ export default function CheckoutPage() {
     };
   }, []);
 
+  // Ref to track ongoing pincode validation requests to prevent duplicates
+  const pincodeValidationRef = useRef(false);
+  // Ref to track ongoing shipping calculation requests to prevent duplicates
+  const shippingCalculationRef = useRef(false);
+
   // Watch pincode field and trigger validation when it changes
   useEffect(() => {
     const pincode = formValues.pincode;
     
     const timeoutId = setTimeout(() => {
-      if (pincode && pincode.length === 6) { validatePincode(pincode); }
+      if (pincode && pincode.length === 6 && !pincodeValidationRef.current) {
+        // Set the ref to prevent multiple simultaneous requests
+        pincodeValidationRef.current = true;
+        validatePincode(pincode).finally(() => {
+          // Reset the ref after validation completes
+          pincodeValidationRef.current = false;
+        });
+      }
     }, 300);
     
     return () => clearTimeout(timeoutId);
@@ -843,8 +855,13 @@ export default function CheckoutPage() {
 
   const calculateShipping = async (pincode: string) => {
     if (!cart || !pincode || pincode.length !== 6) return;
+    // Prevent multiple simultaneous requests
+    if (shippingCalculationRef.current) {
+      return;
+    }
 
     try {
+      shippingCalculationRef.current = true;
       setCalculatingShipping(true);
       // Use new cart/calculate-shipping endpoint
       const response = await cartApi.calculateShipping(pincode);
@@ -876,6 +893,7 @@ export default function CheckoutPage() {
       setShippingCost(50);
     } finally {
       setCalculatingShipping(false);
+      shippingCalculationRef.current = false;
     }
   };
 
@@ -903,7 +921,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const validateStep1 = () => {
+  const validateStep1 = async () => {
     if (isAuthenticated) {
       // For authenticated users, check address selection, email, and pincode serviceability
       if (!selectedShippingAddress) {
@@ -961,8 +979,9 @@ export default function CheckoutPage() {
     
     setError(null);
     
-    if (formData.pincode && formData.pincode.length === 6) {
-      calculateShipping(formData.pincode);
+    // Only call calculateShipping if it's valid and not already calculating
+    if (formData.pincode && formData.pincode.length === 6 && !calculatingShipping) {
+      await calculateShipping(formData.pincode);
     }
     
     return true;
@@ -1025,12 +1044,12 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleContinueToNext = () => {
+  const handleContinueToNext = async () => {
     let isValid = false;
     
     switch (currentStep) {
       case 1:
-        isValid = validateStep1();
+        isValid = await validateStep1();
         break;
       case 2:
         isValid = validateStep2();
@@ -1396,22 +1415,102 @@ export default function CheckoutPage() {
     }
   };
 
-  if (loading) {
+  if (loading || cartLoading) {
     return (
       <div className="container mx-auto px-4 py-4 lg:py-8">
         <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-muted rounded w-1/4"></div>
-          {[...Array(3)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader>
-                <div className="h-6 bg-muted rounded w-1/3"></div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="h-4 bg-muted rounded w-3/4"></div>
-                <div className="h-4 bg-muted rounded w-1/2"></div>
-              </CardContent>
-            </Card>
-          ))}
+          {/* Progress indicator skeleton */}
+          <Card className="mb-6 lg:mb-10">
+            <CardHeader className="pb-4">
+              <div className="h-6 bg-muted rounded w-1/3"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-2 bg-muted rounded-full w-full mb-4"></div>
+              <div className="flex justify-between">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex flex-col items-center">
+                    <div className="w-10 h-10 rounded-full bg-muted mb-2"></div>
+                    <div className="h-3 bg-muted rounded w-16"></div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Main content skeleton */}
+          <div className="grid lg:grid-cols-3 gap-4 lg:gap-8">
+            <div className="lg:col-span-2 space-y-4 lg:space-y-6">
+              <Card>
+                <CardHeader>
+                  <div className="h-6 bg-muted rounded w-1/2"></div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="h-4 bg-muted rounded w-full"></div>
+                  <div className="h-4 bg-muted rounded w-3/4"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
+                </CardContent>
+              </Card>
+              
+              {/* Form skeleton */}
+              <Card>
+                <CardHeader>
+                  <div className="h-6 bg-muted rounded w-1/2"></div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                      <div className="h-10 bg-muted rounded"></div>
+                      <div className="h-10 bg-muted rounded"></div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Navigation skeleton */}
+              <div className="hidden lg:flex flex-col sm:flex-row gap-3 lg:gap-4 sm:justify-between sm:items-center">
+                <div className="h-10 bg-muted rounded w-32"></div>
+                <div className="h-10 bg-muted rounded w-40"></div>
+              </div>
+            </div>
+
+            {/* Order summary skeleton */}
+            <div className="space-y-4 lg:space-y-6">
+              <Card>
+                <CardHeader>
+                  <div className="h-6 bg-muted rounded w-3/4"></div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="h-4 bg-muted rounded w-full"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
+                  <div className="h-10 bg-muted rounded"></div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Mobile navigation skeleton */}
+          <div className="lg:hidden fixed bottom-16 left-0 right-0 bg-background border-t border-border shadow-lg z-40">
+            <div className="container mx-auto px-4 py-3">
+              <div className="flex gap-2">
+                <div className="h-12 bg-muted rounded flex-1"></div>
+                <div className="h-12 bg-muted rounded flex-1"></div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -1722,7 +1821,14 @@ export default function CheckoutPage() {
                         )}
                         
                         {/* Pincode Info Display */}
-                        {pincodeInfo && !pincodeError && (
+                        {calculatingShipping ? (
+                          <div className="bg-muted/50 p-3 rounded-lg border">
+                            <div className="flex items-center">
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mr-2" />
+                              <span className="text-sm text-muted-foreground">Calculating shipping...</span>
+                            </div>
+                          </div>
+                        ) : pincodeInfo && !pincodeError && (
                           <div className="bg-primary/10 p-3 rounded-lg border border-primary/20">
                             <div className="flex items-start space-x-2">
                               <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
@@ -1761,125 +1867,147 @@ export default function CheckoutPage() {
                       </div>
 
                       {/* Address Fields */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
-                        <Input
-                          {...register('area')}
-                          label="Village/City/Area"
-                          placeholder="Enter your area"
-                          error={errors.area?.message}
-                          required
-                        />
-                        <Input
-                          {...register('city')}
-                          label="City"
-                          placeholder="Enter city name"
-                          error={errors.city?.message}
-                          required
-                        />
-                      </div>
+                      {calculatingShipping ? (
+                        <div className="space-y-3">
+                          {[...Array(5)].map((_, idx) => (
+                            <div key={idx} className="animate-pulse">
+                              <div className="h-4 bg-muted rounded w-1/4 mb-2"></div>
+                              <div className="h-10 bg-muted rounded"></div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                            <Input
+                              {...register('area')}
+                              label="Village/City/Area"
+                              placeholder="Enter your area"
+                              error={errors.area?.message}
+                              required
+                            />
+                            <Input
+                              {...register('city')}
+                              label="City"
+                              placeholder="Enter city name"
+                              error={errors.city?.message}
+                              required
+                            />
+                          </div>
 
-                      <Input
-                        {...register('address')}
-                        label="Complete Address"
-                        placeholder="House no., Street, Locality"
-                        error={errors.address?.message}
-                        required
-                      />
+                          <Input
+                            {...register('address')}
+                            label="Complete Address"
+                            placeholder="House no., Street, Locality"
+                            error={errors.address?.message}
+                            required
+                          />
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
-                        <Input
-                          {...register('houseNo')}
-                          label="House/Flat No. (Optional)"
-                          placeholder="Building, House no."
-                          error={errors.houseNo?.message}
-                        />
-                        <Input
-                          {...register('landmark')}
-                          label="Landmark (Optional)"
-                          placeholder="Near famous place"
-                          error={errors.landmark?.message}
-                        />
-                      </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                            <Input
+                              {...register('houseNo')}
+                              label="House/Flat No. (Optional)"
+                              placeholder="Building, House no."
+                              error={errors.houseNo?.message}
+                            />
+                            <Input
+                              {...register('landmark')}
+                              label="Landmark (Optional)"
+                              placeholder="Near famous place"
+                              error={errors.landmark?.message}
+                            />
+                          </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
-                        <Input
-                          {...register('district')}
-                          label="District"
-                          placeholder="Auto-filled from pincode"
-                          error={errors.district?.message}
-                          required
-                          readOnly
-                          className="bg-muted"
-                        />
-                        <Input
-                          {...register('state')}
-                          label="State"
-                          placeholder="Auto-filled from pincode"
-                          error={errors.state?.message}
-                          required
-                          readOnly
-                          className="bg-muted"
-                        />
-                      </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                            <Input
+                              {...register('district')}
+                              label="District"
+                              placeholder="Auto-filled from pincode"
+                              error={errors.district?.message}
+                              required
+                              readOnly
+                              className="bg-muted"
+                            />
+                            <Input
+                              {...register('state')}
+                              label="State"
+                              placeholder="Auto-filled from pincode"
+                              error={errors.state?.message}
+                              required
+                              readOnly
+                              className="bg-muted"
+                            />
+                          </div>
+                        </>
+                      )}
 
                       {/* Shipping Cost Display */}
-                      {calculatedShippingCost > 0 && (
-                        <div className="bg-accent p-3 lg:p-4 rounded-lg">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <Truck className="h-4 w-4 text-accent-foreground mr-2" />
-                              <div>
-                                <p className="font-medium text-sm lg:text-base">Delivery Charges</p>
-                                <p className="text-xs lg:text-sm text-muted-foreground">Based on your location</p>
+                      {calculatingShipping ? (
+                        <div className="bg-muted/50 p-3 lg:p-4 rounded-lg animate-pulse">
+                          <div className="h-4 bg-muted rounded w-full mb-2"></div>
+                          <div className="h-6 bg-muted rounded w-1/3"></div>
+                        </div>
+                      ) : (
+                        <>
+                          {calculatedShippingCost > 0 && (
+                            <div className="bg-accent p-3 lg:p-4 rounded-lg">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  <Truck className="h-4 w-4 text-accent-foreground mr-2" />
+                                  <div>
+                                    <p className="font-medium text-sm lg:text-base">Delivery Charges</p>
+                                    <p className="text-xs lg:text-sm text-muted-foreground">Based on your location</p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-lg lg:text-xl font-bold">
+                                    {currencySymbol}{calculatedShippingCost}
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className="text-lg lg:text-xl font-bold">
-                                {currencySymbol}{calculatedShippingCost}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                          )}
 
-                      {/* Shipping Calculation Pending */}
-                      {!hasValidShippingAddress && cart?.summary?.requires_pincode && (
-                        <div className="bg-orange-50 border border-orange-200 p-3 lg:p-4 rounded-lg">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <Truck className="h-4 w-4 text-orange-600 mr-2" />
-                              <div>
-                                <p className="font-medium text-sm lg:text-base text-orange-800">Shipping Calculation Pending</p>
-                                <p className="text-xs lg:text-sm text-orange-600">
-                                  {cart.summary.pincode_message || 'Enter delivery pincode to calculate shipping charges'}
-                                </p>
+                          {/* Shipping Calculation Pending */}
+                          {!hasValidShippingAddress && cart?.summary?.requires_pincode && (
+                            <div className="bg-orange-50 border border-orange-200 p-3 lg:p-4 rounded-lg">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  <Truck className="h-4 w-4 text-orange-600 mr-2" />
+                                  <div>
+                                    <p className="font-medium text-sm lg:text-base text-orange-800">Shipping Calculation Pending</p>
+                                    <p className="text-xs lg:text-sm text-orange-600">
+                                      {cart.summary.pincode_message || 'Enter delivery pincode to calculate shipping charges'}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-sm lg:text-base font-medium text-orange-800">TBD</p>
+                                </div>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className="text-sm lg:text-base font-medium text-orange-800">TBD</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                          )}
 
-                      {/* Free Shipping Display */}
-                      {hasValidShippingAddress && calculatedShippingCost === 0 && (
-                        <div className="bg-green-50 border border-green-200 p-3 lg:p-4 rounded-lg">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <Truck className="h-4 w-4 text-green-600 mr-2" />
-                              <div>
-                                <p className="font-medium text-sm lg:text-base text-green-800">FREE Delivery</p>
-                                <p className="text-xs lg:text-sm text-green-600">No delivery charges for this order</p>
+                          {/* Free Shipping Display */}
+                          {hasValidShippingAddress && calculatedShippingCost === 0 && (
+                            <div className="bg-green-50 border border-green-200 p-3 lg:p-4 rounded-lg">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                  <Truck className="h-4 w-4 text-green-600 mr-2" />
+                                  <div>
+                                    <p className="font-medium text-sm lg:text-base text-green-800">FREE Delivery</p>
+                                    <p className="text-xs lg:text-sm text-green-600">No delivery charges for this order</p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-lg lg:text-xl font-bold text-green-800">
+                                    {currencySymbol}0
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className="text-lg lg:text-xl font-bold text-green-800">
-                                {currencySymbol}0
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                          )}
+                        </>
                       )}
                     </CardContent>
                   </Card>
@@ -1925,11 +2053,20 @@ export default function CheckoutPage() {
                     <Button 
                       type="button" 
                       onClick={handleContinueToNext}
-                      disabled={!isCurrentStepValid()}
+                      disabled={!isCurrentStepValid() || calculatingShipping}
                       className="order-1 sm:order-2"
                     >
-                      Continue to {sameAsBilling ? 'Payment' : 'Billing Address'}
-                      <ChevronRight className="w-4 h-4 ml-2" />
+                      {calculatingShipping ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Calculating...
+                        </>
+                      ) : (
+                        <>
+                          Continue to {sameAsBilling ? 'Payment' : 'Billing Address'}
+                          <ChevronRight className="w-4 h-4 ml-2" />
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -2071,11 +2208,20 @@ export default function CheckoutPage() {
                     <Button 
                       type="button" 
                       onClick={handleContinueToNext}
-                      disabled={!isCurrentStepValid()}
+                      disabled={!isCurrentStepValid() || calculatingShipping}
                       className="order-1 sm:order-2"
                     >
-                      Continue to Payment
-                      <ChevronRight className="w-4 h-4 ml-2" />
+                      {calculatingShipping ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Calculating...
+                        </>
+                      ) : (
+                        <>
+                          Continue to Payment
+                          <ChevronRight className="w-4 h-4 ml-2" />
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -2589,14 +2735,14 @@ export default function CheckoutPage() {
                     </Button>
                     <Button
                       type="submit"
-                      disabled={isProcessing || !isCurrentStepValid()}
+                      disabled={isProcessing || calculatingShipping || !isCurrentStepValid()}
                       className="order-1 sm:order-2 w-full sm:w-auto"
                       form="checkout-form"
                     >
-                      {isProcessing ? (
+                      {isProcessing || calculatingShipping ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Processing...
+                          {isProcessing ? 'Processing...' : 'Calculating...'}
                         </>
                       ) : (
                         <>
@@ -2761,12 +2907,21 @@ export default function CheckoutPage() {
               <Button 
                 type="button" 
                 onClick={handleContinueToNext}
-                disabled={!isCurrentStepValid()}
+                disabled={!isCurrentStepValid() || calculatingShipping}
                 size="default"
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold"
               >
-                Continue
-                <ChevronRight className="w-4 h-4 ml-1" />
+                {calculatingShipping ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    Calculating...
+                  </>
+                ) : (
+                  <>
+                    Continue
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </>
+                )}
               </Button>
             )}
           </div>
