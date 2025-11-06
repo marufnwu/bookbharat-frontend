@@ -22,11 +22,11 @@ export async function GET() {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${products.map((product: any) => {
-  const productUrl = `${baseUrl}/products/${product.slug || product.id}`;
-  const imageUrl = product.images?.[0]?.image_url || '';
-  const lastMod = product.updated_at || product.created_at;
+      const productUrl = `${baseUrl}/products/${product.slug || product.id}`;
+      const imageUrl = product.images?.[0]?.image_url || '';
+      const lastMod = product.updated_at || product.created_at;
 
-  return `  <url>
+      return `  <url>
     <loc>${escapeXml(productUrl)}</loc>
     <lastmod>${new Date(lastMod).toISOString().split('T')[0]}</lastmod>
     <changefreq>weekly</changefreq>
@@ -36,7 +36,7 @@ ${products.map((product: any) => {
       <image:title>${escapeXml(product.name)}</image:title>
     </image:image>` : ''}
   </url>`;
-}).join('\n')}
+    }).join('\n')}
 </urlset>`;
 
     return new Response(sitemap, {

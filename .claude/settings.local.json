@@ -62,7 +62,16 @@
       "Bash(pkill:*)",
       "Bash(taskkill:*)",
       "Read(//d//**)",
-      "Bash(npx lighthouse:*)"
+      "Bash(npx lighthouse:*)",
+      "Bash(mkdir:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(cmd:*)",
+      "Bash(../admin_token.txt)",
+      "Bash(./test_admin_endpoints.sh:*)",
+      "Bash(npx tsc:*)",
+      "Bash(./test-marketing-curl.sh:*)",
+      "Bash(./test-marketing-integration.sh:*)"
     ],
     "deny": [],
     "ask": []
