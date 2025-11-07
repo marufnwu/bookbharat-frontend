@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Product } from '@/types';
+import { BookDetails } from '@/components/product/BookDetails';
+import { ProductReviews } from '@/components/product/ProductReviews';
 import { seededRandom, seededRandomInt } from '@/lib/seeded-random';
 import {
   BookOpen,
@@ -12,7 +14,8 @@ import {
   MessageSquare,
   ChevronDown,
   ChevronUp,
-  ExternalLink
+  ExternalLink,
+  Info
 } from 'lucide-react';
 
 interface ProductDetailsTabsProps {
@@ -24,12 +27,14 @@ export function ProductDetailsTabs({ product, className = '' }: ProductDetailsTa
   const [activeTab, setActiveTab] = useState('description');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     description: true,
+    details: false,
     specifications: false,
     reviews: false,
   });
 
   const tabs = [
     { id: 'description', label: 'Description', icon: BookOpen },
+    { id: 'details', label: 'Book Details', icon: Info },
     { id: 'specifications', label: 'Specifications', icon: Settings },
     { id: 'reviews', label: 'Reviews', icon: Star, count: product.total_reviews || 0 },
   ];
@@ -126,7 +131,16 @@ export function ProductDetailsTabs({ product, className = '' }: ProductDetailsTa
     );
   };
 
+  const renderDetailsTab = () => {
+    return <BookDetails product={product} />;
+  };
+
   const renderReviewsTab = () => {
+    return <ProductReviews product={product} />;
+  };
+
+  // Old renderReviewsTab function - replaced by ProductReviews component
+  const renderReviewsTabOld = () => {
     const reviews = product.reviews || [];
     const averageRating = product.rating || 4.5;
     const totalReviews = product.total_reviews || 0;
@@ -290,6 +304,7 @@ export function ProductDetailsTabs({ product, className = '' }: ProductDetailsTa
         <CardContent className="p-0">
           <div className="p-6">
             {activeTab === 'description' && renderDescriptionTab()}
+            {activeTab === 'details' && renderDetailsTab()}
             {activeTab === 'specifications' && renderSpecificationsTab()}
             {activeTab === 'reviews' && renderReviewsTab()}
           </div>

@@ -9,6 +9,7 @@ import { useWishlistStore } from '@/stores/wishlist';
 import { Product, ProductBundleVariant } from '@/types';
 import { toast } from 'sonner';
 import BundleVariantSelector from '@/components/product/BundleVariantSelector';
+import { StockIndicator } from '@/components/product/StockIndicator';
 import {
   Star,
   Heart,
@@ -239,35 +240,11 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
         </div>
       </div>
 
-      {/* Mobile-First Stock Status */}
-      <div className={cn(
-        "flex items-center gap-2 p-2 sm:p-3 rounded-lg",
-        product.in_stock ? "bg-green-50" : "bg-red-50"
-      )}>
-        <div className={cn(
-          "flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full flex-shrink-0",
-          product.in_stock ? "bg-green-100" : "bg-red-100"
-        )}>
-          {product.in_stock ? (
-            <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
-          ) : (
-            <X className="h-3 w-3 sm:h-4 sm:w-4 text-red-600" />
-          )}
-        </div>
-        <div>
-          <div className={cn(
-            "font-medium text-xs sm:text-sm",
-            product.in_stock ? "text-green-800" : "text-red-800"
-          )}>
-            {product.in_stock ? 'In Stock' : 'Out of Stock'}
-          </div>
-          {product.in_stock && product.stock_quantity && product.stock_quantity < 10 && (
-            <div className="text-[10px] sm:text-xs text-green-600">
-              Only {product.stock_quantity} left
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Enhanced Stock Status */}
+      <StockIndicator
+        product={product}
+        showEstimatedDelivery={true}
+      />
 
       {/* Bundle Variant Selector */}
       {activeBundleVariants.length > 0 && (

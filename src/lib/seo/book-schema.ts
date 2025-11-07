@@ -75,14 +75,16 @@ export function generateBookSchema(product: Product, baseUrl: string = 'https://
   }
 
   // Add Offers (Price Information)
+  const price = typeof product.price === 'number' ? product.price : parseFloat(String(product.price || 0));
+
   schema.offers = {
     '@type': 'Offer',
     'url': productUrl,
     'priceCurrency': 'INR',
-    'price': product.price.toFixed(2),
+    'price': price.toFixed(2),
     'priceValidUntil': new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
-    'availability': product.in_stock 
-      ? 'https://schema.org/InStock' 
+    'availability': product.in_stock
+      ? 'https://schema.org/InStock'
       : 'https://schema.org/OutOfStock',
     'itemCondition': 'https://schema.org/NewCondition',
     'seller': {
@@ -93,10 +95,10 @@ export function generateBookSchema(product: Product, baseUrl: string = 'https://
   };
 
   // Add compare price if available
-  if (product.compare_price && product.compare_price > product.price) {
+  if (product.compare_price && product.compare_price > price) {
     schema.offers.priceSpecification = {
       '@type': 'PriceSpecification',
-      'price': product.price.toFixed(2),
+      'price': price.toFixed(2),
       'priceCurrency': 'INR',
       'valueAddedTaxIncluded': true
     };
