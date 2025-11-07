@@ -15,7 +15,21 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
-  Info
+  Info,
+  Hash,
+  Globe,
+  FileText,
+  Building,
+  Calendar,
+  User,
+  Folder,
+  Package,
+  Square,
+  Tag,
+  Package2,
+  Clock,
+  Shield,
+  Check
 } from 'lucide-react';
 
 interface ProductDetailsTabsProps {
@@ -47,40 +61,53 @@ export function ProductDetailsTabs({ product, className = '' }: ProductDetailsTa
   };
 
   const renderDescriptionTab = () => (
-    <div className="space-y-3 sm:space-y-4">
-      <div className="prose prose-sm max-w-none md:prose-base">
-        <div 
-          className="text-xs sm:text-sm text-muted-foreground leading-relaxed product-description"
-          dangerouslySetInnerHTML={{
-            __html: product.description || product.short_description || 'No description available for this product.'
-          }}
-        />
+    <div className="space-y-6 sm:space-y-8">
+      {/* Enhanced Product Description */}
+      <div className="bg-gray-50/30 rounded-xl p-4 sm:p-6 border border-gray-100">
+        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
+          <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+          About This Book
+        </h3>
+        <div className="prose prose-sm max-w-none md:prose-base lg:prose-lg">
+          <div
+            className="text-sm sm:text-base text-gray-700 leading-relaxed product-description"
+            dangerouslySetInnerHTML={{
+              __html: product.description || product.short_description || 'No description available for this product.'
+            }}
+          />
+        </div>
       </div>
 
-      {/* Mobile-First Key Highlights */}
+      {/* Enhanced Key Highlights */}
       {product.highlights && product.highlights.length > 0 && (
-        <div className="mt-3 sm:mt-6">
-          <h4 className="font-semibold text-sm sm:text-base md:text-lg mb-2 sm:mb-3">Key Highlights</h4>
-          <ul className="space-y-1.5 sm:space-y-2">
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 sm:p-6 border border-blue-100">
+          <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
+            <Star className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+            Key Highlights
+          </h4>
+          <ul className="grid sm:grid-cols-2 gap-2 sm:gap-3">
             {product.highlights.map((highlight, index) => (
-              <li key={index} className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 bg-primary rounded-full mt-1.5 sm:mt-2 flex-shrink-0" />
-                <span className="text-xs sm:text-sm text-muted-foreground">{highlight}</span>
+              <li key={index} className="flex items-start gap-3 p-3 bg-white/60 rounded-lg border border-blue-50">
+                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                <span className="text-sm sm:text-base text-gray-700 font-medium">{highlight}</span>
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      {/* Mobile-First Tags */}
+      {/* Enhanced Tags */}
       {product.tags && product.tags.length > 0 && (
-        <div className="mt-3 sm:mt-6">
-          <h4 className="font-semibold text-sm sm:text-base md:text-lg mb-2 sm:mb-3">Tags</h4>
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 sm:p-6 border border-purple-100">
+          <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
+            Browse Tags
+          </h4>
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             {product.tags.map((tag, index) => (
               <span
                 key={index}
-                className="px-2 sm:px-3 py-0.5 sm:py-1 bg-muted text-muted-foreground rounded-full text-xs sm:text-sm hover:bg-muted/80 transition-colors"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 bg-white/80 border border-purple-200 text-purple-700 rounded-full text-sm sm:text-base font-medium hover:bg-purple-100 hover:border-purple-300 transition-all duration-200 shadow-sm hover:shadow-md"
               >
                 {tag}
               </span>
@@ -92,39 +119,131 @@ export function ProductDetailsTabs({ product, className = '' }: ProductDetailsTa
   );
 
   const renderSpecificationsTab = () => {
-    const specs = [
-      ['SKU', product.sku || 'N/A'],
-      ['Author/Brand', product.brand || product.author || 'N/A'],
-      ['Category', product.category?.name || 'N/A'],
-      ['ISBN', product.isbn || 'N/A'],
-      ['Language', product.language || 'English'],
-      ['Pages', product.pages ? `${product.pages} pages` : 'N/A'],
-      ['Publisher', product.publisher || 'N/A'],
-      ['Publication Year', product.publication_year || 'N/A'],
-      ['Weight', product.weight ? `${product.weight}g` : 'N/A'],
-      ['Dimensions', product.dimensions || 'N/A'],
-      ['Stock', product.manage_stock ? `${product.stock_quantity || 0} units` : 'Available'],
-      ['Manage Stock', product.manage_stock ? 'Yes' : 'No'],
-      ['Backorders Allowed', product.backorders_allowed ? 'Yes' : 'No'],
+    const mainSpecs = [
+      ['ISBN', product.isbn || 'N/A', Hash],
+      ['Language', product.language || 'English', Globe],
+      ['Pages', product.pages ? `${product.pages} pages` : 'N/A', FileText],
+      ['Format', product.format || 'Paperback', BookOpen],
+      ['Publisher', product.publisher || 'N/A', Building],
+      ['Publication Year', product.publication_year || 'N/A', Calendar],
+    ];
+
+    const additionalSpecs = [
+      ['Author/Brand', product.brand || product.author || 'N/A', User],
+      ['Category', product.category?.name || 'N/A', Folder],
+      ['Weight', product.weight ? `${product.weight}g` : 'N/A', Package],
+      ['Dimensions', product.dimensions || 'N/A', Square],
+      ['SKU', product.sku || 'N/A', Tag],
+    ];
+
+    const inventorySpecs = [
+      ['Stock Status', product.manage_stock ? `${product.stock_quantity || 0} units` : 'Available', Package2],
+      ['Stock Management', product.manage_stock ? 'Yes' : 'No', Settings],
+      ['Backorders', product.backorders_allowed ? 'Allowed' : 'Not Allowed', Clock],
     ];
 
     return (
-      <div className="space-y-3">
-        {specs.map(([label, value]) => (
-          <div key={label} className="flex justify-between py-3 border-b last:border-0 hover:bg-muted/30 px-3 -mx-3 rounded transition-colors">
-            <span className="text-muted-foreground font-medium">{label}</span>
-            <span className="font-medium text-right">{value}</span>
+      <div className="space-y-6 sm:space-y-8">
+        {/* Main Specifications */}
+        <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl p-4 sm:p-6 border border-gray-200">
+          <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2">
+            <Info className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600" />
+            Book Specifications
+          </h4>
+          <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
+            {mainSpecs.map(([label, value, Icon]) => (
+              <div key={label} className="bg-white rounded-lg p-3 sm:p-4 border border-gray-200 hover:border-gray-300 transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Icon className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-xs sm:text-sm text-gray-500 font-medium uppercase tracking-wide">{label}</div>
+                    <div className="text-sm sm:text-base font-semibold text-gray-900 mt-0.5">{value}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
 
-        {/* Additional Information */}
-        <div className="mt-6 p-4 bg-muted/30 rounded-lg">
-          <h4 className="font-semibold mb-2">Additional Information</h4>
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p>• This product is sold by {product.brand || product.author || 'the seller'}.</p>
-            <p>• All books are checked for quality before shipping.</p>
-            <p>• Digital products may have different return policies.</p>
-            <p>• Contact customer support for any specific requirements.</p>
+        {/* Additional Specifications */}
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 sm:p-6 border border-amber-200">
+          <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2">
+            <Package className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />
+            Additional Details
+          </h4>
+          <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
+            {additionalSpecs.map(([label, value, Icon]) => (
+              <div key={label} className="bg-white/80 rounded-lg p-3 sm:p-4 border border-amber-200/50 hover:border-amber-300 transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Icon className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-xs sm:text-sm text-gray-600 font-medium uppercase tracking-wide">{label}</div>
+                    <div className="text-sm sm:text-base font-semibold text-gray-900 mt-0.5">{value}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Inventory Information */}
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 sm:p-6 border border-green-200">
+          <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2">
+            <Settings className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
+            Inventory & Policies
+          </h4>
+          <div className="grid sm:grid-cols-3 gap-3 sm:gap-4">
+            {inventorySpecs.map(([label, value, Icon]) => (
+              <div key={label} className="bg-white/80 rounded-lg p-3 sm:p-4 border border-green-200/50 hover:border-green-300 transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Icon className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-xs sm:text-sm text-gray-600 font-medium uppercase tracking-wide">{label}</div>
+                    <div className="text-sm sm:text-base font-semibold text-gray-900 mt-0.5">{value}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Important Information */}
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 sm:p-6 border border-blue-200">
+          <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+            Important Information
+          </h4>
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 p-3 bg-white/60 rounded-lg border border-blue-100">
+              <Check className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm sm:text-base text-gray-700">
+                <span className="font-semibold">Quality Assured:</span> All books are checked for quality before shipping
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 bg-white/60 rounded-lg border border-blue-100">
+              <Check className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm sm:text-base text-gray-700">
+                <span className="font-semibold">Authentic Products:</span> Sold by {product.brand || product.author || 'verified sellers'}
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 bg-white/60 rounded-lg border border-blue-100">
+              <Check className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm sm:text-base text-gray-700">
+                <span className="font-semibold">Return Policy:</span> Different return policies may apply to digital products
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 bg-white/60 rounded-lg border border-blue-100">
+              <Check className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm sm:text-base text-gray-700">
+                <span className="font-semibold">Customer Support:</span> Contact us for any specific requirements
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -265,10 +384,10 @@ export function ProductDetailsTabs({ product, className = '' }: ProductDetailsTa
 
   return (
     <div className={className}>
-      <Card>
-        {/* Tab Navigation */}
-        <div className="border-b">
-          <div className="flex overflow-x-auto">
+      <div className="bg-white rounded-2xl shadow border border-gray-200 overflow-hidden">
+        {/* Enhanced Tab Navigation with Modern Design */}
+        <div className="border-b border-gray-100 bg-gray-50/50">
+          <div className="flex overflow-x-auto px-2 sm:px-0">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -277,16 +396,17 @@ export function ProductDetailsTabs({ product, className = '' }: ProductDetailsTa
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-6 py-4 text-sm font-medium whitespace-nowrap transition-all border-b-2 ${
+                  className={`flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-4 text-sm sm:text-base font-medium whitespace-nowrap transition-all duration-200 border-b-3 relative ${
                     isActive
-                      ? 'text-primary border-primary bg-primary/5'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 border-transparent'
+                      ? 'text-primary border-primary bg-white shadow-sm rounded-t-lg mx-1'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-white/50 border-transparent rounded-lg mx-1 hover:border-gray-200'
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
-                  {tab.label}
+                  <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${isActive ? 'text-primary' : 'text-gray-400'}`} />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden text-xs">{tab.label.charAt(0)}</span>
                   {tab.count !== undefined && tab.count > 0 && (
-                    <span className={`px-2 py-0.5 rounded-full text-xs ${
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
                       isActive
                         ? 'bg-primary/20 text-primary'
                         : 'bg-muted text-muted-foreground'
@@ -300,16 +420,14 @@ export function ProductDetailsTabs({ product, className = '' }: ProductDetailsTa
           </div>
         </div>
 
-        {/* Tab Content */}
-        <CardContent className="p-0">
-          <div className="p-6">
-            {activeTab === 'description' && renderDescriptionTab()}
-            {activeTab === 'details' && renderDetailsTab()}
-            {activeTab === 'specifications' && renderSpecificationsTab()}
-            {activeTab === 'reviews' && renderReviewsTab()}
-          </div>
-        </CardContent>
-      </Card>
+        {/* Enhanced Tab Content with Better Spacing */}
+        <div className="p-4 sm:p-6 lg:p-8">
+          {activeTab === 'description' && renderDescriptionTab()}
+          {activeTab === 'details' && renderDetailsTab()}
+          {activeTab === 'specifications' && renderSpecificationsTab()}
+          {activeTab === 'reviews' && renderReviewsTab()}
+        </div>
+      </div>
     </div>
   );
 }

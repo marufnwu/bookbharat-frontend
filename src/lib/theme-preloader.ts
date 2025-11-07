@@ -26,8 +26,8 @@ export async function getServerThemeConfig(): Promise<ServerThemeConfig | null> 
   return null;
 }
 
-export function generateThemeScript(theme: ServerThemeConfig): string {
-  if (!theme) return '';
+export function generateThemeStyles(theme: ServerThemeConfig): React.CSSProperties {
+  if (!theme) return {};
 
   // Helper function to convert hex to HSL
   const hexToHsl = (hex: string): string => {
@@ -72,19 +72,77 @@ export function generateThemeScript(theme: ServerThemeConfig): string {
     return `${hDeg} ${sPerc}% ${lPerc}%`;
   };
 
-  // Generate theme application script
+  // Generate CSS properties for server-side rendering
+  return {
+    '--primary': hexToHsl(theme.primary_color),
+    '--secondary': hexToHsl(theme.secondary_color),
+    '--accent': hexToHsl(theme.accent_color),
+    '--success': hexToHsl(theme.success_color),
+    '--warning': hexToHsl(theme.warning_color),
+    '--destructive': hexToHsl(theme.error_color),
+    ...(theme.font_family && { '--font-sans': theme.font_family })
+  } as React.CSSProperties;
+}
+
+export function generateThemeScript(theme: ServerThemeConfig): string {
+  if (!theme) return '';
+
+  // Helper function to convert hex to HSL (same as above)
+  const hexToHsl = (hex: string): string => {
+    hex = hex.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16) / 255;
+    const g = parseInt(hex.substr(2, 2), 16) / 255;
+    const b = parseInt(hex.substr(4, 2), 16) / 255;
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0;
+    let s = 0;
+    const l = (max + min) / 2;
+
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+      switch (max) {
+        case r:
+          h = (g - b) / d + (g < b ? 6 : 0);
+          break;
+        case g:
+          h = (b - r) / d + 2;
+          break;
+        case b:
+          h = (r - g) / d + 4;
+          break;
+      }
+
+      h /= 6;
+    }
+
+    const hDeg = Math.round(h * 360);
+    const sPerc = Math.round(s * 100);
+    const lPerc = Math.round(l * 100);
+
+    return `${hDeg} ${sPerc}% ${lPerc}%`;
+  };
+
+  // Generate a verification script that only applies styles if they're missing
+  // This prevents hydration mismatches by not overriding server-side styles
   return `
     (function() {
       if (typeof document !== 'undefined' && document.documentElement) {
         const root = document.documentElement;
         try {
-          root.style.setProperty('--primary', '${hexToHsl(theme.primary_color)}');
-          root.style.setProperty('--secondary', '${hexToHsl(theme.secondary_color)}');
-          root.style.setProperty('--accent', '${hexToHsl(theme.accent_color)}');
-          root.style.setProperty('--success', '${hexToHsl(theme.success_color)}');
-          root.style.setProperty('--warning', '${hexToHsl(theme.warning_color)}');
-          root.style.setProperty('--destructive', '${hexToHsl(theme.error_color)}');
-          ${theme.font_family ? `root.style.setProperty('--font-sans', '${theme.font_family}');` : ''}
+          // Only apply styles if they're not already set (prevents hydration issues)
+          if (!getComputedStyle(root).getPropertyValue('--primary')) {
+            root.style.setProperty('--primary', '${hexToHsl(theme.primary_color)}');
+            root.style.setProperty('--secondary', '${hexToHsl(theme.secondary_color)}');
+            root.style.setProperty('--accent', '${hexToHsl(theme.accent_color)}');
+            root.style.setProperty('--success', '${hexToHsl(theme.success_color)}');
+            root.style.setProperty('--warning', '${hexToHsl(theme.warning_color)}');
+            root.style.setProperty('--destructive', '${hexToHsl(theme.error_color)}');
+            ${theme.font_family ? `root.style.setProperty('--font-sans', '${theme.font_family}');` : ''}
+          }
         } catch (error) {
           console.warn('Failed to apply theme:', error);
         }

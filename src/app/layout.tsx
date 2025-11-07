@@ -7,7 +7,7 @@ import { ConfigProvider } from "@/contexts/ConfigContext";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
-import { getServerThemeConfig, generateThemeScript, generateCriticalCSS } from "@/lib/theme-preloader";
+import { getServerThemeConfig, generateThemeStyles, generateThemeScript, generateCriticalCSS } from "@/lib/theme-preloader";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -54,11 +54,12 @@ export default async function RootLayout({
 }>) {
   // Fetch theme configuration on server-side
   const themeConfig = await getServerThemeConfig();
+  const themeStyles = generateThemeStyles(themeConfig);
   const themeScript = generateThemeScript(themeConfig);
   const criticalCSS = generateCriticalCSS(themeConfig);
 
   return (
-    <html lang="en">
+    <html lang="en" style={themeStyles}>
       <head>
         {/* Inject critical CSS to prevent flash */}
         {criticalCSS && (

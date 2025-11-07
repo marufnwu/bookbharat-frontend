@@ -82,6 +82,7 @@ export function ProductImageGallery({ images, productName, className = '' }: Pro
           src="/book-placeholder.svg"
           alt={productName}
           fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-contain p-6 sm:p-8"
           priority
         />
@@ -101,6 +102,7 @@ export function ProductImageGallery({ images, productName, className = '' }: Pro
             src={getImageUrl(images[selectedIndex], selectedIndex)}
             alt={`${productName} - Image ${selectedIndex + 1}`}
             fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-contain p-4 sm:p-6 md:p-8 transition-transform group-hover:scale-105"
             priority
           />
@@ -155,6 +157,7 @@ export function ProductImageGallery({ images, productName, className = '' }: Pro
                 src={getImageUrl(images[index], index)}
                 alt={`${productName} - Thumbnail ${index + 1}`}
                 fill
+                sizes="(max-width: 768px) 20vw, (max-width: 1024px) 10vw, 8vw"
                 className="object-contain p-0.5 sm:p-1"
               />
               {selectedIndex === index && (

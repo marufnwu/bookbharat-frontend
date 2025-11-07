@@ -244,6 +244,7 @@ function FrequentlyBoughtTogetherComponent({ productId, mainProduct }: Frequentl
                   src={getProductImage(mainProduct)}
                   alt={mainProduct.name}
                   fill
+                  sizes="(max-width: 768px) 20vw, (max-width: 1024px) 15vw, 10vw"
                   className="object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
@@ -276,6 +277,7 @@ function FrequentlyBoughtTogetherComponent({ productId, mainProduct }: Frequentl
                       src={getProductImage(product)}
                       alt={product.name}
                       fill
+                      sizes="(max-width: 768px) 20vw, (max-width: 1024px) 15vw, 10vw"
                       className="object-cover"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
