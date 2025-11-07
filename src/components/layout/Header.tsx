@@ -8,11 +8,12 @@ import { useHydratedAuth } from '@/stores/auth';
 import { useCartStore } from '@/stores/cart';
 import { productApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { 
-  Search, 
-  ShoppingCart, 
-  User, 
-  Menu, 
+import { useNavigationMenus, useSiteInfo } from '@/contexts/SiteConfigContext';
+import {
+  Search,
+  ShoppingCart,
+  User,
+  Menu,
   X,
   Heart,
   Phone,
@@ -36,6 +37,10 @@ export function Header() {
   const { isAuthenticated, user, logout } = useHydratedAuth();
   const cartStore = useCartStore();
   const { getTotalItems, getCart, cart, removeItem, getSubtotal } = cartStore;
+
+  // Dynamic navigation and site info from backend
+  const navigation = useNavigationMenus();
+  const siteInfo = useSiteInfo();
 
   // Initialize mounted state
   useEffect(() => {
@@ -126,7 +131,8 @@ export function Header() {
     setSearchQuery("");
   };
 
-  const navigation = [
+  // Fallback navigation if dynamic config isn't loaded yet
+  const fallbackNavigation = [
     { name: 'Home', href: '/' },
     { name: 'Books', href: '/products' },
     { name: 'Categories', href: '/categories' },
@@ -135,6 +141,9 @@ export function Header() {
     { name: 'About', href: '/about' },
     { name: 'Contact', href: '/contact' },
   ];
+
+  // Get primary navigation items, fallback to hardcoded if config not loaded
+  const primaryNavigation = navigation?.header.primary || fallbackNavigation;
 
   // Show mobile header for small screens
   const [isMobile, setIsMobile] = useState(false);
@@ -160,14 +169,18 @@ export function Header() {
         <div className="max-w-7xl mx-auto compact-container">
           <div className="flex items-center justify-between h-6 text-xs">
             <div className="flex items-center compact-gap">
-              <div className="flex items-center space-x-1">
-                <Phone className="h-3 w-3" />
-                <span>+91 12345 67890</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Mail className="h-3 w-3" />
-                <span>support@bookbharat.com</span>
-              </div>
+              {siteInfo?.phone && (
+                <div className="flex items-center space-x-1">
+                  <Phone className="h-3 w-3" />
+                  <span>{siteInfo.phone}</span>
+                </div>
+              )}
+              {siteInfo?.email && (
+                <div className="flex items-center space-x-1">
+                  <Mail className="h-3 w-3" />
+                  <span>{siteInfo.email}</span>
+                </div>
+              )}
             </div>
             <div>
               <span>Free shipping on orders above ₹499!</span>
@@ -182,12 +195,22 @@ export function Header() {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-1.5 sm:space-x-2">
-              <div className="bg-primary text-primary-foreground rounded-lg p-1 sm:p-1.5">
-                <span className="text-base sm:text-lg font-bold">BB</span>
-              </div>
+              {siteInfo?.logo ? (
+                <img
+                  src={siteInfo.logo}
+                  alt={siteInfo.name || 'BookBharat'}
+                  className="h-8 w-auto"
+                />
+              ) : (
+                <div className="bg-primary text-primary-foreground rounded-lg p-1 sm:p-1.5">
+                  <span className="text-base sm:text-lg font-bold">
+                    {(siteInfo?.name || 'BookBharat').split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)}
+                  </span>
+                </div>
+              )}
               <div className="hidden sm:block">
-                <h1 className="compact-title text-primary">BookBharat</h1>
-                <p className="compact-text text-muted-foreground">Your Knowledge Partner</p>
+                <h1 className="compact-title text-primary">{siteInfo?.name || 'BookBharat'}</h1>
+                <p className="compact-text text-muted-foreground">{siteInfo?.description || 'Your Knowledge Partner'}</p>
               </div>
             </Link>
           </div>
@@ -432,13 +455,14 @@ export function Header() {
 
         {/* Navigation - More compact on tablet */}
         <nav className="hidden md:flex items-center justify-center space-x-4 lg:space-x-8 py-3 lg:py-4 border-t border-border">
-          {navigation.map((item) => (
+          {primaryNavigation.map((item) => (
             <Link
-              key={item.name}
-              href={item.href}
+              key={item.id || item.name}
+              href={item.url || item.href}
               className="text-sm lg:text-base text-foreground hover:text-primary transition-colors duration-200 font-medium px-2 py-1 hover:bg-muted/50 rounded-md"
+              target={item.target || '_self'}
             >
-              {item.name}
+              {item.label || item.name}
             </Link>
           ))}
         </nav>
@@ -447,14 +471,15 @@ export function Header() {
         {isMenuOpen && (
           <div className="md:hidden border-t border-border bg-background/95 backdrop-blur-sm">
             <div className="py-3 space-y-1 px-3">
-              {navigation.map((item) => (
+              {(navigation?.header.mobile.length > 0 ? navigation.header.mobile : primaryNavigation).map((item) => (
                 <Link
-                  key={item.name}
-                  href={item.href}
+                  key={item.id || item.name}
+                  href={item.url || item.href}
                   className="block px-4 py-3 text-foreground hover:bg-muted rounded-lg touch-target font-medium text-base"
+                  target={item.target || '_self'}
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  {item.name}
+                  {item.label || item.name}
                 </Link>
               ))}
             </div>

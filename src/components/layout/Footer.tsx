@@ -3,10 +3,10 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { 
-  Facebook, 
-  Twitter, 
-  Instagram, 
+import {
+  Facebook,
+  Twitter,
+  Instagram,
   Youtube,
   Phone,
   Mail,
@@ -21,11 +21,17 @@ import {
 } from 'lucide-react';
 import { newsletterApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
+import { useNavigationMenus, useSiteInfo, useSocialLinks } from '@/contexts/SiteConfigContext';
 
 export function Footer() {
   const [email, setEmail] = useState('');
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
+
+  // Get dynamic configuration
+  const navigation = useNavigationMenus();
+  const siteInfo = useSiteInfo();
+  const socialLinks = useSocialLinks();
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => 
@@ -66,32 +72,40 @@ export function Footer() {
     }
   };
 
-  const footerLinks = {
-    company: [
-      { name: 'About Us', href: '/about' },
-      { name: 'Careers', href: '/careers' },
-      { name: 'Press & Media', href: '/press' },
-      { name: 'Corporate Sales', href: '/corporate' },
-    ],
-    support: [
-      { name: 'Help Center', href: '/help' },
-      { name: 'Contact Us', href: '/contact' },
-      { name: 'Track Order', href: '/track-order' },
-      { name: 'Returns', href: '/returns' },
-    ],
-    policies: [
-      { name: 'Privacy Policy', href: '/privacy' },
-      { name: 'Terms of Service', href: '/terms' },
-      { name: 'Refund Policy', href: '/refund' },
-      { name: 'Shipping Policy', href: '/shipping' },
-    ],
-    categories: [
-      { name: 'Fiction', href: '/categories/fiction' },
-      { name: 'Non-Fiction', href: '/categories/non-fiction' },
-      { name: 'Academic', href: '/categories/academic' },
-      { name: 'Children\'s Books', href: '/categories/childrens' },
-    ],
+  // Get dynamic footer links from navigation config, with fallbacks
+  const getFooterLinks = () => {
+    if (navigation?.footer) {
+      return {
+        primary: navigation.footer.primary,
+        secondary: navigation.footer.secondary,
+        legal: navigation.footer.legal,
+      };
+    }
+
+    // Fallback to hardcoded links
+    return {
+      primary: [
+        { name: 'About Us', href: '/about', id: 'about', url: '/about', label: 'About Us', active: true, target: '_self' },
+        { name: 'Careers', href: '/careers', id: 'careers', url: '/careers', label: 'Careers', active: true, target: '_self' },
+        { name: 'Press & Media', href: '/press', id: 'press', url: '/press', label: 'Press & Media', active: true, target: '_self' },
+        { name: 'Corporate Sales', href: '/corporate', id: 'corporate', url: '/corporate', label: 'Corporate Sales', active: true, target: '_self' },
+      ],
+      secondary: [
+        { name: 'Help Center', href: '/help', id: 'help', url: '/help', label: 'Help Center', active: true, target: '_self' },
+        { name: 'Contact Us', href: '/contact', id: 'contact', url: '/contact', label: 'Contact Us', active: true, target: '_self' },
+        { name: 'Track Order', href: '/track-order', id: 'track', url: '/track-order', label: 'Track Order', active: true, target: '_self' },
+        { name: 'Returns', href: '/returns', id: 'returns', url: '/returns', label: 'Returns', active: true, target: '_self' },
+      ],
+      legal: [
+        { name: 'Privacy Policy', href: '/privacy', id: 'privacy', url: '/privacy', label: 'Privacy Policy', active: true, target: '_self' },
+        { name: 'Terms of Service', href: '/terms', id: 'terms', url: '/terms', label: 'Terms of Service', active: true, target: '_self' },
+        { name: 'Refund Policy', href: '/refund', id: 'refund', url: '/refund', label: 'Refund Policy', active: true, target: '_self' },
+        { name: 'Shipping Policy', href: '/shipping', id: 'shipping', url: '/shipping', label: 'Shipping Policy', active: true, target: '_self' },
+      ],
+    };
   };
+
+  const footerLinks = getFooterLinks();
 
   const features = [
     {
@@ -192,75 +206,98 @@ export function Footer() {
             {/* Brand section - Always visible on mobile */}
             <div className="pb-4 border-b border-border">
               <Link href="/" className="flex items-center gap-2 mb-4">
-                <div className="bg-primary text-primary-foreground rounded-lg p-2">
-                  <BookOpen className="h-5 w-5" />
-                </div>
+                {siteInfo?.logo ? (
+                  <img
+                    src={siteInfo.logo}
+                    alt={siteInfo.name || 'BookBharat'}
+                    className="h-10 w-auto"
+                  />
+                ) : (
+                  <div className="bg-primary text-primary-foreground rounded-lg p-2">
+                    <BookOpen className="h-5 w-5" />
+                  </div>
+                )}
                 <div>
-                  <h2 className="text-lg font-bold text-primary">BookBharat</h2>
-                  <p className="text-xs text-muted-foreground">Your Knowledge Partner</p>
+                  <h2 className="text-lg font-bold text-primary">{siteInfo?.name || 'BookBharat'}</h2>
+                  <p className="text-xs text-muted-foreground">{siteInfo?.description || 'Your Knowledge Partner'}</p>
                 </div>
               </Link>
-              
+
               <div className="space-y-2 mb-4">
-                <a href="tel:+911234567890" className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Phone className="h-4 w-4" />
-                  <span>+91 12345 67890</span>
-                </a>
-                <a href="mailto:support@bookbharat.com" className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Mail className="h-4 w-4" />
-                  <span>support@bookbharat.com</span>
-                </a>
+                {siteInfo?.phone && (
+                  <a href={`tel:${siteInfo.phone}`} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Phone className="h-4 w-4" />
+                    <span>{siteInfo.phone}</span>
+                  </a>
+                )}
+                {siteInfo?.email && (
+                  <a href={`mailto:${siteInfo.email}`} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Mail className="h-4 w-4" />
+                    <span>{siteInfo.email}</span>
+                  </a>
+                )}
               </div>
 
               <div className="flex gap-3">
-                <Link href="#" className="text-muted-foreground hover:text-primary">
-                  <Facebook className="h-5 w-5" />
-                </Link>
-                <Link href="#" className="text-muted-foreground hover:text-primary">
-                  <Twitter className="h-5 w-5" />
-                </Link>
-                <Link href="#" className="text-muted-foreground hover:text-primary">
-                  <Instagram className="h-5 w-5" />
-                </Link>
-                <Link href="#" className="text-muted-foreground hover:text-primary">
-                  <Youtube className="h-5 w-5" />
-                </Link>
+                {socialLinks?.facebook_url && (
+                  <Link href={socialLinks.facebook_url} className="text-muted-foreground hover:text-primary" target="_blank">
+                    <Facebook className="h-5 w-5" />
+                  </Link>
+                )}
+                {socialLinks?.twitter_url && (
+                  <Link href={socialLinks.twitter_url} className="text-muted-foreground hover:text-primary" target="_blank">
+                    <Twitter className="h-5 w-5" />
+                  </Link>
+                )}
+                {socialLinks?.instagram_url && (
+                  <Link href={socialLinks.instagram_url} className="text-muted-foreground hover:text-primary" target="_blank">
+                    <Instagram className="h-5 w-5" />
+                  </Link>
+                )}
+                {socialLinks?.youtube_url && (
+                  <Link href={socialLinks.youtube_url} className="text-muted-foreground hover:text-primary" target="_blank">
+                    <Youtube className="h-5 w-5" />
+                  </Link>
+                )}
               </div>
             </div>
 
             {/* Collapsible sections for mobile */}
             {Object.entries(footerLinks).map(([key, links]) => (
-              <div key={key} className="border-b border-border pb-2">
-                <button
-                  onClick={() => toggleSection(key)}
-                  className="flex items-center justify-between w-full py-2 text-left"
-                >
-                  <h3 className="text-sm font-semibold capitalize">
-                    {key === 'company' ? 'Company' : 
-                     key === 'support' ? 'Support' : 
-                     key === 'policies' ? 'Policies' : 'Categories'}
-                  </h3>
-                  <ChevronRight 
-                    className={`h-4 w-4 transition-transform ${
-                      expandedSections.includes(key) ? 'rotate-90' : ''
-                    }`}
-                  />
-                </button>
-                {expandedSections.includes(key) && (
-                  <ul className="py-2 space-y-2">
-                    {links.map((link) => (
-                      <li key={link.name}>
-                        <Link 
-                          href={link.href} 
-                          className="text-sm text-muted-foreground hover:text-primary block py-1"
-                        >
-                          {link.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+              links.length > 0 && (
+                <div key={key} className="border-b border-border pb-2">
+                  <button
+                    onClick={() => toggleSection(key)}
+                    className="flex items-center justify-between w-full py-2 text-left"
+                  >
+                    <h3 className="text-sm font-semibold capitalize">
+                      {key === 'primary' ? 'Company' :
+                       key === 'secondary' ? 'Support' :
+                       key === 'legal' ? 'Policies' : key}
+                    </h3>
+                    <ChevronRight
+                      className={`h-4 w-4 transition-transform ${
+                        expandedSections.includes(key) ? 'rotate-90' : ''
+                      }`}
+                    />
+                  </button>
+                  {expandedSections.includes(key) && (
+                    <ul className="py-2 space-y-2">
+                      {links.map((link) => (
+                        <li key={link.id || link.name}>
+                          <Link
+                            href={link.url || link.href}
+                            className="text-sm text-muted-foreground hover:text-primary block py-1"
+                            target={link.target || '_self'}
+                          >
+                            {link.label || link.name}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )
             ))}
           </div>
 
@@ -269,89 +306,136 @@ export function Footer() {
             {/* Brand section */}
             <div className="lg:col-span-2">
               <Link href="/" className="flex items-center gap-2 mb-4">
-                <div className="bg-primary text-primary-foreground rounded-lg p-2">
-                  <BookOpen className="h-6 w-6" />
-                </div>
+                {siteInfo?.logo ? (
+                  <img
+                    src={siteInfo.logo}
+                    alt={siteInfo.name || 'BookBharat'}
+                    className="h-12 w-auto"
+                  />
+                ) : (
+                  <div className="bg-primary text-primary-foreground rounded-lg p-2">
+                    <BookOpen className="h-6 w-6" />
+                  </div>
+                )}
                 <div>
-                  <h2 className="text-xl font-bold text-primary">BookBharat</h2>
-                  <p className="text-sm text-muted-foreground">Your Knowledge Partner</p>
+                  <h2 className="text-xl font-bold text-primary">{siteInfo?.name || 'BookBharat'}</h2>
+                  <p className="text-sm text-muted-foreground">{siteInfo?.description || 'Your Knowledge Partner'}</p>
                 </div>
               </Link>
-              
+
               <p className="text-sm text-muted-foreground mb-4 max-w-md">
-                India's leading online bookstore offering millions of books across all genres.
+                {siteInfo?.description || "India's leading online bookstore offering millions of books across all genres."}
               </p>
-              
+
               <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone className="h-4 w-4 text-primary" />
-                  <span>+91 12345 67890</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-4 w-4 text-primary" />
-                  <span>support@bookbharat.com</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <MapPin className="h-4 w-4 text-primary" />
-                  <span>Mumbai, Maharashtra</span>
-                </div>
+                {siteInfo?.phone && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="h-4 w-4 text-primary" />
+                    <span>{siteInfo.phone}</span>
+                  </div>
+                )}
+                {siteInfo?.email && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="h-4 w-4 text-primary" />
+                    <span>{siteInfo.email}</span>
+                  </div>
+                )}
+                {siteInfo?.address && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    <span>{siteInfo.address}</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3">
-                <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                  <Facebook className="h-5 w-5" />
-                </Link>
-                <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                  <Twitter className="h-5 w-5" />
-                </Link>
-                <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                  <Instagram className="h-5 w-5" />
-                </Link>
-                <Link href="#" className="text-muted-foreground hover:text-primary transition-colors">
-                  <Youtube className="h-5 w-5" />
-                </Link>
+                {socialLinks?.facebook_url && (
+                  <Link href={socialLinks.facebook_url} className="text-muted-foreground hover:text-primary transition-colors" target="_blank">
+                    <Facebook className="h-5 w-5" />
+                  </Link>
+                )}
+                {socialLinks?.twitter_url && (
+                  <Link href={socialLinks.twitter_url} className="text-muted-foreground hover:text-primary transition-colors" target="_blank">
+                    <Twitter className="h-5 w-5" />
+                  </Link>
+                )}
+                {socialLinks?.instagram_url && (
+                  <Link href={socialLinks.instagram_url} className="text-muted-foreground hover:text-primary transition-colors" target="_blank">
+                    <Instagram className="h-5 w-5" />
+                  </Link>
+                )}
+                {socialLinks?.youtube_url && (
+                  <Link href={socialLinks.youtube_url} className="text-muted-foreground hover:text-primary transition-colors" target="_blank">
+                    <Youtube className="h-5 w-5" />
+                  </Link>
+                )}
+                {socialLinks?.linkedin_url && (
+                  <Link href={socialLinks.linkedin_url} className="text-muted-foreground hover:text-primary transition-colors" target="_blank">
+                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                    </svg>
+                  </Link>
+                )}
               </div>
             </div>
 
             {/* Links sections */}
-            <div>
-              <h3 className="font-semibold text-foreground mb-3">Company</h3>
-              <ul className="space-y-2">
-                {footerLinks.company.map((link) => (
-                  <li key={link.name}>
-                    <Link href={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                      {link.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {footerLinks.primary.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-foreground mb-3">Company</h3>
+                <ul className="space-y-2">
+                  {footerLinks.primary.map((link) => (
+                    <li key={link.id || link.name}>
+                      <Link
+                        href={link.url || link.href}
+                        className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                        target={link.target || '_self'}
+                      >
+                        {link.label || link.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-            <div>
-              <h3 className="font-semibold text-foreground mb-3">Support</h3>
-              <ul className="space-y-2">
-                {footerLinks.support.map((link) => (
-                  <li key={link.name}>
-                    <Link href={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                      {link.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {footerLinks.secondary.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-foreground mb-3">Support</h3>
+                <ul className="space-y-2">
+                  {footerLinks.secondary.map((link) => (
+                    <li key={link.id || link.name}>
+                      <Link
+                        href={link.url || link.href}
+                        className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                        target={link.target || '_self'}
+                      >
+                        {link.label || link.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-            <div>
-              <h3 className="font-semibold text-foreground mb-3">Categories</h3>
-              <ul className="space-y-2">
-                {footerLinks.categories.map((link) => (
-                  <li key={link.name}>
-                    <Link href={link.href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                      {link.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {navigation?.footer.social.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-foreground mb-3">Categories</h3>
+                <ul className="space-y-2">
+                  {navigation.footer.social.slice(0, 4).map((link) => (
+                    <li key={link.id || link.name}>
+                      <Link
+                        href={link.url || link.href}
+                        className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                        target={link.target || '_self'}
+                      >
+                        {link.label || link.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -360,18 +444,24 @@ export function Footer() {
       <div className="bg-muted/30 border-t border-border py-4 md:py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-xs md:text-sm text-muted-foreground">
-            <p>© 2024 BookBharat. All rights reserved.</p>
-            <div className="flex flex-wrap gap-4">
-              <Link href="/privacy" className="hover:text-primary transition-colors">
-                Privacy Policy
-              </Link>
-              <Link href="/terms" className="hover:text-primary transition-colors">
-                Terms of Service
-              </Link>
-              <Link href="/cookies" className="hover:text-primary transition-colors">
-                Cookies
-              </Link>
-            </div>
+            <p>© {new Date().getFullYear()} {siteInfo?.name || 'BookBharat'}. All rights reserved.</p>
+            {footerLinks.legal.length > 0 && (
+              <div className="flex flex-wrap gap-4">
+                {footerLinks.legal.map((link) => (
+                  <Link
+                    key={link.id || link.name}
+                    href={link.url || link.href}
+                    className="hover:text-primary transition-colors"
+                    target={link.target || '_self'}
+                  >
+                    {link.label || link.name}
+                  </Link>
+                ))}
+                <Link href="/cookies" className="hover:text-primary transition-colors">
+                  Cookies
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>

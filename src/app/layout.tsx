@@ -4,9 +4,12 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
 import { ConfigProvider } from "@/contexts/ConfigContext";
+import { SiteConfigProvider } from "@/contexts/SiteConfigContext";
+import { getServerSideAllConfigs } from "@/lib/server-config";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { TrackingScripts } from "@/components/seo/TrackingScripts";
 import { getServerThemeConfig, generateThemeStyles, generateThemeScript, generateCriticalCSS } from "@/lib/theme-preloader";
 
 const inter = Inter({
@@ -58,6 +61,9 @@ export default async function RootLayout({
   const themeScript = generateThemeScript(themeConfig);
   const criticalCSS = generateCriticalCSS(themeConfig);
 
+  // Fetch site configurations server-side for optimal performance
+  const siteConfigs = await getServerSideAllConfigs();
+
   return (
     <html lang="en" style={themeStyles}>
       <head>
@@ -90,16 +96,21 @@ export default async function RootLayout({
         )}
 
         <ConfigProvider initialTheme={themeConfig}>
-          <div className="min-h-screen flex flex-col">
-            <Header />
+          <SiteConfigProvider initialConfig={siteConfigs}>
+            <div className="min-h-screen flex flex-col">
+              <Header />
 
-            <main className="flex-1 pb-16 md:pb-0">
-              {children}
-            </main>
+              <main className="flex-1 pb-16 md:pb-0">
+                {children}
+              </main>
 
-            <Footer />
-            <MobileBottomNav />
-          </div>
+              <Footer />
+              <MobileBottomNav />
+            </div>
+
+            {/* Dynamic tracking scripts based on backend configuration */}
+            <TrackingScripts />
+          </SiteConfigProvider>
         </ConfigProvider>
       </body>
     </html>

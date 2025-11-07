@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { generateProductMetadata } from '@/lib/seo/product-metadata';
+import { dynamicMetadataGenerator } from '@/lib/seo/dynamic-metadata';
 import { generateBookSchema, generateBreadcrumbSchema } from '@/lib/seo/book-schema';
 import Script from 'next/script';
 
@@ -36,8 +36,32 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     };
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://v2.bookbharat.com';
-  return generateProductMetadata(product, baseUrl);
+  // Use dynamic metadata generator with backend SEO configuration
+  return await dynamicMetadataGenerator.generateProductMetadata({
+    product: {
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      short_description: product.short_description,
+      price: product.price,
+      compare_price: product.compare_price,
+      sku: product.sku,
+      isbn: product.isbn,
+      author: product.author,
+      publisher: product.publisher,
+      publication_year: product.publication_year,
+      pages: product.pages,
+      format: product.format,
+      language: product.language,
+      category: product.category?.name,
+      images: product.images,
+      primary_image: product.primary_image,
+      rating: product.rating,
+      total_reviews: product.total_reviews,
+      in_stock: product.in_stock,
+      brand: product.brand,
+    }
+  });
 }
 
 export default async function ProductLayout({
