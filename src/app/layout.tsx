@@ -7,6 +7,7 @@ import { ConfigProvider } from "@/contexts/ConfigContext";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { getServerThemeConfig, generateThemeScript, generateCriticalCSS } from "@/lib/theme-preloader";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -46,13 +47,24 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Fetch theme configuration on server-side
+  const themeConfig = await getServerThemeConfig();
+  const themeScript = generateThemeScript(themeConfig);
+  const criticalCSS = generateCriticalCSS(themeConfig);
+
   return (
     <html lang="en">
+      <head>
+        {/* Inject critical CSS to prevent flash */}
+        {criticalCSS && (
+          <style dangerouslySetInnerHTML={{ __html: criticalCSS }} />
+        )}
+      </head>
       <body className={`${inter.variable} font-sans`} suppressHydrationWarning>
         <Script id="logger-global" strategy="beforeInteractive">
           {`
@@ -68,7 +80,15 @@ export default function RootLayout({
             })();
           `}
         </Script>
-        <ConfigProvider>
+
+        {/* Preload theme before any other JavaScript executes */}
+        {themeScript && (
+          <Script id="theme-preloader" strategy="beforeInteractive">
+            {themeScript}
+          </Script>
+        )}
+
+        <ConfigProvider initialTheme={themeConfig}>
           <div className="min-h-screen flex flex-col">
             <Header />
 

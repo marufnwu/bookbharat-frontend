@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { configApi } from '@/lib/api';
+import type { ServerThemeConfig } from '@/lib/theme-preloader';
 
 export interface SiteConfig {
   site: {
@@ -153,16 +154,24 @@ interface ConfigContextType {
   error: string | null;
   refreshConfig: () => Promise<void>;
   applyTheme: (theme: Partial<SiteConfig['theme']>) => void;
+  initialTheme?: ServerThemeConfig | null;
 }
 
 const ConfigContext = createContext<ConfigContextType | undefined>(undefined);
 
-export function ConfigProvider({ children }: { children: React.ReactNode }) {
+export function ConfigProvider({
+  children,
+  initialTheme
+}: {
+  children: React.ReactNode;
+  initialTheme?: ServerThemeConfig | null;
+}) {
   const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null);
   const [homepageConfig, setHomepageConfig] = useState<HomepageConfig | null>(null);
   const [navigationConfig, setNavigationConfig] = useState<NavigationConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [themeApplied, setThemeApplied] = useState(false);
 
   const loadConfigurations = async () => {
     try {
@@ -177,7 +186,12 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
 
       if (siteResponse.success) {
         setSiteConfig(siteResponse.data);
-        applyThemeToCSS(siteResponse.data.theme);
+
+        // Only apply theme if it's different from initial theme or not yet applied
+        if (!themeApplied || !initialTheme || JSON.stringify(initialTheme) !== JSON.stringify(siteResponse.data.theme)) {
+          applyThemeToCSS(siteResponse.data.theme);
+          setThemeApplied(true);
+        }
       }
 
       if (homepageResponse.success) {
@@ -228,6 +242,29 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     loadConfigurations();
   }, []);
 
+  // Apply initial theme if provided and not already applied
+  useEffect(() => {
+    if (initialTheme && !themeApplied) {
+      // Convert ServerThemeConfig to SiteConfig['theme'] format
+      const themeForCSS = {
+        primary_color: initialTheme.primary_color,
+        secondary_color: initialTheme.secondary_color,
+        accent_color: initialTheme.accent_color,
+        success_color: initialTheme.success_color,
+        warning_color: initialTheme.warning_color,
+        error_color: initialTheme.error_color,
+        font_family: initialTheme.font_family,
+        header_style: '',
+        footer_style: '',
+        layout: '',
+        banner_style: ''
+      };
+
+      applyThemeToCSS(themeForCSS);
+      setThemeApplied(true);
+    }
+  }, [initialTheme, themeApplied]);
+
   const value: ConfigContextType = {
     siteConfig,
     homepageConfig,
@@ -236,6 +273,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     error,
     refreshConfig,
     applyTheme,
+    initialTheme,
   };
 
   return (
