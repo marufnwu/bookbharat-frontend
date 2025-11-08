@@ -1,6 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+// Client-side only check
+const useIsClient = () => {
+  const [isClient, setIsClient] = useState(false)
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+  return isClient
+}
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
@@ -17,10 +26,23 @@ import { formatDate } from '@/lib/utils';
 import SEOHead from '@/components/SEO/SEOHead';
 
 export default function TagPage() {
+  const isClient = useIsClient();
   const params = useParams();
   const [sortBy, setSortBy] = useState('published_at');
   const [currentPage, setCurrentPage] = useState(1);
   const tagName = decodeURIComponent(params.tag as string);
+
+  // Don't render anything on server-side to prevent QueryClient errors
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   const { data: posts, isLoading, error } = useQuery({
     queryKey: ['tag-posts', params.tag, sortBy, currentPage],

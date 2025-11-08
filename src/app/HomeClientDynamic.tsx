@@ -11,6 +11,7 @@ import HeroSection from '@/components/hero/HeroSection';
 import ProductCard from '@/components/ui/product-card';
 import { CategoriesSection } from '@/components/home/CategoriesSection';
 import { PromotionalBannersSection } from '@/components/home/PromotionalBannersSection';
+import { TestimonialsSection } from '@/components/home/TestimonialsSection';
 import { getProductCardProps, getProductGridClasses } from '@/lib/product-card-config';
 import {
   ArrowRight,
@@ -211,6 +212,18 @@ export default function HomeClient({
               />
             ))}
           </div>
+        );
+
+      case 'testimonials':
+        return (
+          <TestimonialsSection
+            key={key}
+            title={section.title}
+            subtitle={section.subtitle}
+            limit={section.settings?.limit || 6}
+            showRating={section.settings?.show_ratings !== false}
+            autoRotate={section.settings?.auto_rotate !== false}
+          />
         );
 
       case 'newsletter':

@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { newsletterApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { useNavigationMenus, useSiteInfo, useSocialLinks } from '@/contexts/SiteConfigContext';
+import { useNavigationMenus, useSiteInfo, useSocialLinks, useHomepageLayout } from '@/contexts/SiteConfigContext';
 
 export function Footer() {
   const [email, setEmail] = useState('');
@@ -32,6 +32,8 @@ export function Footer() {
   const navigation = useNavigationMenus();
   const siteInfo = useSiteInfo();
   const socialLinks = useSocialLinks();
+  const homepageLayout = useHomepageLayout();
+  const newsletter = homepageLayout?.newsletter;
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => 
@@ -161,42 +163,49 @@ export function Footer() {
       </div>
 
       {/* Newsletter section - Mobile optimized */}
-      <div className="bg-primary/5 py-6 md:py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h3 className="text-base md:text-lg font-semibold text-foreground mb-1">
-                Stay Updated
-              </h3>
-              <p className="text-xs md:text-sm text-muted-foreground">
-                Get the latest books and exclusive offers
-              </p>
+      {newsletter?.enabled && (
+        <div className="bg-primary/5 py-6 md:py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h3 className="text-base md:text-lg font-semibold text-foreground mb-1">
+                  {newsletter.title || 'Stay Updated'}
+                </h3>
+                <p className="text-xs md:text-sm text-muted-foreground">
+                  {newsletter.subtitle || 'Get the latest books and exclusive offers'}
+                </p>
+              </div>
+              <form onSubmit={handleNewsletterSubscribe} className="flex gap-2">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={newsletter.placeholder || 'Your email'}
+                  disabled={isSubscribing}
+                  className="flex-1 md:w-64 px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+                />
+                <Button
+                  type="submit"
+                  disabled={isSubscribing}
+                  size="default"
+                  className="min-w-[80px]"
+                >
+                  {isSubscribing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    newsletter.button_text || 'Subscribe'
+                  )}
+                </Button>
+              </form>
             </div>
-            <form onSubmit={handleNewsletterSubscribe} className="flex gap-2">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Your email"
-                disabled={isSubscribing}
-                className="flex-1 md:w-64 px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
-              />
-              <Button 
-                type="submit"
-                disabled={isSubscribing}
-                size="default"
-                className="min-w-[80px]"
-              >
-                {isSubscribing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  'Subscribe'
-                )}
-              </Button>
-            </form>
+            {newsletter.privacy_text && (
+              <p className="text-xs text-muted-foreground text-center mt-4">
+                {newsletter.privacy_text}
+              </p>
+            )}
           </div>
         </div>
-      </div>
+      )}
 
       {/* Main footer content */}
       <div className="py-8 md:py-12">

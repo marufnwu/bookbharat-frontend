@@ -5,14 +5,35 @@ const nextConfig: NextConfig = {
   // App directory is stable in Next.js 13+, no need for experimental flag
   pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
 
+  // Set output file tracing root to fix multiple lockfiles warning
+  outputFileTracingRoot: process.cwd(),
+
   // Disable static generation for all pages
   trailingSlash: false,
   distDir: '.next',
 
+  // Move serverComponentsExternalPackages out of experimental (Next.js 15+)
+  serverExternalPackages: ['@prisma/client'],
+
   // Allow dynamic pages for development
   experimental: {
-    runtime: 'nodejs',
-    serverComponentsExternalPackages: ['@prisma/client'],
+    optimizePackageImports: [
+      '@radix-ui/react-alert-dialog',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-label',
+      '@radix-ui/react-select',
+      '@radix-ui/react-separator',
+      '@radix-ui/react-switch',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-toast',
+      'lucide-react'
+    ],
+  },
+
+  // Set environment variables for build process
+  env: {
+    NEXT_PUBLIC_BUILD_TIME: 'true'
   },
 
   // Skip static generation for pages that use dynamic features
@@ -67,22 +88,6 @@ const nextConfig: NextConfig = {
         hostname: 'picsum.photos',
         pathname: '/**',
       }
-    ],
-  },
-
-  // Development optimizations
-  experimental: {
-    optimizePackageImports: [
-      '@radix-ui/react-alert-dialog',
-      '@radix-ui/react-dialog',
-      '@radix-ui/react-dropdown-menu',
-      '@radix-ui/react-label',
-      '@radix-ui/react-select',
-      '@radix-ui/react-separator',
-      '@radix-ui/react-switch',
-      '@radix-ui/react-tabs',
-      '@radix-ui/react-toast',
-      'lucide-react'
     ],
   },
 

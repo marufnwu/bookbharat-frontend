@@ -1,0 +1,704 @@
+uid=3_0 RootWebArea "BookBharat - Your Knowledge Partner | Online Bookstore India" url="http://localhost:3006/"
+  uid=3_1 ignored
+    uid=3_2 generic
+      uid=3_3 generic
+        uid=3_4 generic
+          uid=3_5 generic
+            uid=3_6 ignored
+              uid=3_7 ignored
+                uid=3_8 generic
+                  uid=3_9 ignored
+                    uid=3_10 button "Open Next.js Dev Tools" haspopup="menu"
+                      uid=3_11 image
+                        uid=3_12 ignored
+                        uid=3_13 ignored
+                        uid=3_14 ignored
+                        uid=3_15 ignored
+                        uid=3_16 ignored
+                    uid=3_17 ignored
+                      uid=3_18 button "Open issues overlay"
+                        uid=3_19 ignored
+                          uid=3_20 generic
+                            uid=3_21 StaticText "6"
+                              uid=3_22 InlineTextBox "6"
+                        uid=3_23 generic
+                          uid=3_24 StaticText "Issue"
+                            uid=3_25 InlineTextBox "Issue"
+                      uid=3_26 button "Collapse issues badge"
+                        uid=3_27 image
+      uid=3_28 ignored
+        uid=3_29 banner
+          uid=3_30 ignored
+            uid=3_31 ignored
+              uid=3_32 ignored
+                uid=3_33 ignored
+                uid=3_34 generic
+                  uid=3_35 StaticText "Free shipping on orders above ₹499!"
+                    uid=3_36 InlineTextBox "Free shipping on orders above ₹499!"
+          uid=3_37 ignored
+            uid=3_38 ignored
+              uid=3_39 ignored
+                uid=3_40 link "B BookBharat Your Knowledge Partner" url="http://localhost:3006/"
+                  uid=3_41 generic
+                    uid=3_42 StaticText "B"
+                      uid=3_43 InlineTextBox "B"
+                  uid=3_44 ignored
+                    uid=3_45 heading "BookBharat" level="1"
+                      uid=3_46 StaticText "BookBharat"
+                        uid=3_47 InlineTextBox "BookBharat"
+                    uid=3_48 paragraph
+                      uid=3_49 StaticText "Your Knowledge Partner"
+                        uid=3_50 InlineTextBox "Your Knowledge Partner"
+              uid=3_51 ignored
+                uid=3_52 generic
+                  uid=3_53 generic
+                  uid=3_54 textbox "Search books..."
+                    uid=3_55 ignored
+                    uid=3_56 generic
+              uid=3_57 ignored
+                uid=3_58 link "Wishlist" url="http://localhost:3006/wishlist"
+                  uid=3_59 ignored
+                    uid=3_60 StaticText "Wishlist"
+                      uid=3_61 InlineTextBox "Wishlist"
+                uid=3_62 generic
+                  uid=3_63 link "Shopping cart" url="http://localhost:3006/cart"
+                    uid=3_64 button "Shopping cart"
+                      uid=3_65 ignored
+                        uid=3_66 StaticText "Shopping cart"
+                          uid=3_67 InlineTextBox "Shopping cart"
+                uid=3_68 ignored
+                  uid=3_69 link "Sign in" url="http://localhost:3006/auth/login"
+                    uid=3_70 StaticText "Sign in"
+                      uid=3_71 InlineTextBox "Sign in"
+                  uid=3_72 link "Sign up" url="http://localhost:3006/auth/register"
+                    uid=3_73 StaticText "Sign up"
+                      uid=3_74 InlineTextBox "Sign up"
+            uid=3_75 navigation
+              uid=3_76 link "Home" url="http://localhost:3006/"
+                uid=3_77 StaticText "Home"
+                  uid=3_78 InlineTextBox "Home"
+              uid=3_79 link "Books" url="http://localhost:3006/products"
+                uid=3_80 StaticText "Books"
+                  uid=3_81 InlineTextBox "Books"
+              uid=3_82 link "Categories" url="http://localhost:3006/categories"
+                uid=3_83 StaticText "Categories"
+                  uid=3_84 InlineTextBox "Categories"
+              uid=3_85 link "New Arrivals" url="http://localhost:3006/products?filter=new"
+                uid=3_86 StaticText "New Arrivals"
+                  uid=3_87 InlineTextBox "New Arrivals"
+              uid=3_88 link "Best Sellers" url="http://localhost:3006/products?filter=bestseller"
+                uid=3_89 StaticText "Best Sellers"
+                  uid=3_90 InlineTextBox "Best Sellers"
+              uid=3_91 link "About" url="http://localhost:3006/about"
+                uid=3_92 StaticText "About"
+                  uid=3_93 InlineTextBox "About"
+              uid=3_94 link "Contact" url="http://localhost:3006/contact"
+                uid=3_95 StaticText "Contact"
+                  uid=3_96 InlineTextBox "Contact"
+        uid=3_97 main
+          uid=3_98 ignored
+            uid=3_99 generic
+              uid=3_100 generic
+              uid=3_101 generic
+                uid=3_102 ignored
+                  uid=3_103 ignored
+                    uid=3_104 generic
+                      uid=3_105 ignored
+                      uid=3_106 ignored
+                        uid=3_107 StaticText "Premium Books"
+                          uid=3_108 InlineTextBox "Premium Books"
+                    uid=3_109 heading "Premium Books at Unbeatable Prices" level="1"
+                      uid=3_110 StaticText "Premium Books at Unbeatable Prices"
+                        uid=3_111 InlineTextBox "Premium Books at Unbeatable Prices"
+                    uid=3_112 paragraph
+                      uid=3_113 StaticText "Discover our curated collection of bestsellers and classics with fast, free shipping."
+                        uid=3_114 InlineTextBox "Discover our curated collection of bestsellers and classics with fast, free "
+                        uid=3_115 InlineTextBox "shipping."
+                    uid=3_116 ignored
+                      uid=3_117 link "Shop Now" url="http://localhost:3006/products"
+                        uid=3_118 StaticText "Shop Now"
+                          uid=3_119 InlineTextBox "Shop Now"
+                      uid=3_120 link "Browse Categories" url="http://localhost:3006/categories"
+                        uid=3_121 StaticText "Browse Categories"
+                          uid=3_122 InlineTextBox "Browse Categories"
+                    uid=3_123 ignored
+                      uid=3_124 ignored
+                        uid=3_125 ignored
+                          uid=3_126 StaticText "Free Shipping"
+                            uid=3_127 InlineTextBox "Free Shipping"
+                      uid=3_128 ignored
+                        uid=3_129 ignored
+                          uid=3_130 StaticText "Easy Returns"
+                            uid=3_131 InlineTextBox "Easy Returns"
+                      uid=3_132 ignored
+                        uid=3_133 ignored
+                          uid=3_134 StaticText "24/7 Support"
+                            uid=3_135 InlineTextBox "24/7 Support"
+                  uid=3_136 ignored
+                    uid=3_137 generic
+                      uid=3_138 ignored
+                        uid=3_139 image "The Great Indian Novel" url="https://picsum.photos/400/600?random=1"
+            uid=3_140 generic
+              uid=3_141 ignored
+                uid=3_142 ignored
+                  uid=3_143 ignored
+                    uid=3_144 heading "Featured Books" level="2"
+                      uid=3_145 StaticText "Featured Books"
+                        uid=3_146 InlineTextBox "Featured Books"
+                    uid=3_147 paragraph
+                      uid=3_148 StaticText "Discover our handpicked selection of must-read books"
+                        uid=3_149 InlineTextBox "Discover our handpicked selection of must-read books"
+                  uid=3_150 link "View All" url="http://localhost:3006/products?featured=true"
+                    uid=3_151 ignored
+                      uid=3_152 StaticText "View All"
+                        uid=3_153 InlineTextBox "View All"
+                uid=3_154 ignored
+                  uid=3_155 generic
+                    uid=3_156 ignored
+                      uid=3_157 generic
+                        uid=3_158 link "The Great Indian Novel" url="http://localhost:3006/products/the-great-indian-novel"
+                          uid=3_159 generic
+                            uid=3_160 image "The Great Indian Novel" url="https://picsum.photos/400/600?random=1"
+                        uid=3_161 generic
+                          uid=3_162 ignored
+                            uid=3_163 StaticText "-"
+                              uid=3_164 InlineTextBox "-"
+                            uid=3_165 StaticText "10"
+                              uid=3_166 InlineTextBox "10"
+                            uid=3_167 StaticText "%"
+                              uid=3_168 InlineTextBox "%"
+                          uid=3_169 ignored
+                            uid=3_170 StaticText "Featured"
+                              uid=3_171 InlineTextBox "Featured"
+                        uid=3_172 generic
+                          uid=3_173 button
+                      uid=3_174 ignored
+                        uid=3_175 heading "The Great Indian Novel" level="3"
+                          uid=3_176 link "The Great Indian Novel" url="http://localhost:3006/products/the-great-indian-novel"
+                            uid=3_177 StaticText "The Great Indian Novel"
+                              uid=3_178 InlineTextBox "The Great Indian Novel"
+                        uid=3_179 ignored
+                          uid=3_180 ignored
+                          uid=3_181 ignored
+                            uid=3_182 StaticText "(4.5)"
+                              uid=3_183 InlineTextBox "(4.5)"
+                        uid=3_184 ignored
+                          uid=3_185 ignored
+                            uid=3_186 StaticText "₹"
+                              uid=3_187 InlineTextBox "₹"
+                            uid=3_188 StaticText "450.00"
+                              uid=3_189 InlineTextBox "450.00"
+                          uid=3_190 ignored
+                            uid=3_191 StaticText "₹"
+                              uid=3_192 InlineTextBox "₹"
+                            uid=3_193 StaticText "500.00"
+                              uid=3_194 InlineTextBox "500.00"
+                        uid=3_195 ignored
+                          uid=3_196 button "Cart"
+                            uid=3_197 StaticText "Cart"
+                              uid=3_198 InlineTextBox "Cart"
+                          uid=3_199 button "Buy"
+                            uid=3_200 StaticText "Buy"
+                              uid=3_201 InlineTextBox "Buy"
+                  uid=3_202 generic
+                    uid=3_203 ignored
+                      uid=3_204 generic
+                        uid=3_205 link "Midnight's Children" url="http://localhost:3006/products/midnights-children"
+                          uid=3_206 generic
+                            uid=3_207 image "Midnight's Children" url="https://picsum.photos/400/600?random=2"
+                        uid=3_208 generic
+                          uid=3_209 ignored
+                            uid=3_210 StaticText "-"
+                              uid=3_211 InlineTextBox "-"
+                            uid=3_212 StaticText "14"
+                              uid=3_213 InlineTextBox "14"
+                            uid=3_214 StaticText "%"
+                              uid=3_215 InlineTextBox "%"
+                          uid=3_216 ignored
+                            uid=3_217 StaticText "Featured"
+                              uid=3_218 InlineTextBox "Featured"
+                        uid=3_219 generic
+                          uid=3_220 button
+                      uid=3_221 ignored
+                        uid=3_222 heading "Midnight's Children" level="3"
+                          uid=3_223 link "Midnight's Children" url="http://localhost:3006/products/midnights-children"
+                            uid=3_224 StaticText "Midnight's Children"
+                              uid=3_225 InlineTextBox "Midnight's Children"
+                        uid=3_226 ignored
+                          uid=3_227 ignored
+                          uid=3_228 ignored
+                            uid=3_229 StaticText "(4.5)"
+                              uid=3_230 InlineTextBox "(4.5)"
+                        uid=3_231 ignored
+                          uid=3_232 ignored
+                            uid=3_233 StaticText "₹"
+                              uid=3_234 InlineTextBox "₹"
+                            uid=3_235 StaticText "599.00"
+                              uid=3_236 InlineTextBox "599.00"
+                          uid=3_237 ignored
+                            uid=3_238 StaticText "₹"
+                              uid=3_239 InlineTextBox "₹"
+                            uid=3_240 StaticText "699.00"
+                              uid=3_241 InlineTextBox "699.00"
+                        uid=3_242 ignored
+                          uid=3_243 button "Cart"
+                            uid=3_244 StaticText "Cart"
+                              uid=3_245 InlineTextBox "Cart"
+                          uid=3_246 button "Buy"
+                            uid=3_247 StaticText "Buy"
+                              uid=3_248 InlineTextBox "Buy"
+                  uid=3_249 generic
+                    uid=3_250 ignored
+                      uid=3_251 generic
+                        uid=3_252 link "Sapiens: A Brief History of Humankind" url="http://localhost:3006/products/sapiens-brief-history-humankind"
+                          uid=3_253 generic
+                            uid=3_254 image "Sapiens: A Brief History of Humankind" url="https://picsum.photos/400/600?random=3"
+                        uid=3_255 generic
+                          uid=3_256 ignored
+                            uid=3_257 StaticText "-"
+                              uid=3_258 InlineTextBox "-"
+                            uid=3_259 StaticText "13"
+                              uid=3_260 InlineTextBox "13"
+                            uid=3_261 StaticText "%"
+                              uid=3_262 InlineTextBox "%"
+                          uid=3_263 ignored
+                            uid=3_264 StaticText "Featured"
+                              uid=3_265 InlineTextBox "Featured"
+                        uid=3_266 generic
+                          uid=3_267 button
+                      uid=3_268 ignored
+                        uid=3_269 heading "Sapiens: A Brief History of Humankind" level="3"
+                          uid=3_270 link "Sapiens: A Brief History of Humankind" url="http://localhost:3006/products/sapiens-brief-history-humankind"
+                            uid=3_271 StaticText "Sapiens: A Brief History of Humankind"
+                              uid=3_272 InlineTextBox "Sapiens: A Brief History "
+                              uid=3_273 InlineTextBox "of Humankind"
+                        uid=3_274 ignored
+                          uid=3_275 ignored
+                          uid=3_276 ignored
+                            uid=3_277 StaticText "(4.5)"
+                              uid=3_278 InlineTextBox "(4.5)"
+                        uid=3_279 ignored
+                          uid=3_280 ignored
+                            uid=3_281 StaticText "₹"
+                              uid=3_282 InlineTextBox "₹"
+                            uid=3_283 StaticText "650.00"
+                              uid=3_284 InlineTextBox "650.00"
+                          uid=3_285 ignored
+                            uid=3_286 StaticText "₹"
+                              uid=3_287 InlineTextBox "₹"
+                            uid=3_288 StaticText "750.00"
+                              uid=3_289 InlineTextBox "750.00"
+                        uid=3_290 ignored
+                          uid=3_291 button "Cart"
+                            uid=3_292 StaticText "Cart"
+                              uid=3_293 InlineTextBox "Cart"
+                          uid=3_294 button "Buy"
+                            uid=3_295 StaticText "Buy"
+                              uid=3_296 InlineTextBox "Buy"
+                  uid=3_297 generic
+                    uid=3_298 ignored
+                      uid=3_299 generic
+                        uid=3_300 link "Pride and Prejudice" url="http://localhost:3006/products/pride-and-prejudice"
+                          uid=3_301 generic
+                            uid=3_302 image "Pride and Prejudice" url="https://picsum.photos/400/600?random=6"
+                        uid=3_303 generic
+                          uid=3_304 ignored
+                            uid=3_305 StaticText "-"
+                              uid=3_306 InlineTextBox "-"
+                            uid=3_307 StaticText "13"
+                              uid=3_308 InlineTextBox "13"
+                            uid=3_309 StaticText "%"
+                              uid=3_310 InlineTextBox "%"
+                          uid=3_311 ignored
+                            uid=3_312 StaticText "Featured"
+                              uid=3_313 InlineTextBox "Featured"
+                        uid=3_314 generic
+                          uid=3_315 button
+                      uid=3_316 ignored
+                        uid=3_317 heading "Pride and Prejudice" level="3"
+                          uid=3_318 link "Pride and Prejudice" url="http://localhost:3006/products/pride-and-prejudice"
+                            uid=3_319 StaticText "Pride and Prejudice"
+                              uid=3_320 InlineTextBox "Pride and Prejudice"
+                        uid=3_321 ignored
+                          uid=3_322 ignored
+                          uid=3_323 ignored
+                            uid=3_324 StaticText "(4.5)"
+                              uid=3_325 InlineTextBox "(4.5)"
+                        uid=3_326 ignored
+                          uid=3_327 ignored
+                            uid=3_328 StaticText "₹"
+                              uid=3_329 InlineTextBox "₹"
+                            uid=3_330 StaticText "349.00"
+                              uid=3_331 InlineTextBox "349.00"
+                          uid=3_332 ignored
+                            uid=3_333 StaticText "₹"
+                              uid=3_334 InlineTextBox "₹"
+                            uid=3_335 StaticText "400.00"
+                              uid=3_336 InlineTextBox "400.00"
+                        uid=3_337 ignored
+                          uid=3_338 button "Cart"
+                            uid=3_339 StaticText "Cart"
+                              uid=3_340 InlineTextBox "Cart"
+                          uid=3_341 button "Buy"
+                            uid=3_342 StaticText "Buy"
+                              uid=3_343 InlineTextBox "Buy"
+                  uid=3_344 generic
+                    uid=3_345 ignored
+                      uid=3_346 generic
+                        uid=3_347 link "Dune" url="http://localhost:3006/products/dune"
+                          uid=3_348 generic
+                            uid=3_349 image "Dune" url="https://picsum.photos/400/600?random=7"
+                        uid=3_350 generic
+                          uid=3_351 ignored
+                            uid=3_352 StaticText "-"
+                              uid=3_353 InlineTextBox "-"
+                            uid=3_354 StaticText "16"
+                              uid=3_355 InlineTextBox "16"
+                            uid=3_356 StaticText "%"
+                              uid=3_357 InlineTextBox "%"
+                          uid=3_358 ignored
+                            uid=3_359 StaticText "Featured"
+                              uid=3_360 InlineTextBox "Featured"
+                        uid=3_361 generic
+                          uid=3_362 button
+                      uid=3_363 ignored
+                        uid=3_364 heading "Dune" level="3"
+                          uid=3_365 link "Dune" url="http://localhost:3006/products/dune"
+                            uid=3_366 StaticText "Dune"
+                              uid=3_367 InlineTextBox "Dune"
+                        uid=3_368 ignored
+                          uid=3_369 ignored
+                          uid=3_370 ignored
+                            uid=3_371 StaticText "(4.5)"
+                              uid=3_372 InlineTextBox "(4.5)"
+                        uid=3_373 ignored
+                          uid=3_374 ignored
+                            uid=3_375 StaticText "₹"
+                              uid=3_376 InlineTextBox "₹"
+                            uid=3_377 StaticText "549.00"
+                              uid=3_378 InlineTextBox "549.00"
+                          uid=3_379 ignored
+                            uid=3_380 StaticText "₹"
+                              uid=3_381 InlineTextBox "₹"
+                            uid=3_382 StaticText "650.00"
+                              uid=3_383 InlineTextBox "650.00"
+                        uid=3_384 ignored
+                          uid=3_385 button "Cart"
+                            uid=3_386 StaticText "Cart"
+                              uid=3_387 InlineTextBox "Cart"
+                          uid=3_388 button "Buy"
+                            uid=3_389 StaticText "Buy"
+                              uid=3_390 InlineTextBox "Buy"
+                  uid=3_391 generic
+                    uid=3_392 ignored
+                      uid=3_393 generic
+                        uid=3_394 link "The God of Small Things" url="http://localhost:3006/products/the-god-of-small-things"
+                          uid=3_395 generic
+                            uid=3_396 image "The God of Small Things" url="https://picsum.photos/400/600?random=9"
+                        uid=3_397 generic
+                          uid=3_398 ignored
+                            uid=3_399 StaticText "-"
+                              uid=3_400 InlineTextBox "-"
+                            uid=3_401 StaticText "11"
+                              uid=3_402 InlineTextBox "11"
+                            uid=3_403 StaticText "%"
+                              uid=3_404 InlineTextBox "%"
+                          uid=3_405 ignored
+                            uid=3_406 StaticText "Featured"
+                              uid=3_407 InlineTextBox "Featured"
+                        uid=3_408 generic
+                          uid=3_409 button
+                      uid=3_410 ignored
+                        uid=3_411 heading "The God of Small Things" level="3"
+                          uid=3_412 link "The God of Small Things" url="http://localhost:3006/products/the-god-of-small-things"
+                            uid=3_413 StaticText "The God of Small Things"
+                              uid=3_414 InlineTextBox "The God of Small "
+                              uid=3_415 InlineTextBox "Things"
+                        uid=3_416 ignored
+                          uid=3_417 ignored
+                          uid=3_418 ignored
+                            uid=3_419 StaticText "(4.5)"
+                              uid=3_420 InlineTextBox "(4.5)"
+                        uid=3_421 ignored
+                          uid=3_422 ignored
+                            uid=3_423 StaticText "₹"
+                              uid=3_424 InlineTextBox "₹"
+                            uid=3_425 StaticText "399.00"
+                              uid=3_426 InlineTextBox "399.00"
+                          uid=3_427 ignored
+                            uid=3_428 StaticText "₹"
+                              uid=3_429 InlineTextBox "₹"
+                            uid=3_430 StaticText "450.00"
+                              uid=3_431 InlineTextBox "450.00"
+                        uid=3_432 ignored
+                          uid=3_433 button "Cart"
+                            uid=3_434 StaticText "Cart"
+                              uid=3_435 InlineTextBox "Cart"
+                          uid=3_436 button "Buy"
+                            uid=3_437 StaticText "Buy"
+                              uid=3_438 InlineTextBox "Buy"
+            uid=3_439 generic
+              uid=3_440 generic
+              uid=3_441 generic
+              uid=3_442 generic
+              uid=3_443 generic
+                uid=3_444 ignored
+                  uid=3_445 generic
+                    uid=3_446 heading "Browse by Category" level="2"
+                      uid=3_447 StaticText "Browse by Category"
+                        uid=3_448 InlineTextBox "Browse by Category"
+                  uid=3_449 paragraph
+                    uid=3_450 StaticText "Discover your next favorite book from our wide range of categories"
+                      uid=3_451 InlineTextBox "Discover your next favorite book from our wide range of categories"
+                uid=3_452 ignored
+                  uid=3_453 ignored
+                    uid=3_454 link "Biography" url="http://localhost:3006/categories/biography"
+                      uid=3_455 ignored
+                        uid=3_456 ignored
+                          uid=3_457 generic
+                            uid=3_458 generic
+                          uid=3_459 ignored
+                            uid=3_460 heading "Biography" level="3"
+                              uid=3_461 StaticText "Biography"
+                                uid=3_462 InlineTextBox "Biography"
+                    uid=3_463 link "Fiction" url="http://localhost:3006/categories/fiction"
+                      uid=3_464 ignored
+                        uid=3_465 ignored
+                          uid=3_466 generic
+                            uid=3_467 generic
+                          uid=3_468 ignored
+                            uid=3_469 heading "Fiction" level="3"
+                              uid=3_470 StaticText "Fiction"
+                                uid=3_471 InlineTextBox "Fiction"
+                    uid=3_472 link "Mystery & Thriller" url="http://localhost:3006/categories/mystery-thriller"
+                      uid=3_473 ignored
+                        uid=3_474 ignored
+                          uid=3_475 generic
+                            uid=3_476 generic
+                          uid=3_477 ignored
+                            uid=3_478 heading "Mystery & Thriller" level="3"
+                              uid=3_479 StaticText "Mystery & Thriller"
+                                uid=3_480 InlineTextBox "Mystery & Thriller"
+                    uid=3_481 link "Non-Fiction" url="http://localhost:3006/categories/non-fiction"
+                      uid=3_482 ignored
+                        uid=3_483 ignored
+                          uid=3_484 generic
+                            uid=3_485 generic
+                          uid=3_486 ignored
+                            uid=3_487 heading "Non-Fiction" level="3"
+                              uid=3_488 StaticText "Non-Fiction"
+                                uid=3_489 InlineTextBox "Non-Fiction"
+                    uid=3_490 link "Romance" url="http://localhost:3006/categories/romance"
+                      uid=3_491 ignored
+                        uid=3_492 ignored
+                          uid=3_493 generic
+                            uid=3_494 generic
+                          uid=3_495 ignored
+                            uid=3_496 heading "Romance" level="3"
+                              uid=3_497 StaticText "Romance"
+                                uid=3_498 InlineTextBox "Romance"
+                    uid=3_499 link "Science Fiction" url="http://localhost:3006/categories/science-fiction"
+                      uid=3_500 ignored
+                        uid=3_501 ignored
+                          uid=3_502 generic
+                            uid=3_503 generic
+                          uid=3_504 ignored
+                            uid=3_505 heading "Science Fiction" level="3"
+                              uid=3_506 StaticText "Science Fiction"
+                                uid=3_507 InlineTextBox "Science Fiction"
+                uid=3_508 ignored
+                  uid=3_509 ignored
+                    uid=3_510 link "Browse All Categories" url="http://localhost:3006/categories"
+                      uid=3_511 button "Browse All Categories"
+                        uid=3_512 StaticText "Browse All Categories"
+                          uid=3_513 InlineTextBox "Browse All Categories"
+            uid=3_514 ignored
+              uid=3_515 ignored
+              uid=3_516 ignored
+              uid=3_517 ignored
+              uid=3_518 ignored
+              uid=3_519 ignored
+              uid=3_520 ignored
+            uid=3_521 generic
+              uid=3_522 ignored
+                uid=3_523 heading "Stay Updated" level="2"
+                  uid=3_524 StaticText "Stay Updated"
+                    uid=3_525 InlineTextBox "Stay Updated"
+                uid=3_526 paragraph
+                  uid=3_527 StaticText "Subscribe for latest releases, exclusive offers, and reading recommendations"
+                    uid=3_528 InlineTextBox "Subscribe for latest releases, exclusive offers, and reading recommendations"
+                uid=3_529 generic
+                  uid=3_530 textbox "Enter your email"
+                    uid=3_531 ignored
+                    uid=3_532 generic
+                  uid=3_533 button "Subscribe"
+                    uid=3_534 ignored
+                      uid=3_535 StaticText "Subscribe"
+                        uid=3_536 InlineTextBox "Subscribe"
+            uid=3_537 generic
+              uid=3_538 ignored
+                uid=3_539 heading "Ready to Start Reading?" level="2"
+                  uid=3_540 StaticText "Ready to Start Reading?"
+                    uid=3_541 InlineTextBox "Ready to Start Reading?"
+                uid=3_542 paragraph
+                  uid=3_543 StaticText "Join millions of readers who trust us for their reading needs. Discover your next favorite book today!"
+                    uid=3_544 InlineTextBox "Join millions of readers who trust us for their reading needs. Discover your next "
+                    uid=3_545 InlineTextBox "favorite book today!"
+                uid=3_546 link "Shop Now" url="http://localhost:3006/products"
+                  uid=3_547 ignored
+                    uid=3_548 StaticText "Shop Now"
+                      uid=3_549 InlineTextBox "Shop Now"
+        uid=3_550 contentinfo
+          uid=3_551 ignored
+            uid=3_552 ignored
+              uid=3_553 ignored
+                uid=3_554 ignored
+                  uid=3_555 ignored
+                    uid=3_556 ignored
+                  uid=3_557 ignored
+                    uid=3_558 heading "Free Shipping" level="3"
+                      uid=3_559 StaticText "Free Shipping"
+                        uid=3_560 InlineTextBox "Free Shipping"
+                    uid=3_561 paragraph
+                      uid=3_562 StaticText "Above ₹499"
+                        uid=3_563 InlineTextBox "Above ₹499"
+                uid=3_564 ignored
+                  uid=3_565 ignored
+                    uid=3_566 ignored
+                  uid=3_567 ignored
+                    uid=3_568 heading "Easy Returns" level="3"
+                      uid=3_569 StaticText "Easy Returns"
+                        uid=3_570 InlineTextBox "Easy Returns"
+                    uid=3_571 paragraph
+                      uid=3_572 StaticText "30 days"
+                        uid=3_573 InlineTextBox "30 days"
+                uid=3_574 ignored
+                  uid=3_575 ignored
+                    uid=3_576 ignored
+                  uid=3_577 ignored
+                    uid=3_578 heading "Secure" level="3"
+                      uid=3_579 StaticText "Secure"
+                        uid=3_580 InlineTextBox "Secure"
+                    uid=3_581 paragraph
+                      uid=3_582 StaticText "100% safe"
+                        uid=3_583 InlineTextBox "100% safe"
+                uid=3_584 ignored
+                  uid=3_585 ignored
+                    uid=3_586 ignored
+                  uid=3_587 ignored
+                    uid=3_588 heading "Payment" level="3"
+                      uid=3_589 StaticText "Payment"
+                        uid=3_590 InlineTextBox "Payment"
+                    uid=3_591 paragraph
+                      uid=3_592 StaticText "All modes"
+                        uid=3_593 InlineTextBox "All modes"
+          uid=3_594 ignored
+            uid=3_595 ignored
+              uid=3_596 ignored
+                uid=3_597 ignored
+                  uid=3_598 heading "Stay Updated" level="3"
+                    uid=3_599 StaticText "Stay Updated"
+                      uid=3_600 InlineTextBox "Stay Updated"
+                  uid=3_601 paragraph
+                    uid=3_602 StaticText "Get the latest books and exclusive offers"
+                      uid=3_603 InlineTextBox "Get the latest books and exclusive offers"
+                uid=3_604 generic
+                  uid=3_605 textbox "Your email"
+                    uid=3_606 ignored
+                    uid=3_607 generic
+                  uid=3_608 button "Subscribe"
+                    uid=3_609 StaticText "Subscribe"
+                      uid=3_610 InlineTextBox "Subscribe"
+          uid=3_611 ignored
+            uid=3_612 ignored
+              uid=3_613 ignored
+                uid=3_614 ignored
+                  uid=3_615 link "BookBharat Your Knowledge Partner" url="http://localhost:3006/"
+                    uid=3_616 ignored
+                    uid=3_617 ignored
+                      uid=3_618 heading "BookBharat" level="2"
+                        uid=3_619 StaticText "BookBharat"
+                          uid=3_620 InlineTextBox "BookBharat"
+                      uid=3_621 paragraph
+                        uid=3_622 StaticText "Your Knowledge Partner"
+                          uid=3_623 InlineTextBox "Your Knowledge Partner"
+                  uid=3_624 paragraph
+                    uid=3_625 StaticText "India's leading online bookstore offering millions of books across all genres."
+                      uid=3_626 InlineTextBox "India's leading online bookstore offering millions of books across all "
+                      uid=3_627 InlineTextBox "genres."
+                  uid=3_628 ignored
+                  uid=3_629 ignored
+                uid=3_630 ignored
+                  uid=3_631 heading "Company" level="3"
+                    uid=3_632 StaticText "Company"
+                      uid=3_633 InlineTextBox "Company"
+                  uid=3_634 list
+                    uid=3_635 listitem level="1"
+                      uid=3_636 link "About Us" url="http://localhost:3006/about"
+                        uid=3_637 StaticText "About Us"
+                          uid=3_638 InlineTextBox "About Us"
+                    uid=3_639 listitem level="1"
+                      uid=3_640 link "Careers" url="http://localhost:3006/careers"
+                        uid=3_641 StaticText "Careers"
+                          uid=3_642 InlineTextBox "Careers"
+                    uid=3_643 listitem level="1"
+                      uid=3_644 link "Press & Media" url="http://localhost:3006/press"
+                        uid=3_645 StaticText "Press & Media"
+                          uid=3_646 InlineTextBox "Press & Media"
+                    uid=3_647 listitem level="1"
+                      uid=3_648 link "Corporate Sales" url="http://localhost:3006/corporate"
+                        uid=3_649 StaticText "Corporate Sales"
+                          uid=3_650 InlineTextBox "Corporate Sales"
+                uid=3_651 ignored
+                  uid=3_652 heading "Support" level="3"
+                    uid=3_653 StaticText "Support"
+                      uid=3_654 InlineTextBox "Support"
+                  uid=3_655 list
+                    uid=3_656 listitem level="1"
+                      uid=3_657 link "Help Center" url="http://localhost:3006/help"
+                        uid=3_658 StaticText "Help Center"
+                          uid=3_659 InlineTextBox "Help Center"
+                    uid=3_660 listitem level="1"
+                      uid=3_661 link "Contact Us" url="http://localhost:3006/contact"
+                        uid=3_662 StaticText "Contact Us"
+                          uid=3_663 InlineTextBox "Contact Us"
+                    uid=3_664 listitem level="1"
+                      uid=3_665 link "Track Order" url="http://localhost:3006/track-order"
+                        uid=3_666 StaticText "Track Order"
+                          uid=3_667 InlineTextBox "Track Order"
+                    uid=3_668 listitem level="1"
+                      uid=3_669 link "Returns" url="http://localhost:3006/returns"
+                        uid=3_670 StaticText "Returns"
+                          uid=3_671 InlineTextBox "Returns"
+          uid=3_672 ignored
+            uid=3_673 ignored
+              uid=3_674 ignored
+                uid=3_675 paragraph
+                  uid=3_676 StaticText "© "
+                    uid=3_677 InlineTextBox "© "
+                  uid=3_678 StaticText "2025"
+                    uid=3_679 InlineTextBox "2025"
+                  uid=3_680 StaticText " "
+                    uid=3_681 InlineTextBox " "
+                  uid=3_682 StaticText "BookBharat"
+                    uid=3_683 InlineTextBox "BookBharat"
+                  uid=3_684 StaticText ". All rights reserved."
+                    uid=3_685 InlineTextBox ". All rights reserved."
+                uid=3_686 ignored
+                  uid=3_687 link "Privacy Policy" url="http://localhost:3006/privacy"
+                    uid=3_688 StaticText "Privacy Policy"
+                      uid=3_689 InlineTextBox "Privacy Policy"
+                  uid=3_690 link "Terms of Service" url="http://localhost:3006/terms"
+                    uid=3_691 StaticText "Terms of Service"
+                      uid=3_692 InlineTextBox "Terms of Service"
+                  uid=3_693 link "Refund Policy" url="http://localhost:3006/refund"
+                    uid=3_694 StaticText "Refund Policy"
+                      uid=3_695 InlineTextBox "Refund Policy"
+                  uid=3_696 link "Shipping Policy" url="http://localhost:3006/shipping"
+                    uid=3_697 StaticText "Shipping Policy"
+                      uid=3_698 InlineTextBox "Shipping Policy"
+                  uid=3_699 link "Cookies" url="http://localhost:3006/cookies"
+                    uid=3_700 StaticText "Cookies"
+                      uid=3_701 InlineTextBox "Cookies"
+      uid=3_702 generic
+        uid=3_703 alert

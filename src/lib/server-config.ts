@@ -5,12 +5,12 @@
  * and SEO optimization in Next.js App Router.
  */
 
-import { siteConfigService, type SiteConfig, type HomepageConfig, type NavigationConfig, type HeroConfig } from './site-config';
+import { siteConfigService, SiteConfigService, type SiteConfig, type HomepageConfig, type NavigationConfig, type HeroConfig } from './site-config';
 
 // Server-side configuration fetching with caching
 export async function getServerSideSiteConfig(): Promise<SiteConfig> {
   try {
-    const config = await siteConfigService.getServerSideConfig<SiteConfig>('/config/site');
+    const config = await SiteConfigService.getServerSideConfig<SiteConfig>('/config/site');
     return config || siteConfigService['getSiteConfigDefaults']();
   } catch (error) {
     console.error('Error fetching server-side site config:', error);
@@ -20,7 +20,7 @@ export async function getServerSideSiteConfig(): Promise<SiteConfig> {
 
 export async function getServerSideHomepageConfig(): Promise<HomepageConfig> {
   try {
-    const config = await siteConfigService.getServerSideConfig<HomepageConfig>('/config/homepage');
+    const config = await SiteConfigService.getServerSideConfig<HomepageConfig>('/config/homepage');
     return config || siteConfigService['getHomepageConfigDefaults']();
   } catch (error) {
     console.error('Error fetching server-side homepage config:', error);
@@ -30,7 +30,7 @@ export async function getServerSideHomepageConfig(): Promise<HomepageConfig> {
 
 export async function getServerSideNavigationConfig(): Promise<NavigationConfig> {
   try {
-    const config = await siteConfigService.getServerSideConfig<NavigationConfig>('/config/navigation');
+    const config = await SiteConfigService.getServerSideConfig<NavigationConfig>('/config/navigation');
     return config || siteConfigService['getNavigationConfigDefaults']();
   } catch (error) {
     console.error('Error fetching server-side navigation config:', error);
@@ -40,7 +40,7 @@ export async function getServerSideNavigationConfig(): Promise<NavigationConfig>
 
 export async function getServerSideHeroConfig(): Promise<HeroConfig | null> {
   try {
-    const config = await siteConfigService.getServerSideConfig<HeroConfig>('/hero/active');
+    const config = await SiteConfigService.getServerSideConfig<HeroConfig>('/hero/active');
     return config;
   } catch (error) {
     console.error('Error fetching server-side hero config:', error);

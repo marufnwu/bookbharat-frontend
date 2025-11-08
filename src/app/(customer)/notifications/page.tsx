@@ -2,6 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+
+// Client-side only check
+const useIsClient = () => {
+  const [isClient, setIsClient] = useState(false)
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+  return isClient
+}
 import { Bell, Check, X, Trash2, Settings, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -23,8 +32,21 @@ interface NotificationStats {
 }
 
 export default function NotificationsPage() {
+  const isClient = useIsClient()
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'unread' | 'read'>('all')
   const queryClient = useQueryClient()
+
+  // Don't render anything on server-side to prevent QueryClient errors
+  if (!isClient) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   // Fetch notifications
   const {

@@ -6,49 +6,26 @@ import Script from "next/script";
 import { ConfigProvider } from "@/contexts/ConfigContext";
 import { SiteConfigProvider } from "@/contexts/SiteConfigContext";
 import { getServerSideAllConfigs } from "@/lib/server-config";
+import { generateDynamicMetadata } from "@/lib/metadata";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { TrackingScripts } from "@/components/seo/TrackingScripts";
 import { getServerThemeConfig, generateThemeStyles, generateThemeScript, generateCriticalCSS } from "@/lib/theme-preloader";
+import { ClientProviders } from "@/components/providers/ClientProviders";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
 });
 
+// Site URL for metadata
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: {
-    template: "%s | BookBharat - Your Knowledge Partner",
-    default: "BookBharat - Your Knowledge Partner | Online Bookstore India",
-  },
-  description: "Discover millions of books online at BookBharat. India's leading bookstore with fiction, non-fiction, academic books and more. Fast delivery, secure payment, best prices.",
-  keywords: ["books", "online bookstore", "india", "fiction", "non-fiction", "academic books", "bookbharat"],
-  authors: [{ name: "BookBharat Team" }],
-  creator: "BookBharat",
-  publisher: "BookBharat",
-  openGraph: {
-    type: "website",
-    locale: "en_IN",
-    url: siteUrl,
-    title: "BookBharat - Your Knowledge Partner",
-    description: "Discover millions of books online at BookBharat. India's leading bookstore.",
-    siteName: "BookBharat",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "BookBharat - Your Knowledge Partner",
-    description: "Discover millions of books online at BookBharat. India's leading bookstore.",
-    creator: "@bookbharat",
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
+// Export dynamic metadata as a function
+export async function generateMetadata(): Promise<Metadata> {
+  return generateDynamicMetadata();
+}
 
 export default async function RootLayout({
   children,
@@ -97,19 +74,21 @@ export default async function RootLayout({
 
         <ConfigProvider initialTheme={themeConfig}>
           <SiteConfigProvider initialConfig={siteConfigs}>
-            <div className="min-h-screen flex flex-col">
-              <Header />
+            <ClientProviders>
+              <div className="min-h-screen flex flex-col">
+                <Header />
 
-              <main className="flex-1 pb-16 md:pb-0">
-                {children}
-              </main>
+                <main className="flex-1 pb-16 md:pb-0">
+                  {children}
+                </main>
 
-              <Footer />
-              <MobileBottomNav />
-            </div>
+                <Footer />
+                <MobileBottomNav />
+              </div>
 
-            {/* Dynamic tracking scripts based on backend configuration */}
-            <TrackingScripts />
+              {/* Dynamic tracking scripts based on backend configuration */}
+              <TrackingScripts />
+            </ClientProviders>
           </SiteConfigProvider>
         </ConfigProvider>
       </body>

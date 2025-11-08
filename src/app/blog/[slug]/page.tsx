@@ -1,6 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+
+// Client-side only check
+const useIsClient = () => {
+  const [isClient, setIsClient] = useState(false)
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+  return isClient
+}
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
@@ -34,8 +43,21 @@ import SEOHead from '@/components/SEO/SEOHead';
 import SocialShare from '@/components/Social/SocialShare';
 
 export default function BlogPostPage() {
+  const isClient = useIsClient();
   const params = useParams();
   const router = useRouter();
+
+  // Don't render anything on server-side to prevent QueryClient errors
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();

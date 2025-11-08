@@ -2,8 +2,20 @@
 
 import { useState, useEffect } from 'react'
 
-// Force dynamic rendering for this page
+// Client-side only check
+const useIsClient = () => {
+  const [isClient, setIsClient] = useState(false)
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+  return isClient
+}
+
+// Force dynamic rendering for this page to prevent static generation
 export const dynamic = 'force-dynamic'
+
+// Force runtime to prevent any static optimization
+export const runtime = 'edge'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Save, Bell, Mail, MessageSquare, Send, Smartphone, Moon, Sun, Check, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
@@ -63,9 +75,22 @@ const timezones = [
 ]
 
 export default function NotificationSettingsPage() {
+  const isClient = useIsClient();
   const [settings, setSettings] = useState<NotificationSettings | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
   const queryClient = useQueryClient()
+
+  // Don't render anything on server-side to prevent QueryClient errors
+  if (!isClient) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   // Fetch current settings
   const { data: currentSettings, isLoading } = useQuery({

@@ -534,8 +534,9 @@ class SiteConfigService {
   }
 }
 
-// Export singleton instance
+// Export singleton instance and class
 export const siteConfigService = new SiteConfigService();
+export { SiteConfigService };
 export type {
   SiteConfig,
   SiteTheme,

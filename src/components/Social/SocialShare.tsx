@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Share2, Facebook, Twitter, Linkedin, Link as LinkIcon, WhatsApp } from 'lucide-react';
+import { Share2, Facebook, Twitter, Linkedin, Link as LinkIcon, MessageCircle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -101,7 +101,7 @@ export default function SocialShare({ url, title, description, className }: Soci
           Share on LinkedIn
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleShare('whatsapp')}>
-          <WhatsApp className="h-4 w-4 mr-2 text-green-600" />
+          <MessageCircle className="h-4 w-4 mr-2 text-green-600" />
           Share on WhatsApp
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleCopyLink}>

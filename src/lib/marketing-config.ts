@@ -182,7 +182,8 @@ class MarketingConfigService {
 
   private async doFetchConfig(): Promise<MarketingConfig> {
     try {
-      const response = await fetch('/api/v1/marketing/config');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+      const response = await fetch(`${apiUrl}/marketing/config`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch marketing config: ${response.status}`);

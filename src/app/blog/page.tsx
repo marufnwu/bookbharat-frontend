@@ -3,6 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
+
+// Client-side only check
+const useIsClient = () => {
+  const [isClient, setIsClient] = useState(false)
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+  return isClient
+}
 import Image from 'next/image';
 import { Search, Calendar, Clock, User, ChevronRight, Tag, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -17,10 +26,23 @@ import { formatDate } from '@/lib/utils';
 import SEOHead from '@/components/SEO/SEOHead';
 
 export default function BlogPage() {
+  const isClient = useIsClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [sortBy, setSortBy] = useState('published_at');
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Don't render anything on server-side to prevent QueryClient errors
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   const { data: posts, isLoading: postsLoading, error: postsError } = useQuery({
     queryKey: ['blog-posts', searchQuery, selectedCategory, sortBy, currentPage],
