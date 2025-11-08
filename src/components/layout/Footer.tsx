@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -74,40 +75,33 @@ export function Footer() {
     }
   };
 
-  // Get dynamic footer links from navigation config, with fallbacks
-  const getFooterLinks = () => {
-    if (navigation?.footer) {
-      return {
-        primary: navigation.footer.primary,
-        secondary: navigation.footer.secondary,
-        legal: navigation.footer.legal,
-      };
-    }
+  // Use dynamic footer sections from navigation config
+  const footerSections = navigation?.footer?.sections || [];
 
-    // Fallback to hardcoded links
-    return {
-      primary: [
-        { name: 'About Us', href: '/about', id: 'about', url: '/about', label: 'About Us', active: true, target: '_self' },
-        { name: 'Careers', href: '/careers', id: 'careers', url: '/careers', label: 'Careers', active: true, target: '_self' },
-        { name: 'Press & Media', href: '/press', id: 'press', url: '/press', label: 'Press & Media', active: true, target: '_self' },
-        { name: 'Corporate Sales', href: '/corporate', id: 'corporate', url: '/corporate', label: 'Corporate Sales', active: true, target: '_self' },
-      ],
-      secondary: [
-        { name: 'Help Center', href: '/help', id: 'help', url: '/help', label: 'Help Center', active: true, target: '_self' },
-        { name: 'Contact Us', href: '/contact', id: 'contact', url: '/contact', label: 'Contact Us', active: true, target: '_self' },
-        { name: 'Track Order', href: '/track-order', id: 'track', url: '/track-order', label: 'Track Order', active: true, target: '_self' },
-        { name: 'Returns', href: '/returns', id: 'returns', url: '/returns', label: 'Returns', active: true, target: '_self' },
-      ],
-      legal: [
-        { name: 'Privacy Policy', href: '/privacy', id: 'privacy', url: '/privacy', label: 'Privacy Policy', active: true, target: '_self' },
-        { name: 'Terms of Service', href: '/terms', id: 'terms', url: '/terms', label: 'Terms of Service', active: true, target: '_self' },
-        { name: 'Refund Policy', href: '/refund', id: 'refund', url: '/refund', label: 'Refund Policy', active: true, target: '_self' },
-        { name: 'Shipping Policy', href: '/shipping', id: 'shipping', url: '/shipping', label: 'Shipping Policy', active: true, target: '_self' },
-      ],
+  // Create footer links object for backward compatibility with mobile accordion
+  const footerLinks = React.useMemo(() => {
+    const links: Record<string, any[]> = {
+      primary: [],
+      secondary: [],
+      legal: []
     };
-  };
 
-  const footerLinks = getFooterLinks();
+    footerSections.forEach(section => {
+      // Map section titles to link categories
+      if (section.title.toLowerCase().includes('quick') || section.title.toLowerCase().includes('about')) {
+        links.primary.push(...section.links);
+      } else if (section.title.toLowerCase().includes('service') || section.title.toLowerCase().includes('support')) {
+        links.secondary.push(...section.links);
+      } else if (section.title.toLowerCase().includes('policy') || section.title.toLowerCase().includes('legal')) {
+        links.legal.push(...section.links);
+      } else {
+        // Default to primary if category doesn't match
+        links.primary.push(...section.links);
+      }
+    });
+
+    return links;
+  }, [footerSections]);
 
   const features = [
     {
@@ -352,7 +346,24 @@ export function Footer() {
                 {siteInfo?.address && (
                   <div className="flex items-center gap-2 text-sm">
                     <MapPin className="h-4 w-4 text-primary" />
-                    <span>{siteInfo.address}</span>
+                    <span>
+                      {(() => {
+                        if (typeof siteInfo.address === 'string') {
+                          return siteInfo.address;
+                        } else {
+                          const address = siteInfo.address;
+                          const parts = [
+                            address.line1,
+                            address.line2,
+                            address.city,
+                            address.state,
+                            address.pincode,
+                            address.country
+                          ].filter(Boolean);
+                          return parts.join(', ');
+                        }
+                      })()}
+                    </span>
                   </div>
                 )}
               </div>
@@ -388,12 +399,12 @@ export function Footer() {
               </div>
             </div>
 
-            {/* Links sections */}
-            {footerLinks.primary.length > 0 && (
-              <div>
-                <h3 className="font-semibold text-foreground mb-3">Company</h3>
+            {/* Dynamic links sections */}
+            {footerSections.map((section, index) => (
+              <div key={`${section.title}-${index}`}>
+                <h3 className="font-semibold text-foreground mb-3">{section.title}</h3>
                 <ul className="space-y-2">
-                  {footerLinks.primary.map((link) => (
+                  {section.links.map((link) => (
                     <li key={link.id || link.name}>
                       <Link
                         href={link.url || link.href}
@@ -406,45 +417,7 @@ export function Footer() {
                   ))}
                 </ul>
               </div>
-            )}
-
-            {footerLinks.secondary.length > 0 && (
-              <div>
-                <h3 className="font-semibold text-foreground mb-3">Support</h3>
-                <ul className="space-y-2">
-                  {footerLinks.secondary.map((link) => (
-                    <li key={link.id || link.name}>
-                      <Link
-                        href={link.url || link.href}
-                        className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                        target={link.target || '_self'}
-                      >
-                        {link.label || link.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {navigation?.footer.social.length > 0 && (
-              <div>
-                <h3 className="font-semibold text-foreground mb-3">Categories</h3>
-                <ul className="space-y-2">
-                  {navigation.footer.social.slice(0, 4).map((link) => (
-                    <li key={link.id || link.name}>
-                      <Link
-                        href={link.url || link.href}
-                        className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                        target={link.target || '_self'}
-                      >
-                        {link.label || link.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            ))}
           </div>
         </div>
       </div>

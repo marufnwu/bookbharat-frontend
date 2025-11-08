@@ -174,18 +174,44 @@ export function useHomepageLayout() {
   const { homepageConfig } = useSiteConfigContext();
 
   return React.useMemo(() => {
-    if (!homepageConfig) return null;
+    if (!homepageConfig) {
+      return {
+        heroSections: [],
+        featuredSections: [],
+        promotionalBanners: [],
+        testimonials: [],
+        newsletter: {
+          enabled: false,
+          title: '',
+          description: '',
+          placeholder: '',
+          button_text: '',
+          success_message: '',
+          background_color: '',
+          text_color: '',
+        },
+      };
+    }
 
     return {
-      heroSections: homepageConfig.hero_sections.filter(section => section.active),
-      featuredSections: homepageConfig.featured_sections.filter(section => section.active),
-      promotionalBanners: homepageConfig.promotional_banners.filter(banner =>
+      heroSections: (homepageConfig.hero_sections || []).filter(section => section.active),
+      featuredSections: (homepageConfig.featured_sections || []).filter(section => section.active),
+      promotionalBanners: (homepageConfig.promotional_banners || []).filter(banner =>
         banner.active && new Date(banner.end_date) > new Date()
       ),
-      testimonials: homepageConfig.testimonials.filter(testimonial =>
+      testimonials: (homepageConfig.testimonials || []).filter(testimonial =>
         testimonial.active && testimonial.featured
       ),
-      newsletter: homepageConfig.newsletter,
+      newsletter: homepageConfig.newsletter || {
+        enabled: false,
+        title: '',
+        description: '',
+        placeholder: '',
+        button_text: '',
+        success_message: '',
+        background_color: '',
+        text_color: '',
+      },
     };
   }, [homepageConfig]);
 }
@@ -194,21 +220,48 @@ export function useNavigationMenus() {
   const { navigationConfig } = useSiteConfigContext();
 
   return React.useMemo(() => {
-    if (!navigationConfig) return null;
+    // Debug logging
+    console.log('🔍 Debug navigationConfig:', navigationConfig);
 
-    return {
+    if (!navigationConfig) {
+      console.log('⚠️ Navigation config is null, returning empty structure');
+      return {
+        header: {
+          primary: [],
+          secondary: [],
+          mobile: [],
+        },
+        footer: {
+          sections: [],
+          social: [],
+        },
+      };
+    }
+
+    // Ensure navigationConfig has the expected structure
+    const header = navigationConfig.header || { primary: [], secondary: [], mobile: [] };
+    const footer = navigationConfig.footer || { sections: [], social: [] };
+
+    console.log('🔍 Debug header:', header);
+    console.log('🔍 Debug footer:', footer);
+
+    const result = {
       header: {
-        primary: navigationConfig.header.primary.filter(item => item.active),
-        secondary: navigationConfig.header.secondary.filter(item => item.active),
-        mobile: navigationConfig.header.mobile.filter(item => item.active),
+        primary: (header.primary || []).filter(item => item.active),
+        secondary: (header.secondary || []).filter(item => item.active),
+        mobile: (header.mobile || []).filter(item => item.active),
       },
       footer: {
-        primary: navigationConfig.footer.primary.filter(item => item.active),
-        secondary: navigationConfig.footer.secondary.filter(item => item.active),
-        legal: navigationConfig.footer.legal.filter(item => item.active),
-        social: navigationConfig.footer.social.filter(item => item.active),
+        sections: (footer.sections || []).map(section => ({
+          title: section.title,
+          links: (section.links || []).filter(link => link.active)
+        })),
+        social: (footer.social || []).filter(item => item.active),
       },
     };
+
+    console.log('🔍 Debug final navigation result:', result);
+    return result;
   }, [navigationConfig]);
 }
 

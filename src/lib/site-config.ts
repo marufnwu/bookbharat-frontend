@@ -198,6 +198,11 @@ interface NavigationItem {
   active: boolean;
 }
 
+interface FooterSection {
+  title: string;
+  links: NavigationItem[];
+}
+
 interface NavigationConfig {
   header: {
     primary: NavigationItem[];
@@ -205,9 +210,7 @@ interface NavigationConfig {
     mobile: NavigationItem[];
   };
   footer: {
-    primary: NavigationItem[];
-    secondary: NavigationItem[];
-    legal: NavigationItem[];
+    sections: FooterSection[];
     social: NavigationItem[];
   };
 }
@@ -253,9 +256,6 @@ class SiteConfigService {
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
   private getApiUrl(): string {
-    if (typeof window !== 'undefined') {
-      return window.location.origin;
-    }
     return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
   }
 
@@ -316,17 +316,70 @@ class SiteConfigService {
   }
 
   async getNavigationConfig(): Promise<NavigationConfig> {
-    if (this.navigationConfigCache && this.isCacheValid()) {
-      return this.navigationConfigCache;
-    }
+    console.log('🔧 Fetching navigation config...');
+    // Temporarily disable cache for debugging
+    // if (this.navigationConfigCache && this.isCacheValid()) {
+    //   console.log('🔧 Returning cached navigation config');
+    //   return this.navigationConfigCache;
+    // }
 
-    const config = await this.fetchFromApi<NavigationConfig>('/config/navigation');
-    if (config) {
-      this.navigationConfigCache = config;
+    const apiResponse = await this.fetchFromApi<any>('/config/navigation');
+    console.log('🔧 Raw API response:', apiResponse);
+
+    if (apiResponse) {
+      // Transform backend API structure to frontend expected structure
+      const transformedConfig: NavigationConfig = {
+        header: {
+          primary: apiResponse.header_menu?.map((item: any) => ({
+            id: item.label?.toLowerCase().replace(/\s+/g, '-') || Math.random().toString(),
+            label: item.label || '',
+            url: item.url || '',
+            target: item.external ? '_blank' : '_self',
+            position: 0,
+            active: true,
+            children: item.children?.map((child: any) => ({
+              id: child.label?.toLowerCase().replace(/\s+/g, '-') || Math.random().toString(),
+              label: child.label || '',
+              url: child.url || '',
+              target: '_self',
+              position: 0,
+              active: true
+            })) || []
+          })) || [],
+          secondary: [],
+          mobile: apiResponse.header_menu?.map((item: any) => ({
+            id: item.label?.toLowerCase().replace(/\s+/g, '-') || Math.random().toString(),
+            label: item.label || '',
+            url: item.url || '',
+            target: item.external ? '_blank' : '_self',
+            position: 0,
+            active: true,
+            children: []
+          })) || []
+        },
+        footer: {
+          sections: apiResponse.footer_menu?.map((section: any) => ({
+            title: section.title,
+            links: section.links?.map((link: any) => ({
+              id: link.label?.toLowerCase().replace(/\s+/g, '-') || Math.random().toString(),
+              label: link.label || '',
+              url: link.url || '',
+              target: link.external ? '_blank' : '_self',
+              position: 0,
+              active: true,
+              children: []
+            })) || []
+          })) || [],
+          social: []
+        }
+      };
+
+      console.log('🔧 Transformed navigation config:', transformedConfig);
+      this.navigationConfigCache = transformedConfig;
       this.lastFetchTime = Date.now();
     }
 
-    return config || this.getNavigationConfigDefaults();
+    return this.navigationConfigCache || this.getNavigationConfigDefaults();
   }
 
   async getHeroConfig(): Promise<HeroConfig | null> {

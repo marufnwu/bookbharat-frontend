@@ -145,6 +145,16 @@ export function Header() {
   // Get primary navigation items, fallback to hardcoded if config not loaded
   const primaryNavigation = navigation?.header.primary || fallbackNavigation;
 
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 Debug Header navigation:', {
+      navigation,
+      primaryNavigation,
+      primaryNavigationLength: primaryNavigation.length,
+      firstItem: primaryNavigation[0]
+    });
+  }, [navigation, primaryNavigation]);
+
   // Show mobile header for small screens
   const [isMobile, setIsMobile] = useState(false);
   

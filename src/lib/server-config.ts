@@ -20,8 +20,35 @@ export async function getServerSideSiteConfig(): Promise<SiteConfig> {
 
 export async function getServerSideHomepageConfig(): Promise<HomepageConfig> {
   try {
-    const config = await SiteConfigService.getServerSideConfig<HomepageConfig>('/config/homepage');
-    return config || siteConfigService['getHomepageConfigDefaults']();
+    console.log('🔧 Server: Fetching homepage config...');
+    const config = await SiteConfigService.getServerSideConfig<any>('/config/homepage');
+    console.log('🔧 Server: Raw homepage API response:', config);
+
+    if (config) {
+      // Ensure the config has the expected structure with defaults
+      const transformedConfig: HomepageConfig = {
+        hero_sections: config.hero_sections || (config.hero_section ? [config.hero_section] : []),
+        featured_sections: config.featured_sections || [],
+        promotional_banners: config.promotional_banners || [],
+        testimonials: config.testimonials || [],
+        newsletter: config.newsletter || {
+          enabled: false,
+          title: '',
+          description: '',
+          placeholder: '',
+          button_text: '',
+          success_message: '',
+          background_color: '',
+          text_color: '',
+        },
+      };
+
+      console.log('🔧 Server: Transformed homepage config:', transformedConfig);
+      return transformedConfig;
+    }
+
+    console.warn('Server: No homepage config response, returning default');
+    return siteConfigService['getHomepageConfigDefaults']();
   } catch (error) {
     console.error('Error fetching server-side homepage config:', error);
     return siteConfigService['getHomepageConfigDefaults']();
@@ -30,8 +57,64 @@ export async function getServerSideHomepageConfig(): Promise<HomepageConfig> {
 
 export async function getServerSideNavigationConfig(): Promise<NavigationConfig> {
   try {
-    const config = await SiteConfigService.getServerSideConfig<NavigationConfig>('/config/navigation');
-    return config || siteConfigService['getNavigationConfigDefaults']();
+    console.log('🔧 Server: Fetching navigation config...');
+    const apiResponse = await SiteConfigService.getServerSideConfig<any>('/config/navigation');
+    console.log('🔧 Server: Raw API response:', apiResponse);
+
+    if (apiResponse) {
+      // Transform backend API structure to frontend expected structure
+      const transformedConfig: NavigationConfig = {
+        header: {
+          primary: apiResponse.header_menu?.map((item: any) => ({
+            id: item.label?.toLowerCase().replace(/\s+/g, '-') || Math.random().toString(),
+            label: item.label || '',
+            url: item.url || '',
+            target: item.external ? '_blank' : '_self',
+            position: 0,
+            active: true,
+            children: item.children?.map((child: any) => ({
+              id: child.label?.toLowerCase().replace(/\s+/g, '-') || Math.random().toString(),
+              label: child.label || '',
+              url: child.url || '',
+              target: '_self',
+              position: 0,
+              active: true
+            })) || []
+          })) || [],
+          secondary: [],
+          mobile: apiResponse.header_menu?.map((item: any) => ({
+            id: item.label?.toLowerCase().replace(/\s+/g, '-') || Math.random().toString(),
+            label: item.label || '',
+            url: item.url || '',
+            target: item.external ? '_blank' : '_self',
+            position: 0,
+            active: true,
+            children: []
+          })) || []
+        },
+        footer: {
+          sections: apiResponse.footer_menu?.map((section: any) => ({
+            title: section.title,
+            links: section.links?.map((link: any) => ({
+              id: link.label?.toLowerCase().replace(/\s+/g, '-') || Math.random().toString(),
+              label: link.label || '',
+              url: link.url || '',
+              target: link.external ? '_blank' : '_self',
+              position: 0,
+              active: true,
+              children: []
+            })) || []
+          })) || [],
+          social: []
+        }
+      };
+
+      console.log('🔧 Server: Transformed navigation config:', transformedConfig);
+      return transformedConfig;
+    }
+
+    console.warn('Server: No navigation config response, returning default');
+    return siteConfigService['getNavigationConfigDefaults']();
   } catch (error) {
     console.error('Error fetching server-side navigation config:', error);
     return siteConfigService['getNavigationConfigDefaults']();

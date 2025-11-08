@@ -73,7 +73,14 @@ export default async function RootLayout({
         )}
 
         <ConfigProvider initialTheme={themeConfig}>
-          <SiteConfigProvider initialConfig={siteConfigs}>
+          <SiteConfigProvider
+            initialConfig={{
+              site: siteConfigs.siteConfig,
+              homepage: siteConfigs.homepageConfig,
+              navigation: siteConfigs.navigationConfig,
+              hero: siteConfigs.heroConfig,
+            }}
+          >
             <ClientProviders>
               <div className="min-h-screen flex flex-col">
                 <Header />
