@@ -2,21 +2,23 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { cn } from '@/lib/utils';
-import { 
-  BookOpen, 
-  Star, 
-  ShoppingCart, 
+import {
+  BookOpen,
+  Star,
+  ShoppingCart,
   Heart,
   Eye,
   Loader2,
   Plus,
-  Zap
+  Zap,
+  Truck,
+  CheckCircle
 } from 'lucide-react';
 import { Product } from '@/types';
 import { useCartStore } from '@/stores/cart';
@@ -62,8 +64,14 @@ export function ProductCard({
   const [addingToCart, setAddingToCart] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  const currencySymbol = siteConfig?.payment?.currency_symbol || '₹';
+  // Prevent hydration mismatches
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const currencySymbol = siteConfig?.currency?.currency_symbol || '₹';
   const isWishlisted = isInWishlist(product.id);
 
   const handleAddToCart = async (e: React.MouseEvent) => {
@@ -120,6 +128,42 @@ export function ProductCard({
     return Math.round((1 - product.price / product.compare_price) * 100);
   };
 
+  // Free shipping helper functions - memoized for consistency
+  const hasProductFreeShipping = () => {
+    return Boolean(
+      product.free_shipping_enabled &&
+      product.free_shipping_type &&
+      product.free_shipping_type !== 'none'
+    );
+  };
+
+  const getFreeShippingDescription = () => {
+    if (!hasProductFreeShipping()) return '';
+
+    try {
+      switch (product.free_shipping_type) {
+        case 'all_zones':
+          return 'All zones';
+        case 'specific_zones':
+          const zones = product.free_shipping_zones || [];
+          const zoneList = Array.isArray(zones) ? zones : (typeof zones === 'string' ? JSON.parse(zones || '[]') : []);
+          return `${zoneList.length} zone${zoneList.length !== 1 ? 's' : ''}`;
+        default:
+          return 'Free shipping';
+      }
+    } catch {
+      return 'Free shipping';
+    }
+  };
+
+  const getFreeShippingProgress = () => {
+    // Use zone-based free shipping threshold if available, otherwise use default
+    const freeShippingThreshold = siteConfig?.shipping?.free_shipping_thresholds?.default ||
+                              siteConfig?.payment?.free_shipping_threshold ||
+                              0; // No fallback - should always come from config
+    return Math.min((product.price / freeShippingThreshold) * 100, 100);
+  };
+
   const getVariantStyles = () => {
     switch (variant) {
       case 'compact':
@@ -134,7 +178,9 @@ export function ProductCard({
           comparePrice: 'text-xs',
           rating: 'h-4 w-4',
           button: 'h-8 w-8',
-          actionButton: 'h-8 px-3 text-xs'
+          actionButton: 'h-8 px-3 text-xs',
+          shippingInfo: 'text-xs px-1.5 py-0.5',
+          progressBar: 'h-1'
         };
       case 'large':
         return {
@@ -148,7 +194,9 @@ export function ProductCard({
           comparePrice: 'text-sm',
           rating: 'h-5 w-5',
           button: 'h-12 w-12',
-          actionButton: 'h-10 px-4 text-sm'
+          actionButton: 'h-10 px-4 text-sm',
+          shippingInfo: 'text-sm px-3 py-2',
+          progressBar: 'h-2'
         };
       case 'minimal':
         return {
@@ -162,7 +210,9 @@ export function ProductCard({
           comparePrice: 'text-xs',
           rating: 'h-3 w-3',
           button: 'h-6 w-6',
-          actionButton: 'h-6 px-2 text-xs'
+          actionButton: 'h-6 px-2 text-xs',
+          shippingInfo: 'text-xs px-1 py-0.5',
+          progressBar: 'h-1'
         };
       default:
         return {
@@ -176,7 +226,9 @@ export function ProductCard({
           comparePrice: 'text-sm',
           rating: 'h-4 w-4',
           button: 'h-10 w-10',
-          actionButton: 'h-9 px-3 text-sm'
+          actionButton: 'h-9 px-3 text-sm',
+          shippingInfo: 'text-xs px-2 py-1',
+          progressBar: 'h-1.5'
         };
     }
   };
@@ -220,6 +272,12 @@ export function ProductCard({
                 -{discountPercentage}%
               </Badge>
             )}
+            {mounted && hasProductFreeShipping() && (
+              <Badge className="bg-green-100 text-green-700 hover:bg-green-200 text-xs font-medium flex items-center gap-1">
+                <Truck className="h-3 w-3" />
+                Free Ship
+              </Badge>
+            )}
             {product.is_featured && (
               <Badge className="text-xs font-medium">
                 Featured
@@ -258,6 +316,7 @@ export function ProductCard({
                   'rounded-full shadow-lg bg-white/90 hover:bg-white border-0 backdrop-blur-sm hover:scale-110 transition-all duration-200',
                   styles.button
                 )}
+                title={hasProductFreeShipping() ? `Free shipping: ${getFreeShippingDescription()}` : 'Quick view'}
               >
                 <Eye className="h-4 w-4 text-gray-600 hover:text-blue-600 transition-colors duration-200" />
               </Button>
@@ -316,6 +375,53 @@ export function ProductCard({
               </span>
             )}
           </div>
+
+          {/* Free Shipping Info - Only show if product has free shipping OR is close to threshold */}
+          {mounted && siteConfig && (
+            <div className="space-y-2">
+              {hasProductFreeShipping() ? (
+                <div className={cn(
+                  'flex items-center gap-1.5 text-green-700 bg-green-50 rounded-md',
+                  styles.shippingInfo
+                )}>
+                  <CheckCircle className="h-3 w-3" />
+                  <span className="font-medium">Free Shipping</span>
+                  <span className="text-green-600">({getFreeShippingDescription()})</span>
+                </div>
+              ) : (
+                // Only show progress for products within reasonable range of free shipping
+                (() => {
+                  const freeShippingThreshold = siteConfig?.shipping?.free_shipping_thresholds?.default ||
+                                            siteConfig?.payment?.free_shipping_threshold ||
+                                            500;
+                  const isCloseToThreshold = product.price < freeShippingThreshold && product.price > (freeShippingThreshold * 0.6); // Show progress if within 60% of threshold
+
+                  return isCloseToThreshold ? (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>
+                          Add {currencySymbol}{Math.max(0, Math.ceil(freeShippingThreshold - product.price))} more for free shipping
+                        </span>
+                      </div>
+                      <div className={cn('bg-gray-200 rounded-full', styles.progressBar)}>
+                        <div
+                          className="bg-primary rounded-full transition-all duration-300"
+                          style={{
+                            width: `${getFreeShippingProgress()}%`,
+                            height: '100%'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ) : product.price < freeShippingThreshold ? (
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Free shipping on orders above {currencySymbol}{freeShippingThreshold}</span>
+                    </div>
+                  ) : null;
+                })()
+              )}
+            </div>
+          )}
 
           {/* Action Buttons */}
           {product.in_stock && (

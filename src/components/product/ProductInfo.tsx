@@ -55,6 +55,89 @@ export function ProductInfo({ product, className = '' }: ProductInfoProps) {
     return Math.round((1 - product.price / product.compare_price) * 100);
   };
 
+  // Free shipping helper functions
+  const hasProductFreeShipping = () => {
+    return product.free_shipping_enabled && product.free_shipping_type !== 'none';
+  };
+
+  const getFreeShippingDescription = () => {
+    if (!product.free_shipping_enabled) return '';
+
+    switch (product.free_shipping_type) {
+      case 'all_zones':
+        return 'Free shipping to all zones (A-E)';
+      case 'specific_zones':
+        const zones = product.free_shipping_zones || [];
+        const zoneList = Array.isArray(zones) ? zones : (typeof zones === 'string' ? JSON.parse(zones || '[]') : []);
+        return `Free shipping to zones: ${zoneList.length > 0 ? zoneList.join(', ') : 'All selected zones'}`;
+      default:
+        return 'Free shipping available';
+    }
+  };
+
+  const getFreeShippingProgress = () => {
+    const freeShippingThreshold = siteConfig?.payment?.free_shipping_threshold || 0;
+    const currentTotal = product.price * quantity;
+    return Math.min((currentTotal / freeShippingThreshold) * 100, 100);
+  };
+
+  const getFreeShippingMessage = () => {
+    const freeShippingThreshold = siteConfig?.payment?.free_shipping_threshold || 0;
+    const currentTotal = product.price * quantity;
+    const remaining = Math.max(freeShippingThreshold - currentTotal, 0);
+
+    if (remaining <= 0) {
+      return '🎉 You\'ve unlocked free shipping!';
+    } else {
+      return `Add ${currencySymbol}${remaining.toFixed(2)} more to get free delivery`;
+    }
+  };
+
+  const getFeaturesList = () => {
+    const features = [];
+
+    // Dynamic free shipping feature
+    if (hasProductFreeShipping()) {
+      features.push({
+        icon: Truck,
+        text: 'Product Free Shipping',
+        desc: getFreeShippingDescription(),
+        highlight: true
+      });
+    } else {
+      features.push({
+        icon: Truck,
+        text: 'Free Delivery',
+        desc: `On orders above ${currencySymbol}${siteConfig?.payment?.free_shipping_threshold || 0}`,
+        highlight: false
+      });
+    }
+
+    // Other features
+    features.push(
+      {
+        icon: Shield,
+        text: 'Secure Payment',
+        desc: '100% safe transactions',
+        highlight: false
+      },
+      {
+        icon: RotateCcw,
+        text: 'Easy Returns',
+        desc: '30-day return policy',
+        highlight: false
+      },
+      {
+        icon: Award,
+        text: '100% Authentic',
+        desc: 'Genuine products only',
+        highlight: false
+      }
+    );
+
+    return features;
+  };
+
   const handleAddToCart = async () => {
     try {
       setAddingToCart(true);
@@ -182,7 +265,7 @@ export function ProductInfo({ product, className = '' }: ProductInfoProps) {
                 <span className="font-semibold ml-1">{product.rating || '4.5'}</span>
               </div>
               <div className="text-sm text-muted-foreground">
-                ({product.total_reviews || 150} reviews)
+                ({product.total_reviews || 0} reviews)
               </div>
             </div>
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
@@ -269,63 +352,112 @@ export function ProductInfo({ product, className = '' }: ProductInfoProps) {
         </CardContent>
       </Card>
 
-      {/* Enhanced Delivery Check */}
+      {/* Enhanced Shipping Information */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-lg">
-              <MapPin className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <div className="font-medium">Check Delivery</div>
-              <div className="text-sm text-muted-foreground">Enter your pincode</div>
-            </div>
-          </div>
-
-          <div className="flex gap-2 mb-3">
-            <input
-              type="text"
-              placeholder="Enter 6-digit pincode"
-              value={pincode}
-              onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              className="flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <Button
-              onClick={checkPincodeDelivery}
-              disabled={checkingPincode || pincode.length !== 6}
-              size="default"
-            >
-              {checkingPincode ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Check'}
-            </Button>
-          </div>
-
-          {deliveryAvailable !== null && (
-            <div className={`p-3 rounded-lg text-sm ${
-              deliveryAvailable
-                ? 'bg-green-50 text-green-700 border border-green-200'
-                : 'bg-red-50 text-red-700 border border-red-200'
-            }`}>
-              <div className="flex items-center gap-2">
-                {deliveryAvailable ? (
-                  <>
-                    <Check className="h-4 w-4" />
-                    <div>
-                      <div className="font-medium">Delivery Available</div>
-                      <div className="text-xs">Expected delivery in 3-5 business days</div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <X className="h-4 w-4" />
-                    <div>
-                      <div className="font-medium">Delivery Not Available</div>
-                      <div className="text-xs">This pincode is not serviceable</div>
-                    </div>
-                  </>
-                )}
+        <CardContent className="p-4 space-y-4">
+          {/* Product-level Free Shipping Indicator */}
+          {hasProductFreeShipping() && (
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-lg">
+                  <Truck className="h-5 w-5 text-green-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold text-green-800">Free Shipping Available!</div>
+                  <div className="text-sm text-green-600">
+                    {getFreeShippingDescription()}
+                  </div>
+                </div>
+                <Badge className="bg-green-100 text-green-700 hover:bg-green-200">
+                  Free
+                </Badge>
               </div>
             </div>
           )}
+
+          {/* Order-level Free Shipping Progress */}
+          {!hasProductFreeShipping() && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-lg">
+                  <Truck className="h-4 w-4 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium text-blue-800">Free Shipping Progress</div>
+                  <div className="text-sm text-blue-600">
+                    Add more items to get free delivery
+                  </div>
+                </div>
+              </div>
+              <div className="w-full bg-blue-100 rounded-full h-2 mb-2">
+                <div
+                  className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${getFreeShippingProgress()}%` }}
+                />
+              </div>
+              <div className="text-xs text-blue-600">
+                {getFreeShippingMessage()}
+              </div>
+            </div>
+          )}
+
+          {/* Pincode Delivery Check */}
+          <div className="border-t pt-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-lg">
+                <MapPin className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <div className="font-medium">Check Delivery</div>
+                <div className="text-sm text-muted-foreground">Enter your pincode</div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                placeholder="Enter 6-digit pincode"
+                value={pincode}
+                onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <Button
+                onClick={checkPincodeDelivery}
+                disabled={checkingPincode || pincode.length !== 6}
+                size="default"
+              >
+                {checkingPincode ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Check'}
+              </Button>
+            </div>
+
+            {deliveryAvailable !== null && (
+              <div className={`p-3 rounded-lg text-sm ${
+                deliveryAvailable
+                  ? 'bg-green-50 text-green-700 border border-green-200'
+                  : 'bg-red-50 text-red-700 border border-red-200'
+              }`}>
+                <div className="flex items-center gap-2">
+                  {deliveryAvailable ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      <div>
+                        <div className="font-medium">Delivery Available</div>
+                        <div className="text-xs">Expected delivery in 3-5 business days</div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <X className="h-4 w-4" />
+                      <div>
+                        <div className="font-medium">Delivery Not Available</div>
+                        <div className="text-xs">This pincode is not serviceable</div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -415,18 +547,19 @@ export function ProductInfo({ product, className = '' }: ProductInfoProps) {
 
       {/* Enhanced Features Grid */}
       <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-        {[
-          { icon: Truck, text: 'Free Delivery', desc: 'On orders above ₹499' },
-          { icon: Shield, text: 'Secure Payment', desc: '100% safe transactions' },
-          { icon: RotateCcw, text: 'Easy Returns', desc: '30-day return policy' },
-          { icon: Award, text: '100% Authentic', desc: 'Genuine products only' }
-        ].map((feature, index) => (
+        {getFeaturesList().map((feature, index) => (
           <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-            <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-lg flex-shrink-0">
-              <feature.icon className="h-4 w-4 text-primary" />
+            <div className={`flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0 ${
+              feature.highlight ? 'bg-green-100' : 'bg-primary/10'
+            }`}>
+              <feature.icon className={`h-4 w-4 ${
+                feature.highlight ? 'text-green-600' : 'text-primary'
+              }`} />
             </div>
             <div className="min-w-0">
-              <div className="font-medium text-sm">{feature.text}</div>
+              <div className={`font-medium text-sm ${
+                feature.highlight ? 'text-green-700' : ''
+              }`}>{feature.text}</div>
               <div className="text-xs text-muted-foreground">{feature.desc}</div>
             </div>
           </div>

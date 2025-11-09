@@ -120,7 +120,7 @@ export function FooterClient({
     {
       icon: Truck,
       title: 'Free Shipping',
-      description: `Above ₹${payment.free_shipping_threshold || 499}`,
+      description: `Above ₹${payment.free_shipping_threshold || 0}`,
     },
     {
       icon: RotateCcw,

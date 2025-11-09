@@ -409,7 +409,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (currentStep === 3 && !isProcessingPaymentTypeChange) { // Payment step
       logger.log('📝 Refreshing payment methods for payment step');
-      const orderTotal = cart?.summary?.total || 1000;
+      const orderTotal = cart?.summary?.total || 0;
       loadPaymentMethods(orderTotal);
     }
   }, [currentStep]); // Only depend on currentStep to avoid redundant calls when total changes

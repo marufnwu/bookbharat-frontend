@@ -15,7 +15,6 @@ import { useConfig } from '@/contexts/ConfigContext';
 import { useAnalytics } from '@/lib/analytics';
 import { ANALYTICS_EVENTS } from '@/lib/analytics';
 import { OrderSummaryCard } from '@/components/cart/OrderSummaryCard';
-import { QuickSocialLogin } from '@/components/auth/QuickSocialLogin';
 import { MobileGestureCard, MobileQuantityControls } from '@/components/mobile/MobileGestureCard';
 import {
   Minus,
@@ -202,21 +201,6 @@ export default function CartPage() {
 
       {/* Desktop Container */}
       <div className="container mx-auto px-4 py-6 lg:py-8">
-        {/* Quick Login for Guest Users */}
-        {!isAuthenticated && (
-          <div className="mb-6">
-            <QuickSocialLogin 
-              onSuccess={() => {
-                // Refresh cart after login
-                getCart();
-                analytics.track('cart_login_success', {
-                  context: 'cart_page'
-                });
-              }}
-            />
-          </div>
-        )}
-
         {/* Desktop Header */}
         <div className="hidden lg:flex items-center justify-between mb-6">
           <div>

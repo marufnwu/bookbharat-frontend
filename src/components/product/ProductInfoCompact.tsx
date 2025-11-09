@@ -184,7 +184,7 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
             ))}
           </div>
           <span className="font-semibold text-xs sm:text-sm">{product.rating || '4.5'}</span>
-          <span className="text-[10px] sm:text-xs text-muted-foreground">({product.total_reviews || 150})</span>
+          <span className="text-[10px] sm:text-xs text-muted-foreground">({product.total_reviews || 0})</span>
         </div>
       </div>
 

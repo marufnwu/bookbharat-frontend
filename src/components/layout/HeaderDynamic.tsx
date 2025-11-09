@@ -198,7 +198,7 @@ function HeaderDynamicComponent() {
             </div>
             <div>
               <span>
-                Free shipping on orders above ₹{siteConfig?.payment.free_shipping_threshold || 499}!
+                Free shipping on orders above ₹{siteConfig?.payment.free_shipping_threshold || 0}!
               </span>
             </div>
           </div>
