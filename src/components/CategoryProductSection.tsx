@@ -55,26 +55,39 @@ export default function CategoryProductSection({
   const { ref, inView } = useInView({
     threshold: 0.1,
     triggerOnce: true,
-    skip: !lazyLoad || products.length > 0
+    skip: !lazyLoad || products.length > 0 || !category.products_count || category.products_count === 0
   });
 
   useEffect(() => {
+    // Don't load if category has no products
+    if (!category.products_count || category.products_count === 0) {
+      return;
+    }
+    
     if (lazyLoad && inView && products.length === 0) {
       loadCategoryProducts();
     }
-  }, [inView, lazyLoad]);
+  }, [inView, lazyLoad, category.products_count]);
 
   useEffect(() => {
+    // Don't load if category has no products
+    if (!category.products_count || category.products_count === 0) {
+      return;
+    }
+    
     if (!lazyLoad && products.length === 0) {
       loadCategoryProducts();
     }
-  }, []);
+  }, [category.products_count]);
 
   const loadCategoryProducts = async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
+     console.log('Products per category:', productsPerCategory);
+
+
       const response = await productApi.getProductsByCategory(category.id, {
         per_page: productsPerCategory,
         sort_by: 'created_at',
@@ -82,18 +95,31 @@ export default function CategoryProductSection({
       });
       
       if (response.success) {
-        setProducts(response.data.products.data || []);
+        const loadedProducts = response.data.products.data || [];
+        console.log(`🔍 Category ${category.name} (${category.id}):`, {
+          requested: productsPerCategory,
+          received: loadedProducts.length,
+          totalAvailable: response.data.products.total,
+          products: loadedProducts.map(p => ({ id: p.id, name: p.name, price: p.price }))
+        });
+        setProducts(loadedProducts);
       } else {
+        console.error(`❌ Failed to load ${category.name} products:`, response);
         setError('Failed to load products');
       }
     } catch (err: any) {
-      console.error('Failed to load category products:', err);
+      console.error(`Failed to load category products for ${category.name}:`, err);
       setError('Failed to load products');
     } finally {
       setLoading(false);
     }
   };
 
+
+  // Early return if category has no products (after hooks are called)
+  if (!category.products_count || category.products_count === 0) {
+    return null;
+  }
 
   if (lazyLoad && !inView) {
     return <div ref={ref} className="h-96" />; // Placeholder for lazy loading
@@ -133,9 +159,13 @@ export default function CategoryProductSection({
     );
   }
 
+  // If no products after loading, don't render anything
   if (products.length === 0) {
+    console.log(`🚫 Category ${category.name}: No products to display`);
     return null;
   }
+
+  console.log(`🎨 Rendering ${category.name}: Displaying ${products.length} products out of ${products.length} loaded`);
 
   return (
     <section ref={ref} className="py-8 sm:py-12 md:py-16 bg-muted/30">
@@ -167,7 +197,7 @@ export default function CategoryProductSection({
         </div>
 
         {/* View All Button for mobile */}
-        {showSeeAll && (
+        {showSeeAll && products.length > 0 && (
           <div className="text-center mt-6 sm:hidden">
             <Button asChild className="min-h-[44px] touch-target w-full max-w-xs">
               <Link href={`/categories/${category.slug || category.id}`}>

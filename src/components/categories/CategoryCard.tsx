@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { LucideIcon, ArrowRight, TrendingUp, Sparkles } from 'lucide-react';
+import { useState } from 'react';
 
 interface CategoryCardProps {
   category: {
@@ -36,10 +37,15 @@ export function CategoryCard({
   showProductCount = true,
   className
 }: CategoryCardProps) {
+  const [imageError, setImageError] = useState(false);
   const href = `/categories/${category.slug || category.id}`;
-  
+
   const categoryImage = category.image_url || category.image;
   const productCount = category.products_count ?? category.product_count;
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
 
   if (variant === 'compact') {
     return (
@@ -52,13 +58,14 @@ export function CategoryCard({
             <div className="flex flex-col items-center text-center">
               {/* Circular Image */}
               <div className="relative w-12 h-12 md:w-14 md:h-14 aspect-square overflow-hidden transition-transform group-hover:scale-110 rounded-full border-2 border-background shadow-md">
-                {categoryImage ? (
+                {categoryImage && !imageError ? (
                   <Image
                     src={categoryImage}
                     alt={category.name}
                     width={56}
                     height={56}
                     className="w-full h-full object-cover"
+                    onError={handleImageError}
                   />
                 ) : (
                   <div className={cn(
@@ -102,7 +109,7 @@ export function CategoryCard({
           )}
           <CardContent className="p-6">
             <div className="flex items-start space-x-4">
-              {categoryImage ? (
+              {categoryImage && !imageError ? (
                 <div className="w-16 h-16 rounded-2xl overflow-hidden transition-all group-hover:scale-110 group-hover:rotate-3 relative flex-shrink-0">
                   <Image
                     src={categoryImage}
@@ -110,6 +117,7 @@ export function CategoryCard({
                     width={64}
                     height={64}
                     className="w-full h-full object-cover"
+                    onError={handleImageError}
                   />
                 </div>
               ) : (
@@ -158,13 +166,14 @@ export function CategoryCard({
           <div className="flex flex-col items-center text-center">
             {/* Circular Image */}
             <div className="relative w-12 h-12 md:w-14 md:h-14 aspect-square overflow-hidden transition-transform group-hover:scale-110 rounded-full border-2 border-background shadow-md">
-              {categoryImage ? (
+              {categoryImage && !imageError ? (
                 <Image
                   src={categoryImage}
                   alt={category.name}
                   width={56}
                   height={56}
                   className="w-full h-full object-cover"
+                  onError={handleImageError}
                 />
               ) : (
                 <div className={cn(

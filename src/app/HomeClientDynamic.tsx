@@ -198,13 +198,20 @@ export default function HomeClient({
       case 'category-products':
         if (categories.length === 0) return null;
         const config = section.settings;
+        // Filter out categories with no products to avoid unnecessary API calls
+        const categoriesWithProducts = categories.filter(cat => 
+          cat.products_count && cat.products_count > 0
+        );
+        
+        if (categoriesWithProducts.length === 0) return null;
+        
         return (
           <div key={key}>
-            {categories.map((category) => (
+            {categoriesWithProducts.map((category) => (
               <CategoryProductSection
                 key={category.id}
                 category={{ ...category, products: [] }}
-                productsPerCategory={config?.products_per_category || 4}
+                productsPerCategory={config?.products_per_category || 20}
                 showSeeAll={config?.show_see_all_button !== false}
                 showRating={config?.show_product_rating !== false}
                 showDiscount={config?.show_product_discount !== false}

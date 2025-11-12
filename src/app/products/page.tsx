@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ProductCard } from '@/components/ui/product-card';
+import LazyProductCard from '@/components/ui/lazy-product-card';
 import { useConfig } from '@/contexts/ConfigContext';
 import { productApi, categoryApi, cartApi } from '@/lib/api';
 import { Product, Category } from '@/types';
@@ -97,21 +98,37 @@ export default function ProductsPage() {
     const loadInitialData = async () => {
       try {
         const categoriesResponse = await categoryApi.getCategories();
+        console.log('DEBUG: Categories API response:', {
+          success: categoriesResponse.success,
+          totalCategories: categoriesResponse.data?.length || 0,
+          allCategories: categoriesResponse.data
+        });
+
         if (categoriesResponse.success) {
-          setCategories(categoriesResponse.data);
+          // Filter out categories with 0 products and sort by product count
+          const categoriesWithProducts = categoriesResponse.data
+            .filter((category: Category) => category.products_count > 0)
+            .sort((a: Category, b: Category) => b.products_count - a.products_count);
+
+          console.log('DEBUG: Categories with products:', {
+            count: categoriesWithProducts.length,
+            categories: categoriesWithProducts.map(c => ({ name: c.name, count: c.products_count }))
+          });
+
+          setCategories(categoriesWithProducts);
         }
       } catch (error) {
         console.error('Failed to load categories:', error);
       }
     };
-    
+
     loadInitialData();
   }, []);
 
   // Load products when filters change
   useEffect(() => {
     loadProducts();
-  }, [filters, currentPage]);
+  }, [filters, currentPage]); // Removed categories.length dependency to prevent race condition
 
   const loadProducts = async () => {
     try {
@@ -119,27 +136,42 @@ export default function ProductsPage() {
       
       const params: any = {
         page: currentPage,
-        per_page: 12,
+        per_page: 250, // Load more products to see full category distribution
       };
 
       if (filters.search) params.search = filters.search;
-      if (filters.category) params.category_id = filters.category;
+      // Only apply category filter if category exists and categories have been loaded
+      if (filters.category && categories.length > 0) params.category_id = filters.category;
       if (filters.priceMin) params.price_min = filters.priceMin;
       if (filters.priceMax) params.price_max = filters.priceMax;
       if (filters.inStock) params.in_stock = true;
       if (filters.sortBy) params.sort = filters.sortBy;
 
       const response = await productApi.getProducts(params);
-      
+
       if (response.success) {
         // Handle different possible API response structures
         const productsData = response.data?.data || response.data || [];
+        console.log('DEBUG: Products loaded:', {
+          productsCount: productsData.length,
+          responseStructure: !!response.data?.data ? 'data.data' : 'data',
+          params: params
+        });
+
+        // Log category distribution for debugging
+        const categoryCount = {};
+        productsData.forEach(product => {
+          const catName = product.category?.name || 'Unknown';
+          categoryCount[catName] = (categoryCount[catName] || 0) + 1;
+        });
+        console.log('DEBUG: Category distribution:', categoryCount);
+
         setProducts(Array.isArray(productsData) ? productsData : []);
-        
+
         // Handle pagination meta data
-        const meta = response.meta || response.data?.meta;
+        const meta = response.meta || response.data?.meta || response.data;
         if (meta) {
-          setTotalProducts(meta.total || 0);
+          setTotalProducts(meta.total || response.data?.total || productsData.length || 0);
           setTotalPages(meta.last_page || 1);
         }
       } else {
@@ -306,25 +338,7 @@ export default function ProductsPage() {
                 />
               </div>
 
-              {/* Category Filter */}
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Category
-                </label>
-                <select
-                  className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background"
-                  value={filters.category}
-                  onChange={(e) => handleFilterChange({ category: e.target.value })}
-                >
-                  <option value="">All Categories</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
+  
               {/* Price Range */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
@@ -382,6 +396,38 @@ export default function ProductsPage() {
 
         {/* Products Grid */}
         <div className="flex-1">
+          {/* Available Categories Summary - Only show if categories exist */}
+          {!loading && categories.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-foreground mb-3">Available Categories</h3>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={!filters.category ? "primary" : "outline"}
+                  size="sm"
+                  onClick={() => handleFilterChange({ category: '' })}
+                >
+                  All ({totalProducts})
+                </Button>
+                {categories.slice(0, 8).map((category) => (
+                  <Button
+                    key={category.id}
+                    variant={filters.category === category.id.toString() ? "primary" : "outline"}
+                    size="sm"
+                    onClick={() => handleFilterChange({ category: category.id.toString() })}
+                    className="text-xs"
+                  >
+                    {category.name} ({category.products_count || 0})
+                  </Button>
+                ))}
+                {categories.length > 8 && (
+                  <span className="text-xs text-muted-foreground self-center">
+                    +{categories.length - 8} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Sort and Results Count */}
           <div className="flex items-center justify-between mb-6">
             <p className="text-sm text-muted-foreground">
@@ -421,17 +467,38 @@ export default function ProductsPage() {
             <div className="text-center py-12">
               <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-foreground mb-2">No products found</h3>
-              <p className="text-muted-foreground mb-4">Try adjusting your filters or search terms</p>
-              <Button onClick={clearFilters}>Clear Filters</Button>
+              <div className="space-y-2 mb-4">
+                <p className="text-muted-foreground">
+                  {filters.search && `No products match your search "${filters.search}"`}
+                  {filters.category && !filters.search && `No products found in "${categories.find(c => c.id.toString() === filters.category)?.name || 'selected category'}"`}
+                  {!filters.search && !filters.category && "No products available with current filters"}
+                </p>
+                {(filters.priceMin || filters.priceMax || filters.inStock) && (
+                  <p className="text-sm text-muted-foreground">
+                    Try adjusting your price range or availability filters
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-2 justify-center">
+                <Button onClick={clearFilters}>Clear All Filters</Button>
+                {filters.category && (
+                  <Button variant="outline" onClick={() => handleFilterChange({ category: '' })}>
+                    Clear Category
+                  </Button>
+                )}
+              </div>
             </div>
           ) : (
             <div className={viewMode === 'grid' ? getProductGridClasses('productListing') : 'space-y-4'}>
-              {products.map((product) => (
-                <ProductCard
+              {products.map((product, index) => (
+                <LazyProductCard
                   key={product.id}
                   product={product}
                   {...getProductCardProps(viewMode === 'grid' ? 'productListGrid' : 'productListList', isMobile)}
                   className={viewMode === 'list' ? 'flex' : ''}
+                  // Progressive loading threshold - first few products load immediately
+                  threshold={index < 4 ? 0 : 0.1}
+                  rootMargin={index < 4 ? '0px' : '100px'}
                 />
               ))}
             </div>

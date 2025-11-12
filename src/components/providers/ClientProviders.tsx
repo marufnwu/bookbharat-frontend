@@ -3,6 +3,7 @@
 import { AuthProvider } from './AuthProvider';
 import { CartProvider } from './CartProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'sonner';
 import { useState } from 'react';
 import '@/lib/logger';
 
@@ -22,6 +23,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         <CartProvider>
           {children}
+          <Toaster position="top-right" richColors closeButton />
         </CartProvider>
       </AuthProvider>
     </QueryClientProvider>

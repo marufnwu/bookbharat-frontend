@@ -78,6 +78,15 @@ class ApiClient {
 
     // Request interceptor to add auth token and session ID
     this.client.interceptors.request.use((config) => {
+      // Debug logging for category API calls
+      if (config.url?.includes('/products/category/')) {
+        devLog('🚀 Category API Request:', {
+          url: config.url,
+          params: config.params,
+          method: config.method
+        });
+      }
+
       if (typeof window !== 'undefined') {
         // Add auth token if available
         const token = localStorage.getItem('auth_token');
@@ -85,7 +94,7 @@ class ApiClient {
           devLog('🔐 Using auth token for request:', config.url);
           config.headers.Authorization = `Bearer ${token}`;
         }
-        
+
         // ALWAYS add session ID if available (for cart continuity during login)
         const currentSessionId = localStorage.getItem('guest_session_id');
         if (currentSessionId) {
