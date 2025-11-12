@@ -288,19 +288,19 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
         </div>
       )}
 
-      {/* Mobile-First Action Buttons - Hidden on mobile */}
+      {/* Desktop Action Buttons */}
       {product.in_stock && (
-        <div className="hidden md:grid grid-cols-2 gap-2">
+        <div className="flex md:flex md:flex-row gap-3 lg:gap-4">
           <Button
             onClick={handleAddToCart}
             disabled={addingToCart}
-            className={`w-full text-sm ${selectedBundleVariant ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
+            className={`w-full text-sm md:text-base md:py-3 lg:py-3.5 ${selectedBundleVariant ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
             variant={selectedBundleVariant ? 'default' : 'outline'}
           >
             {addingToCart ? (
-              <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 animate-spin" />
+              <Loader2 className="h-4 w-4 md:h-5 md:w-5 mr-2 animate-spin" />
             ) : (
-              <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+              <ShoppingCart className="h-4 w-4 md:h-5 md:w-5 mr-2" />
             )}
             {selectedBundleVariant ? 'Add Bundle to Cart' : 'Add to Cart'}
           </Button>
@@ -310,9 +310,9 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
             className="w-full bg-orange-500 hover:bg-orange-600 text-sm"
           >
             {buyingNow ? (
-              <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 animate-spin" />
+              <Loader2 className="h-4 w-4 md:h-5 md:w-5 mr-2 animate-spin" />
             ) : (
-              <Zap className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+              <Zap className="h-4 w-4 md:h-5 md:w-5 mr-2" />
             )}
             {selectedBundleVariant ? 'Buy Bundle Now' : 'Buy Now'}
           </Button>
@@ -325,7 +325,7 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
           variant="outline"
           size="sm"
           onClick={handleWishlistToggle}
-          className="flex-1 text-xs sm:text-sm h-8 sm:h-9"
+          className="flex-1 text-sm md:text-base h-9 md:h-10"
         >
           <Heart className={cn(
             "h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1",
@@ -338,7 +338,7 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
           variant="outline"
           size="sm"
           onClick={handleShare}
-          className="flex-1 text-xs sm:text-sm h-8 sm:h-9"
+          className="flex-1 text-sm md:text-base h-9 md:h-10"
         >
           <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
           <span className="hidden xs:inline">Share</span>

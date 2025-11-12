@@ -27,7 +27,7 @@ export function generateCategoryItemListSchema(
         } : undefined,
         'offers': {
           '@type': 'Offer',
-          'price': product.price.toFixed(2),
+          'price': typeof product.price === "number" ? product.price.toFixed(2) : parseFloat(String(product.price || "0")).toFixed(2),
           'priceCurrency': 'INR',
           'availability': product.in_stock 
             ? 'https://schema.org/InStock' 
