@@ -210,8 +210,11 @@ export function ConfigProvider({
   };
 
   const applyThemeToCSS = (theme: SiteConfig['theme']) => {
+    // SSR guard - only apply theme on client side
+    if (typeof window === 'undefined') return;
+
     const root = document.documentElement;
-    
+
     // Convert hex colors to HSL and apply to CSS custom properties
     root.style.setProperty('--primary', hexToHsl(theme.primary_color));
     root.style.setProperty('--secondary', hexToHsl(theme.secondary_color));
@@ -219,7 +222,7 @@ export function ConfigProvider({
     root.style.setProperty('--success', hexToHsl(theme.success_color));
     root.style.setProperty('--warning', hexToHsl(theme.warning_color));
     root.style.setProperty('--destructive', hexToHsl(theme.error_color));
-    
+
     // Apply font family
     if (theme.font_family) {
       root.style.setProperty('--font-sans', theme.font_family);

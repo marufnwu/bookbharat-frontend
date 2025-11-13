@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { WishlistItem, WishlistStats, Product } from '@/types';
 import { wishlistApi } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
@@ -417,6 +417,11 @@ export const useWishlistStore = create<WishlistState>()(
       },
 
       shareWishlist: async () => {
+        // SSR guard - this function can only run in the browser
+        if (typeof window === 'undefined') {
+          throw new Error('Cannot share wishlist on server');
+        }
+
         try {
           const { wishlistItems } = get();
           const wishlistData = {
@@ -428,18 +433,20 @@ export const useWishlistStore = create<WishlistState>()(
             })),
             shared_at: new Date().toISOString()
           };
-          
+
           // In a real implementation, this would send to backend and return a shareable URL
           const shareUrl = `${window.location.origin}/wishlist/shared/${btoa(JSON.stringify(wishlistData))}`;
-          
-          // Copy to clipboard
-          await navigator.clipboard.writeText(shareUrl);
-          
+
+          // Copy to clipboard (with additional guard for navigator)
+          if (navigator?.clipboard) {
+            await navigator.clipboard.writeText(shareUrl);
+          }
+
           toast({
             title: "Wishlist shared!",
             description: "Shareable link copied to clipboard",
           });
-          
+
           return shareUrl;
         } catch (error: any) {
           console.error('Error sharing wishlist:', error);
@@ -475,6 +482,18 @@ export const useWishlistStore = create<WishlistState>()(
     }),
     {
       name: 'wishlist-store',
+      storage: createJSONStorage(() => {
+        // SSR-safe storage implementation
+        if (typeof window !== 'undefined') {
+          return localStorage;
+        }
+        // Fallback for SSR - no-op storage
+        return {
+          getItem: () => null,
+          setItem: () => {},
+          removeItem: () => {}
+        };
+      }),
       partialize: (state) => ({
         wishlistItems: state.wishlistItems,
         stats: state.stats,

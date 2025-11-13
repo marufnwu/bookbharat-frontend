@@ -12,6 +12,17 @@ export interface ApiError {
   status?: number;
 }
 
+// Create a public axios client without auth interceptors
+// Used for public endpoints that don't require authentication
+const publicClient = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+});
+
 class ApiClient {
   private client: AxiosInstance;
   private sessionId: string | null = null;
@@ -586,16 +597,8 @@ class ApiClient {
   }
 
   async checkPincode(pincode: string) {
-    // Create a separate axios instance without auth interceptors for public endpoints
-    const publicClient = axios.create({
-      baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
-      timeout: 10000,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-    });
-
+    // Use the shared publicClient instance for public endpoints
+    // This client doesn't have auth interceptors to avoid redirecting to login
     try {
       const response = await publicClient.post('/shipping/check-pincode', { pincode });
       return response.data;

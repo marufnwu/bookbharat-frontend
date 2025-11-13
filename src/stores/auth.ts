@@ -177,7 +177,18 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-store',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => {
+        // SSR-safe storage implementation
+        if (typeof window !== 'undefined') {
+          return localStorage;
+        }
+        // Fallback for SSR - no-op storage
+        return {
+          getItem: () => null,
+          setItem: () => {},
+          removeItem: () => {}
+        };
+      }),
       partialize: (state) => ({
         user: state.user,
         token: state.token,

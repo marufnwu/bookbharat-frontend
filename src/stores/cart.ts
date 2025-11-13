@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { Cart, CartItem, Product } from '@/types';
 import { cartApi } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
@@ -429,6 +429,18 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: 'cart-store',
+      storage: createJSONStorage(() => {
+        // SSR-safe storage implementation
+        if (typeof window !== 'undefined') {
+          return localStorage;
+        }
+        // Fallback for SSR - no-op storage
+        return {
+          getItem: () => null,
+          setItem: () => {},
+          removeItem: () => {}
+        };
+      }),
       partialize: (state) => ({
         cart: state.cart,
         deliveryPincode: state.deliveryPincode,
