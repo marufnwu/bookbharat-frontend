@@ -8,13 +8,13 @@ interface CartProviderProps {
 }
 
 export function CartProvider({ children }: CartProviderProps) {
-  const { getCart } = useCartStore();
+  const loadCartFromStorage = useCartStore(state => state.loadCartFromStorage);
+  const getCart = useCartStore(state => state.getCart);
 
   useEffect(() => {
-    if (!cartStore.cart && cartStore.loadCart) {
-      cartStore.loadCart();
-    }
-  }, [getCart]);
+    loadCartFromStorage();
+    getCart(undefined, undefined);
+  }, [loadCartFromStorage, getCart]);
 
   return <>{children}</>;
 }

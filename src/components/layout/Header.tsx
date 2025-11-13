@@ -35,8 +35,14 @@ export function Header() {
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { isAuthenticated, user, logout } = useHydratedAuth();
-  const cartStore = useCartStore();
-  const { getTotalItems, getCart, cart, removeItem, getSubtotal } = cartStore;
+  const cart = useCartStore((state) => state.cart);
+  const removeItem = useCartStore((state) => state.removeItem);
+  const getTotalItems = useCartStore((state) => state.getTotalItems);
+  const getSubtotal = useCartStore((state) => state.getSubtotal);
+
+  const cartItems = cart?.items ?? [];
+  const totalItems = getTotalItems ? getTotalItems() : cart?.total_items ?? 0;
+  const cartSubtotal = getSubtotal ? getSubtotal() : cart?.subtotal ?? 0;
 
   // Dynamic navigation and site info from backend
   const navigation = useNavigationMenus();
@@ -46,18 +52,6 @@ export function Header() {
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  // Re-render when cart changes - improved reactivity
-  useEffect(() => {
-    if (cart) {
-      // Force update when cart items change
-      setCartVersion(prev => prev + 1);
-    }
-  }, [cart]);
-
-  // Create a stable reference for total items count
-  const totalItems = getTotalItems();
-  
 
   // Search functionality
   useEffect(() => {
@@ -320,9 +314,9 @@ export function Header() {
                     </Link>
                   </div>
                   
-                  {cart && cart.items && cart.items.length > 0 ? (
+                  {cartItems && cartItems.length > 0 ? (
                     <div className="space-y-3 max-h-64 overflow-y-auto">
-                      {cart.items.slice(0, 3).map((item) => (
+                      {cartItems.slice(0, 3).map((item) => (
                         <div key={item.id} className="flex items-center space-x-3 py-2 border-b border-border last:border-b-0">
                           <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center overflow-hidden relative">
                             {item.product?.images?.[0]?.url ? (
@@ -362,16 +356,16 @@ export function Header() {
                         </div>
                       ))}
                       
-                      {cart.items.length > 3 && (
+                      {cartItems.length > 3 && (
                         <p className="text-xs text-muted-foreground text-center py-2">
-                          +{cart.items.length - 3} more items
+                          +{cartItems.length - 3} more items
                         </p>
                       )}
                       
                       <div className="pt-3 border-t border-border">
                         <div className="flex justify-between items-center mb-3">
                           <span className="font-semibold">Subtotal:</span>
-                          <span className="font-semibold">₹{getSubtotal().toFixed(2)}</span>
+                          <span className="font-semibold">₹{cartSubtotal.toFixed(2)}</span>
                         </div>
                         <div className="space-y-2">
                           <Link href="/cart" className="block">

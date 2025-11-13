@@ -53,8 +53,14 @@ function HeaderDynamicComponent() {
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { isAuthenticated, user, logout } = useHydratedAuth();
-  const cartStore = useCartStore();
-  const { getTotalItems, getCart, cart, removeItem, getSubtotal } = cartStore;
+  const cart = useCartStore((state) => state.cart);
+  const removeItem = useCartStore((state) => state.removeItem);
+  const getTotalItems = useCartStore((state) => state.getTotalItems);
+  const getSubtotal = useCartStore((state) => state.getSubtotal);
+
+  const cartItems = cart?.items ?? [];
+  const totalItems = getTotalItems ? getTotalItems() : cart?.total_items ?? 0;
+  const cartSubtotal = getSubtotal ? getSubtotal() : cart?.subtotal ?? 0;
 
   // Use ConfigContext instead of fetching separately
   const { siteConfig, navigationConfig, loading: configLoading } = useConfig();
@@ -263,9 +269,9 @@ function HeaderDynamicComponent() {
             {/* Cart with count */}
             <Link href="/cart" className="p-1.5 hover:bg-gray-100 rounded relative">
               <ShoppingCart className="h-5 w-5" />
-              {mounted && getTotalItems() > 0 && (
+              {mounted && totalItems > 0 && (
                 <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                  {getTotalItems()}
+                  {totalItems}
                 </span>
               )}
             </Link>

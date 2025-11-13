@@ -26,12 +26,11 @@ interface NavItem {
 
 export function MobileBottomNav() {
   const pathname = usePathname();
-  const cartStore = useCartStore();
-  const wishlistStore = useWishlistStore();
+  const cart = useCartStore((state) => state.cart);
+  const wishlist = useWishlistStore((state) => state.wishlist);
 
-  // Calculate cart and wishlist counts safely
-  const cartCount = (cartStore.items || []).reduce((total, item) => total + (item.quantity || 0), 0);
-  const wishlistCount = (wishlistStore.wishlist || []).length;
+  const cartCount = (cart?.items ?? []).reduce((total, item) => total + (item.quantity || 0), 0);
+  const wishlistCount = wishlist?.length ?? 0;
 
   const navItems: NavItem[] = [
     {

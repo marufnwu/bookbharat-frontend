@@ -198,6 +198,15 @@ const nextConfig: NextConfig = {
       };
     }
 
+    if (isServer) {
+      // Ensure chunk ids resolve without the implicit "chunks/" prefix that causes runtime require failures
+      config.output = {
+        ...config.output,
+        chunkFilename: '[id].js',
+        hotUpdateChunkFilename: '[id].hot-update.js',
+      };
+    }
+
     return config;
   },
 };
