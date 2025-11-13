@@ -20,9 +20,7 @@ export async function getServerSideSiteConfig(): Promise<SiteConfig> {
 
 export async function getServerSideHomepageConfig(): Promise<HomepageConfig> {
   try {
-    console.log('🔧 Server: Fetching homepage config...');
     const config = await SiteConfigService.getServerSideConfig<any>('/config/homepage');
-    console.log('🔧 Server: Raw homepage API response:', config);
 
     if (config) {
       // Ensure the config has the expected structure with defaults
@@ -43,11 +41,8 @@ export async function getServerSideHomepageConfig(): Promise<HomepageConfig> {
         },
       };
 
-      console.log('🔧 Server: Transformed homepage config:', transformedConfig);
       return transformedConfig;
     }
-
-    console.warn('Server: No homepage config response, returning default');
     return siteConfigService['getHomepageConfigDefaults']();
   } catch (error) {
     console.error('Error fetching server-side homepage config:', error);
@@ -57,9 +52,7 @@ export async function getServerSideHomepageConfig(): Promise<HomepageConfig> {
 
 export async function getServerSideNavigationConfig(): Promise<NavigationConfig> {
   try {
-    console.log('🔧 Server: Fetching navigation config...');
     const apiResponse = await SiteConfigService.getServerSideConfig<any>('/config/navigation');
-    console.log('🔧 Server: Raw API response:', apiResponse);
 
     if (apiResponse) {
       // Transform backend API structure to frontend expected structure
@@ -109,11 +102,8 @@ export async function getServerSideNavigationConfig(): Promise<NavigationConfig>
         }
       };
 
-      console.log('🔧 Server: Transformed navigation config:', transformedConfig);
       return transformedConfig;
     }
-
-    console.warn('Server: No navigation config response, returning default');
     return siteConfigService['getNavigationConfigDefaults']();
   } catch (error) {
     console.error('Error fetching server-side navigation config:', error);

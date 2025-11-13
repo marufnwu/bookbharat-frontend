@@ -55,6 +55,7 @@ interface HomeClientProps {
   categories: Category[];
   featuredBooks: Product[];
   homepageSections: HomepageSection[];
+  categoriesWithProducts?: Category[];
   isMobile?: boolean;
 }
 
@@ -63,6 +64,7 @@ export default function HomeClient({
   categories,
   featuredBooks,
   homepageSections = [],
+  categoriesWithProducts,
   isMobile = false
 }: HomeClientProps) {
   const { siteConfig, homepageConfig } = useConfig();
@@ -125,6 +127,7 @@ export default function HomeClient({
   const renderSection = (section: HomepageSection) => {
     const key = `section-${section.section_id}-${section.id}`;
 
+    
     switch (section.section_type) {
       case 'hero':
         return (
@@ -196,26 +199,40 @@ export default function HomeClient({
         );
 
       case 'category-products':
-        if (categories.length === 0) return null;
+        if (categories.length === 0) {
+          return null;
+        }
         const config = section.settings;
-        // Filter out categories with no products to avoid unnecessary API calls
-        const categoriesWithProducts = categories.filter(cat => 
-          cat.products_count && cat.products_count > 0
-        );
-        
-        if (categoriesWithProducts.length === 0) return null;
-        
+
+        // Use pre-loaded categories with products if available, otherwise filter and load client-side
+        let categoriesToRender;
+        if (categoriesWithProducts && categoriesWithProducts.length > 0) {
+          // Use server-loaded categories with products
+          categoriesToRender = categoriesWithProducts.filter(cat =>
+            cat.products && cat.products.length > 0
+          );
+        } else {
+          // Fallback to client-side loading
+          categoriesToRender = categories.filter(cat =>
+            cat.products_count && cat.products_count > 0
+          );
+        }
+
+        if (categoriesToRender.length === 0) {
+          return null;
+        }
+
         return (
           <div key={key}>
-            {categoriesWithProducts.map((category) => (
+            {categoriesToRender.map((category) => (
               <CategoryProductSection
                 key={category.id}
-                category={{ ...category, products: [] }}
+                category={category}
                 productsPerCategory={config?.products_per_category || 20}
                 showSeeAll={config?.show_see_all_button !== false}
                 showRating={config?.show_product_rating !== false}
                 showDiscount={config?.show_product_discount !== false}
-                lazyLoad={true}
+                lazyLoad={!categoriesWithProducts || categoriesWithProducts.length === 0}
               />
             ))}
           </div>

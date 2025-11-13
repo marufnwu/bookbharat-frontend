@@ -25,6 +25,7 @@ interface CategoryProductSectionProps {
   showRating: boolean;
   showDiscount: boolean;
   lazyLoad: boolean;
+  onContentLoaded?: () => void;
 }
 
 export default function CategoryProductSection({
@@ -33,7 +34,8 @@ export default function CategoryProductSection({
   showSeeAll,
   showRating,
   showDiscount,
-  lazyLoad
+  lazyLoad,
+  onContentLoaded
 }: CategoryProductSectionProps) {
   const [products, setProducts] = useState<Product[]>(category.products || []);
   const [loading, setLoading] = useState(false);
@@ -41,6 +43,11 @@ export default function CategoryProductSection({
   const [isMobile, setIsMobile] = useState(false);
   const { siteConfig } = useConfig();
 
+  // Determine if category has products and the count
+  const hasProducts = category.products ? category.products.length > 0 : (category.products_count ? category.products_count > 0 : false);
+  const productsCount = category.products ? category.products.length : (category.products_count || 0);
+
+  
   // Mobile detection
   useEffect(() => {
     const checkMobile = () => {
@@ -50,43 +57,42 @@ export default function CategoryProductSection({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-  
+
   // Intersection Observer for lazy loading
   const { ref, inView } = useInView({
     threshold: 0.1,
     triggerOnce: true,
-    skip: !lazyLoad || products.length > 0 || !category.products_count || category.products_count === 0
+    skip: !lazyLoad || products.length > 0 || !hasProducts
   });
 
   useEffect(() => {
     // Don't load if category has no products
-    if (!category.products_count || category.products_count === 0) {
+    if (!hasProducts) {
       return;
     }
-    
+
     if (lazyLoad && inView && products.length === 0) {
       loadCategoryProducts();
     }
-  }, [inView, lazyLoad, category.products_count]);
+  }, [inView, lazyLoad, hasProducts]);
 
   useEffect(() => {
     // Don't load if category has no products
-    if (!category.products_count || category.products_count === 0) {
+    if (!hasProducts) {
       return;
     }
-    
+
     if (!lazyLoad && products.length === 0) {
       loadCategoryProducts();
     }
-  }, [category.products_count]);
+  }, [hasProducts]);
 
   const loadCategoryProducts = async () => {
     try {
       setLoading(true);
       setError(null);
 
-     console.log('Products per category:', productsPerCategory);
-
+     
 
       const response = await productApi.getProductsByCategory(category.id, {
         per_page: productsPerCategory,
@@ -96,15 +102,9 @@ export default function CategoryProductSection({
       
       if (response.success) {
         const loadedProducts = response.data.products.data || [];
-        console.log(`🔍 Category ${category.name} (${category.id}):`, {
-          requested: productsPerCategory,
-          received: loadedProducts.length,
-          totalAvailable: response.data.products.total,
-          products: loadedProducts.map(p => ({ id: p.id, name: p.name, price: p.price }))
-        });
-        setProducts(loadedProducts);
+                setProducts(loadedProducts);
       } else {
-        console.error(`❌ Failed to load ${category.name} products:`, response);
+        console.error(`Failed to load ${category.name} products`);
         setError('Failed to load products');
       }
     } catch (err: any) {
@@ -112,12 +112,16 @@ export default function CategoryProductSection({
       setError('Failed to load products');
     } finally {
       setLoading(false);
+      // Call onContentLoaded callback if provided
+      if (onContentLoaded) {
+        onContentLoaded();
+      }
     }
   };
 
 
   // Early return if category has no products (after hooks are called)
-  if (!category.products_count || category.products_count === 0) {
+  if (!hasProducts) {
     return null;
   }
 
@@ -125,19 +129,9 @@ export default function CategoryProductSection({
     return <div ref={ref} className="h-96" />; // Placeholder for lazy loading
   }
 
-  if (loading) {
-    return (
-      <section ref={ref} className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-center py-12">
-            <div className="flex items-center space-x-2">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <span>Loading {category.name} products...</span>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
+  // Don't show individual loading states - let parent handle it
+  if (loading && !lazyLoad) {
+    return null; // Let parent show loading
   }
 
   if (error) {
@@ -161,12 +155,10 @@ export default function CategoryProductSection({
 
   // If no products after loading, don't render anything
   if (products.length === 0) {
-    console.log(`🚫 Category ${category.name}: No products to display`);
-    return null;
+        return null;
   }
 
-  console.log(`🎨 Rendering ${category.name}: Displaying ${products.length} products out of ${products.length} loaded`);
-
+  
   return (
     <section ref={ref} className="py-8 sm:py-12 md:py-16 bg-muted/30">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">

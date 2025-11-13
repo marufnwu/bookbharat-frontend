@@ -51,26 +51,11 @@ async function getCategories() {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
     const res = await fetch(`${apiUrl}/categories`, {
-      next: { revalidate: 3600 }, // Cache for 1 hour
-      cache: 'no-store' // Temporarily disable cache for debugging
+      next: { revalidate: 3600 } // Cache for 1 hour
     });
     if (res.ok) {
       const data = await res.json();
       const categories = data.success ? data.data : [];
-      console.log('📦 Categories fetched:', categories.length, 'categories');
-      console.log('📦 Categories:', categories.map((c: any) => ({ 
-        id: c.id, 
-        name: c.name, 
-        products_count: c.products_count 
-      })));
-      
-      // Show which categories have no products
-      const emptyCategories = categories.filter((c: any) => !c.products_count || c.products_count === 0);
-      if (emptyCategories.length > 0) {
-        console.log('⚠️ Categories with no products (will be hidden):', 
-          emptyCategories.map((c: any) => c.name));
-      }
-      
       // Increased limit from 6 to show more categories
       return categories.slice(0, 12);
     }
@@ -85,7 +70,7 @@ async function getFeaturedProducts() {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
     const res = await fetch(`${apiUrl}/products/featured`, {
-      next: { revalidate: 1800 } // Cache for 30 minutes
+      next: { revalidate: 7200 } // Cache for 2 hours
     });
     if (res.ok) {
       const data = await res.json();
@@ -98,11 +83,28 @@ async function getFeaturedProducts() {
   return [];
 }
 
+async function getCategoriesWithProducts() {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+    const res = await fetch(`${apiUrl}/products/by-categories?limit=6&products_per_category=20`, {
+      next: { revalidate: 7200 } // Cache for 2 hours
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.success ? data.data : [];
+    }
+  } catch (error) {
+    console.error('Failed to fetch categories with products:', error);
+    // Return empty array instead of throwing to prevent 500 errors
+  }
+  return [];
+}
+
 async function getHomepageSections() {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
     const res = await fetch(`${apiUrl}/homepage-layout/sections`, {
-      next: { revalidate: 1800 } // Cache for 30 minutes
+      next: { revalidate: 7200 } // Cache for 2 hours
     });
     if (res.ok) {
       const data = await res.json();
@@ -119,11 +121,12 @@ async function getHomepageSections() {
 export default async function Home() {
   try {
     // Fetch all data in parallel on the server
-    const [heroConfig, categories, featuredBooks, homepageSections] = await Promise.all([
+    const [heroConfig, categories, featuredBooks, homepageSections, categoriesWithProducts] = await Promise.all([
       getHeroConfig(),
       getCategories(),
       getFeaturedProducts(),
       getHomepageSections(),
+      getCategoriesWithProducts(),
     ]);
 
     // Check if we have any data - if not, use fallback
@@ -146,6 +149,7 @@ export default async function Home() {
         categories={categories}
         featuredBooks={featuredBooks}
         homepageSections={homepageSections}
+        categoriesWithProducts={categoriesWithProducts}
         isMobile={isMobile}
       />
     );
@@ -157,4 +161,4 @@ export default async function Home() {
 }
 
 // Enable ISR with revalidation
-export const revalidate = 1800; // Revalidate every 30 minutes
+export const revalidate = 3600; // Revalidate every hour

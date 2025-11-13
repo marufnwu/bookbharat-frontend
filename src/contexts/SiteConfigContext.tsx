@@ -194,13 +194,13 @@ export function useHomepageLayout() {
     }
 
     return {
-      heroSections: (homepageConfig.hero_sections || []).filter(section => section.active),
-      featuredSections: (homepageConfig.featured_sections || []).filter(section => section.active),
+      heroSections: (homepageConfig.hero_sections || []).filter(section => section.enabled),
+      featuredSections: (homepageConfig.featured_sections || []).filter(section => section.enabled),
       promotionalBanners: (homepageConfig.promotional_banners || []).filter(banner =>
-        banner.active && new Date(banner.end_date) > new Date()
+        banner.enabled
       ),
       testimonials: (homepageConfig.testimonials || []).filter(testimonial =>
-        testimonial.active && testimonial.featured
+        testimonial.enabled && testimonial.featured
       ),
       newsletter: homepageConfig.newsletter || {
         enabled: false,
