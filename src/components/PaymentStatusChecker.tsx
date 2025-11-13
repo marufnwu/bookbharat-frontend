@@ -15,7 +15,7 @@ import {
   ArrowRight,
   CreditCard
 } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { toast } from '@/hooks/use-toast';
 
 interface PaymentStatusCheckerProps {
   orderId: number;
@@ -64,7 +64,9 @@ export function PaymentStatusChecker({
 
         // Log status change for debugging
         if (previousStatus !== paymentStatus) {
-          toast.info(`Payment status updated: ${paymentStatus}`);
+          toast({
+            description: `Payment status updated: ${paymentStatus}`
+          });
         }
 
         // Fetch order details if payment is successful

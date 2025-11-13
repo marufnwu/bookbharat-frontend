@@ -389,7 +389,8 @@ export const useCartStore = create<CartState>()(
           await cartApi.trackAbandonedCart(recoveryData);
 
           // Show recovery notification
-          toast.info('Your cart is waiting for you! Complete your purchase to get your books.', {
+          toast({
+            description: 'Your cart is waiting for you! Complete your purchase to get your books.',
             duration: 10000,
             action: {
               label: 'View Cart',
