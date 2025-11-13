@@ -4,7 +4,7 @@ import { authStore } from '@/stores/auth';
 import { seededRandom } from './seeded-random';
 // Lightweight dev logger to avoid runtime import issues
 const __isDev = process.env.NODE_ENV === 'development';
-const devLog = (...args: any[]) => { if (__isDev && typeof console !== 'undefined') console.log(...args); };
+const devLog = (..._args: any[]) => {};
 
 export interface ApiError {
   message: string;

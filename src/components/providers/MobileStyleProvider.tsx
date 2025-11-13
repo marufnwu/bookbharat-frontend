@@ -5,9 +5,9 @@ import '@/styles/mobile-optimizations.css';
 
 export function MobileStyleProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    // Ensure mobile styles are loaded
-    console.log('Mobile optimization styles loaded');
-  }, []);
+    document.body.classList.add('mobile-optimized');
+ 
+     return () => {
 
   return <>{children}</>;
 }

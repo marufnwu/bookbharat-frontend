@@ -177,12 +177,6 @@ export default function HomeClient({
           section => section.id === 'category_products'
         )?.settings;
 
-        console.log('🔧 Category products config:', {
-          config,
-          products_per_category: config?.products_per_category,
-          categories_with_products: categories.filter(cat => cat.products_count && cat.products_count > 0).length
-        });
-
         // Filter out categories with no products to avoid unnecessary API calls
         const categoriesWithProducts = categories.filter(cat =>
           cat.products_count && cat.products_count > 0

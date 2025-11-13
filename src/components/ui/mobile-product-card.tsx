@@ -104,7 +104,7 @@ export function MobileProductCard({
           url: `/products/${product.slug || product.id}`
         });
       } catch (error) {
-        console.log('Share cancelled');
+        toast.warning('Share cancelled');
       }
     } else {
       // Fallback to clipboard

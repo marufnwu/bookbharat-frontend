@@ -2,7 +2,7 @@
 
 import { usePathname, useSearchParams } from 'next/navigation'
 import Script from 'next/script'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { marketingConfigService } from '@/services/marketing-config'
 
 interface GoogleAnalyticsProps {
@@ -282,21 +282,19 @@ export function useGA4Events() {
     })
   }, [])
 
-  const trackEvent = (eventName: string, parameters?: Record<string, any>) => {
-    if (!config?.enabled || !window.gtag) return
+  const trackEvent = useCallback(
+    (eventName: string, parameters?: Record<string, any>) => {
+      if (typeof window === 'undefined') return;
+      if (!config?.measurement_id && !trackingConfig?.measurement_id) return;
 
-    if (config.debug_mode || trackingConfig?.debug?.console_logging) {
-      console.log('GA4 Event:', eventName, parameters)
-    }
-
-    window.gtag('event', eventName, {
-      ...parameters,
-      custom_map: {
-        custom_parameter_1: 'user_type',
-        custom_parameter_2: 'page_section'
+      try {
+        window.gtag?.('event', eventName, parameters);
+      } catch (error) {
+        console.error('GA4 track event failed:', error);
       }
-    })
-  }
+    },
+    [config?.measurement_id, trackingConfig?.measurement_id]
+  )
 
   const trackSignUp = async (method: string) => {
     const cfg = trackingConfig || await marketingConfigService.getTrackingConfig()

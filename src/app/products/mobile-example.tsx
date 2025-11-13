@@ -119,9 +119,9 @@ export default function MobileProductsExample() {
             totalProducts={1234}
             currentPage={1}
             totalPages={62}
-            onPageChange={(page) => console.log('Page:', page)}
-            onSortChange={(sort) => console.log('Sort:', sort)}
-            onFilterChange={(filters) => console.log('Filters:', filters)}
+            onPageChange={() => undefined}
+            onSortChange={() => undefined}
+            onFilterChange={() => undefined}
             filters={{}}
             filterGroups={filterGroups}
             showViewToggle={true}

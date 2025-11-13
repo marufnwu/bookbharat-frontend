@@ -78,12 +78,71 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
 
     // During build time or server-side generation, use fallback metadata
     if (isBuildTime) {
-      console.log('Build time detected, using fallback metadata');
-    } else {
-      console.log('Server-side generation detected, using fallback metadata');
+      return {
+        metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
+        title: {
+          template: "%s | BookBharat - Your Knowledge Partner",
+          default: "BookBharat - Your Knowledge Partner | Online Bookstore India",
+        },
+        description: "Discover millions of books online at BookBharat. India's leading bookstore with fiction, non-fiction, academic books and more. Fast delivery, secure payment, best prices.",
+        keywords: ["books", "online bookstore", "india", "fiction", "non-fiction", "academic books", "bookbharat"],
+        authors: [{ name: "BookBharat Team" }],
+        creator: "BookBharat",
+        publisher: "BookBharat",
+        openGraph: {
+          type: "website",
+          locale: "en_IN",
+          url: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+          title: "BookBharat - Your Knowledge Partner",
+          description: "Discover millions of books online at BookBharat. India's leading bookstore.",
+          siteName: "BookBharat",
+        },
+        twitter: {
+          card: "summary_large_image",
+          title: "BookBharat - Your Knowledge Partner",
+          description: "Discover millions of books online at BookBharat. India's leading bookstore.",
+          creator: "@bookbharat",
+        },
+        robots: {
+          index: true,
+          follow: true,
+        },
+      };
     }
-    throw new Error('Skipping dynamic metadata during build');
 
+    // Fallback to hardcoded metadata if backend fails
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
+    return {
+      metadataBase: new URL(siteUrl),
+      title: {
+        template: "%s | BookBharat - Your Knowledge Partner",
+        default: "BookBharat - Your Knowledge Partner | Online Bookstore India",
+      },
+      description: "Discover millions of books online at BookBharat. India's leading bookstore with fiction, non-fiction, academic books and more. Fast delivery, secure payment, best prices.",
+      keywords: ["books", "online bookstore", "india", "fiction", "non-fiction", "academic books", "bookbharat"],
+      authors: [{ name: "BookBharat Team" }],
+      creator: "BookBharat",
+      publisher: "BookBharat",
+      openGraph: {
+        type: "website",
+        locale: "en_IN",
+        url: siteUrl,
+        title: "BookBharat - Your Knowledge Partner",
+        description: "Discover millions of books online at BookBharat. India's leading bookstore.",
+        siteName: "BookBharat",
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: "BookBharat - Your Knowledge Partner",
+        description: "Discover millions of books online at BookBharat. India's leading bookstore.",
+        creator: "@bookbharat",
+      },
+      robots: {
+        index: true,
+        follow: true,
+      },
+    };
   } catch (error) {
     console.error('Failed to generate dynamic metadata, using fallback:', error);
     

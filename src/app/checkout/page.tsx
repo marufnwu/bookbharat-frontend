@@ -360,7 +360,6 @@ export default function CheckoutPage() {
     if (paymentType === 'online') {
       const paymentMethod = selectedPaymentMethod;
       const isValid = !!paymentMethod && paymentMethod.trim() !== '';
-      logger.log('Step 3 Validation (Online):', { paymentMethod, isValid });
       return isValid;
     }
 
@@ -368,13 +367,11 @@ export default function CheckoutPage() {
     if (paymentType === 'cod' && codConfig?.advance_payment?.required) {
       const paymentMethod = selectedPaymentMethod;
       const isValid = !!paymentMethod && paymentMethod.trim() !== '';
-      logger.log('Step 3 Validation (COD with advance):', { paymentMethod, isValid });
       return isValid;
     }
 
     // If COD without advance, no gateway selection needed
     if (paymentType === 'cod') {
-      logger.log('Step 3 Validation (Pure COD): true');
       return true;
     }
 
@@ -408,7 +405,6 @@ export default function CheckoutPage() {
   // This ensures we get the latest payment options from admin settings
   useEffect(() => {
     if (currentStep === 3 && !isProcessingPaymentTypeChange) { // Payment step
-      logger.log('📝 Refreshing payment methods for payment step');
       const orderTotal = cart?.summary?.total || 0;
       loadPaymentMethods(orderTotal);
     }
@@ -419,14 +415,12 @@ export default function CheckoutPage() {
     const handleHashChange = () => {
       const hash = window.location.hash || '#shipping';
       const newStep = getStepFromHash(hash);
-      logger.log('Hash changed to:', hash, 'Setting step to:', newStep);
       setCurrentStep(newStep);
     };
 
     // Handle initial hash on mount
     const initialHash = window.location.hash || '#shipping';
     const initialStep = getStepFromHash(initialHash);
-    logger.log('Initial hash:', initialHash, 'Setting initial step to:', initialStep);
     if (initialStep !== currentStep) {
       setCurrentStep(initialStep);
     }
@@ -595,7 +589,6 @@ export default function CheckoutPage() {
   const loadPaymentMethods = async (orderAmount?: number) => {
     try {
       const response = await paymentApi.getPaymentMethods(orderAmount, 'INR');
-      logger.log('Payment methods API response:', response);
 
       // Handle unified gateway response
       const gateways = response?.gateways || [];
@@ -613,7 +606,6 @@ export default function CheckoutPage() {
             ...response.payment_flow,
             type: flowType
           });
-          logger.log('Payment flow settings:', { ...response.payment_flow, type: flowType });
 
           // Handle default payment type from admin settings
           // ONLY if there's no persisted payment type (fresh visit, not user selection)
@@ -622,7 +614,6 @@ export default function CheckoutPage() {
           const defaultPaymentType = (response as any).payment_flow?.default_payment_type;
           if (!hasPersistedPaymentType && !paymentType && !isProcessingPaymentTypeChange) {
             if (defaultPaymentType && defaultPaymentType !== 'none') {
-              logger.log('🎯 Setting default payment type from admin:', defaultPaymentType);
               // Admin has set a default (online or cod) - apply it
               setPaymentType(defaultPaymentType as 'online' | 'cod');
             }
@@ -631,10 +622,7 @@ export default function CheckoutPage() {
         }
 
         // Separate COD from online payment methods
-        logger.log('🔍 All gateways received:', gateways);
-        logger.log('🎛️ Payment flow settings:', response.payment_flow);
         const codGateway = gateways.find((g: any) => g.gateway && g.gateway.includes('cod'));
-        logger.log('💰 COD Gateway found:', codGateway);
         const onlineGateways = gateways.filter((g: any) => !g.gateway || !g.gateway.includes('cod'));
 
         // Transform online gateways only
@@ -649,7 +637,6 @@ export default function CheckoutPage() {
         // Store COD configuration separately
         // Check both: COD gateway exists AND admin has enabled COD visibility
         const isCodEnabled = response.payment_flow?.cod_enabled !== false; // Default to true if not specified
-        logger.log('🔒 Admin COD enabled setting:', isCodEnabled);
 
         if (codGateway && codGateway.is_active !== false && isCodEnabled) {
           const config = {
@@ -659,11 +646,9 @@ export default function CheckoutPage() {
             advance_payment: codGateway.advance_payment || null,
             service_charges: codGateway.service_charges || null
           };
-          logger.log('✅ Setting COD config:', config);
           setCodConfig(config);
           setCodAvailable(true);
         } else {
-          logger.log('❌ COD not available - codGateway:', codGateway, 'adminEnabled:', isCodEnabled);
           setCodConfig(null);
           setCodAvailable(false);
         }
@@ -705,7 +690,6 @@ export default function CheckoutPage() {
   };
 
   const populateFormFromAddress = (address: Address) => {
-    logger.log('🏠 Populating form from address:', address);
 
     setValue('firstName', address.first_name);
     setValue('lastName', address.last_name || '?');
@@ -720,13 +704,6 @@ export default function CheckoutPage() {
     const district = (address as any).district || address.city;
     setValue('district', district);
     setValue('state', address.state);
-
-    logger.log('🏠 Setting form values:', {
-      district,
-      state: address.state,
-      city: address.city,
-      postalCode: address.postal_code
-    });
 
     // REMOVED: 'address' field - causes conflict with houseNo
     // We use houseNo as the primary field for address_line_1
@@ -1125,14 +1102,7 @@ export default function CheckoutPage() {
 
   const selectedPaymentMethod = watch('paymentMethod');
 
-  // Debug payment methods and cart changes
-  useEffect(() => {
-    logger.log('💳 Available payment methods:', paymentMethods.length);
-    logger.log('💳 Selected payment method:', selectedPaymentMethod);
-    logger.log('💳 Payment type:', paymentType);
-    logger.log('💳 Cart total:', cart?.summary?.total);
-  }, [paymentMethods.length, selectedPaymentMethod, paymentType, cart?.summary?.total]);
-
+  
   // Handle payment type change - recalculate cart with COD charges
   useEffect(() => {
     if (!paymentType) return; // Exit early if no payment type selected

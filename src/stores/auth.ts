@@ -170,7 +170,6 @@ export const useAuthStore = create<AuthState>()(
           // Optionally show a notification
           if (typeof window !== 'undefined') {
             // You could trigger a toast notification here
-            console.log('Session expired. Please login again.');
           }
         }
       },

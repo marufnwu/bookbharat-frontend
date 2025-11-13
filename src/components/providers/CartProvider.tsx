@@ -11,8 +11,9 @@ export function CartProvider({ children }: CartProviderProps) {
   const { getCart } = useCartStore();
 
   useEffect(() => {
-    console.log('🛒 CartProvider initializing cart...');
-    getCart();
+    if (!cartStore.cart && cartStore.loadCart) {
+      cartStore.loadCart();
+    }
   }, [getCart]);
 
   return <>{children}</>;

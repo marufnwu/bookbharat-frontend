@@ -45,23 +45,19 @@ export function Header() {
   // Initialize mounted state
   useEffect(() => {
     setMounted(true);
-    console.log('📱 Header mounted');
   }, []);
 
   // Re-render when cart changes - improved reactivity
   useEffect(() => {
-    console.log('📱 Header cart effect triggered - cart:', cart ? 'exists' : 'null');
     if (cart) {
-      console.log('📱 Header cart items count:', cart.items?.length, 'total_items:', cart.total_items);
+      // Force update when cart items change
+      setCartVersion(prev => prev + 1);
     }
   }, [cart]);
 
   // Create a stable reference for total items count
   const totalItems = getTotalItems();
   
-  useEffect(() => {
-    console.log('📱 Header totalItems changed:', totalItems);
-  }, [totalItems]);
 
   // Search functionality
   useEffect(() => {
@@ -146,15 +142,6 @@ export function Header() {
   // Get primary navigation items, fallback to hardcoded if config not loaded
   const primaryNavigation = navigation?.header.primary || fallbackNavigation;
 
-  // Debug logging
-  useEffect(() => {
-    console.log('🔍 Debug Header navigation:', {
-      navigation,
-      primaryNavigation,
-      primaryNavigationLength: primaryNavigation.length,
-      firstItem: primaryNavigation[0]
-    });
-  }, [navigation, primaryNavigation]);
 
   // Show mobile header for small screens
   const [isMobile, setIsMobile] = useState(false);
