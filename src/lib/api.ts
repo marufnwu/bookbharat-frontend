@@ -16,23 +16,67 @@ class ApiClient {
   private client: AxiosInstance;
   private sessionId: string | null = null;
 
-  // Centralized image transformation helper
+  // Memoization caches for performance optimization
+  private static productImageCache = new Map<string, any>();
+  private static productsImageCache = new Map<string, any[]>();
+  private static readonly MAX_CACHE_SIZE = 1000;
+
+  // Clean cache when it gets too large
+  private static cleanCache(cache: Map<any, any>) {
+    if (cache.size > this.MAX_CACHE_SIZE) {
+      const keysToDelete = Array.from(cache.keys()).slice(0, Math.floor(this.MAX_CACHE_SIZE / 2));
+      keysToDelete.forEach(key => cache.delete(key));
+    }
+  }
+
+  // Centralized image transformation helper with memoization
   private transformProductImages(product: any): any {
     if (!product) return product;
 
-    return {
+    // Create cache key from product ID and images
+    const cacheKey = `${product.id}_${JSON.stringify(product.images || [])}`;
+
+    // Check cache first
+    if (ApiClient.productImageCache.has(cacheKey)) {
+      return ApiClient.productImageCache.get(cacheKey);
+    }
+
+    // Transform the product
+    const transformedProduct = {
       ...product,
       images: product.images?.map((img: any) => ({
         ...img,
         url: img.image_url || img.url || img.image_path
       })) || []
     };
+
+    // Clean cache if needed and store result
+    ApiClient.cleanCache(ApiClient.productImageCache);
+    ApiClient.productImageCache.set(cacheKey, transformedProduct);
+
+    return transformedProduct;
   }
 
-  // Transform multiple products
+  // Transform multiple products with memoization
   private transformProductsImages(products: any[]): any[] {
     if (!Array.isArray(products)) return products;
-    return products.map(product => this.transformProductImages(product));
+
+    // Create cache key from product IDs and images
+    const cacheKey = products.map(p => `${p.id}_${JSON.stringify(p.images || [])}`).join('|');
+
+    // Check cache first
+    if (ApiClient.productsImageCache.has(cacheKey)) {
+      return ApiClient.productsImageCache.get(cacheKey);
+    }
+
+    // Transform products
+    const transformedProducts = products.map(product => this.transformProductImages(product));
+
+    // Clean cache if needed and store result
+    ApiClient.cleanCache(ApiClient.productsImageCache);
+    ApiClient.productsImageCache.set(cacheKey, transformedProducts);
+
+    return transformedProducts;
   }
 
   // Transform cart/wishlist/order items with nested products

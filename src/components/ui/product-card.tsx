@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -39,7 +40,7 @@ interface ProductCardProps {
   className?: string;
 }
 
-export function ProductCard({ 
+export const ProductCard = React.memo(function ProductCard({
   product,
   variant = 'default',
   showCategory = true,
@@ -233,8 +234,16 @@ export function ProductCard({
     }
   };
 
-  const styles = getVariantStyles();
-  const discountPercentage = getDiscountPercentage();
+  // Memoize expensive calculations
+  const styles = useMemo(() => getVariantStyles(), [variant]);
+  const discountPercentage = useMemo(() => getDiscountPercentage(), [product.price, product.compare_price]);
+  const freeShippingProgress = useMemo(() => {
+    // Use zone-based free shipping threshold if available, otherwise use default
+    const freeShippingThreshold = siteConfig?.shipping?.free_shipping_thresholds?.default ||
+                              siteConfig?.payment?.free_shipping_threshold ||
+                              0; // No fallback - should always come from config
+    return Math.min((product.price / freeShippingThreshold) * 100, 100);
+  }, [product.price, siteConfig?.shipping?.free_shipping_thresholds?.default, siteConfig?.payment?.free_shipping_threshold]);
 
   return (
     <Card className={cn(
@@ -407,7 +416,7 @@ export function ProductCard({
                         <div
                           className="bg-primary rounded-full transition-all duration-300"
                           style={{
-                            width: `${getFreeShippingProgress()}%`,
+                            width: `${freeShippingProgress}%`,
                             height: '100%'
                           }}
                         />
@@ -474,6 +483,23 @@ export function ProductCard({
       </CardContent>
     </Card>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison function for optimal memoization
+  return (
+    prevProps.product.id === nextProps.product.id &&
+    prevProps.product.price === nextProps.product.price &&
+    prevProps.product.in_stock === nextProps.product.in_stock &&
+    prevProps.variant === nextProps.variant &&
+    prevProps.showCategory === nextProps.showCategory &&
+    prevProps.showAuthor === nextProps.showAuthor &&
+    prevProps.showRating === nextProps.showRating &&
+    prevProps.showDiscount === nextProps.showDiscount &&
+    prevProps.showWishlist === nextProps.showWishlist &&
+    prevProps.showQuickView === nextProps.showQuickView &&
+    prevProps.showAddToCart === nextProps.showAddToCart &&
+    prevProps.showBuyNow === nextProps.showBuyNow &&
+    prevProps.className === nextProps.className
+  );
+});
 
 export default ProductCard;
