@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AdvancedProductFilters, DEFAULT_FILTERS, type FilterState } from '@/components/product/AdvancedProductFilters';
 import { ProductCard } from '@/components/ui/product-card';
+import { MobileProductCard } from '@/components/ui/mobile-product-card';
 import { CategorySchema } from '@/components/seo/CategorySchema';
 import { useConfig } from '@/contexts/ConfigContext';
 import { categoryApi, productApi } from '@/lib/api';
@@ -21,7 +22,8 @@ import {
   X,
   ChevronRight,
   Filter,
-  AlertCircle
+  AlertCircle,
+  TrendingUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -126,6 +128,21 @@ export default function CategoryPage() {
   const [stats, setStats] = useState<ProductStats | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [resolvedCategoryId, setResolvedCategoryId] = useState<string | null>(null);
+  const [categoryImageSrc, setCategoryImageSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 640);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Filter state with URL sync
   const [filters, setFilters] = useState<FilterState>(() => {
@@ -158,37 +175,104 @@ export default function CategoryPage() {
 
   // Build query parameters from filters
   const buildQueryParams = useCallback((currentFilters: FilterState) => {
-    const params: any = {
-      category_id: currentFilters.categories.join(','),
-      limit: '20'
+    const params: Record<string, any> = {
+      per_page: 20,
+      category_id: resolvedCategoryId || currentFilters.categories[0] || categoryId
     };
 
     if (currentFilters.author) params.author = currentFilters.author;
     if (currentFilters.publisher) params.publisher = currentFilters.publisher;
     if (currentFilters.language) params.language = currentFilters.language;
-    if (currentFilters.tags.length > 0) {
-      params.tags = currentFilters.tags.join(',');
-    }
+
     if (currentFilters.priceRange[0] > 0) {
-      params.price_min = currentFilters.priceRange[0].toString();
+      params.min_price = currentFilters.priceRange[0];
     }
     if (currentFilters.priceRange[1] < DEFAULT_FILTERS.priceRange[1]) {
-      params.price_max = currentFilters.priceRange[1].toString();
+      params.max_price = currentFilters.priceRange[1];
     }
-    if (currentFilters.minRating > 0) {
-      params.rating = currentFilters.minRating.toString();
+
+    const sortBy = currentFilters.sortBy || 'created_at';
+    const sortOrder = currentFilters.sortOrder || 'desc';
+
+    if (sortBy === 'price') {
+      params.sort_by = sortOrder === 'asc' ? 'price_low_to_high' : 'price_high_to_low';
+      params.sort_order = sortOrder;
+    } else if (sortBy === 'discount') {
+      params.sort_by = 'discount_percentage';
+      params.sort_order = sortOrder;
+    } else {
+      params.sort_by = sortBy;
+      params.sort_order = sortOrder;
     }
-    if (currentFilters.freeShipping) params.free_shipping = '1';
-    if (currentFilters.inStock) params.in_stock = '1';
-
-    // Handle category-specific sorting
-    if (currentFilters.sortBy === 'popularity') params.sort = '-popularity';
-    else if (currentFilters.sortBy === 'discount') params.sort = '-discount';
-    else if (currentFilters.sortBy !== 'created_at') params.sort = currentFilters.sortBy;
-
-    params.order = currentFilters.sortOrder;
 
     return params;
+  }, [categoryId, resolvedCategoryId]);
+
+  const applyClientFilters = useCallback((items: Product[], currentFilters: FilterState) => {
+    return items.filter((product) => {
+      if (!product) return false;
+
+      if (currentFilters.categories.length > 0) {
+        const categoryIds = currentFilters.categories.map(String);
+        if (!categoryIds.includes(String(product.category_id))) {
+          return false;
+        }
+      }
+
+      if (currentFilters.author) {
+        if (!product.author || !product.author.toLowerCase().includes(currentFilters.author.toLowerCase())) {
+          return false;
+        }
+      }
+
+      if (currentFilters.publisher) {
+        if (!product.publisher || !product.publisher.toLowerCase().includes(currentFilters.publisher.toLowerCase())) {
+          return false;
+        }
+      }
+
+      if (currentFilters.language) {
+        if (!product.language || product.language.toLowerCase() !== currentFilters.language.toLowerCase()) {
+          return false;
+        }
+      }
+
+      if (currentFilters.priceRange[0] > 0 && product.price < currentFilters.priceRange[0]) {
+        return false;
+      }
+
+      if (currentFilters.priceRange[1] < DEFAULT_FILTERS.priceRange[1] && product.price > currentFilters.priceRange[1]) {
+        return false;
+      }
+
+      if (currentFilters.minRating > 0) {
+        const ratingValue = product.rating || (product as any).average_rating;
+        if (!ratingValue || ratingValue < currentFilters.minRating) {
+          return false;
+        }
+      }
+
+      if (currentFilters.inStock) {
+        const inStock = product.in_stock ?? product.stock_quantity > 0;
+        if (!inStock) {
+          return false;
+        }
+      }
+
+      if (currentFilters.freeShipping) {
+        const hasFreeShipping = Boolean(
+          (product as any).free_shipping_enabled ||
+          product.metadata?.free_shipping ||
+          product.attributes?.free_shipping
+        );
+
+        if (!hasFreeShipping) {
+          return false;
+        }
+      }
+
+      return true;
+    });
   }, []);
 
   // Load category data
@@ -201,6 +285,16 @@ export default function CategoryPage() {
 
       if (response.success) {
         setCategory(response.data);
+
+        const resolvedId = String(response.data.id);
+        setResolvedCategoryId(resolvedId);
+        setCategoryImageSrc(response.data.image || response.data.image_url || '/book-placeholder.svg');
+        setFilters(prev => {
+          if (prev.categories.length === 1 && prev.categories[0] === resolvedId) {
+            return prev;
+          }
+          return { ...prev, categories: [resolvedId] };
+        });
       } else {
         setError('Category not found');
       }
@@ -223,42 +317,50 @@ export default function CategoryPage() {
       }
 
       const queryParams = buildQueryParams(filters);
-      const url = next ? `/products?${next.split('?')[1]}` : `/products?${queryParams}`;
 
-      const response = await productApi.getProducts(url);
-      const transformedProducts = transformProducts(response);
+      if (isLoadMore && next) {
+        try {
+          const nextUrl = new URL(next);
+          const nextPage = nextUrl.searchParams.get('page');
+          if (nextPage) {
+            queryParams.page = nextPage;
+          }
+        } catch (error) {
+          console.warn('Failed to parse next page URL:', error);
+        }
+      }
+
+      const response = await productApi.getProducts(queryParams);
+      const transformedProducts = transformProducts(response.data);
+      const filteredProducts = applyClientFilters(transformedProducts, filters);
 
       if (isLoadMore) {
-        setProducts(prev => [...prev, ...transformedProducts]);
+        setProducts(prev => [...prev, ...filteredProducts]);
       } else {
-        setProducts(transformedProducts);
+        setProducts(filteredProducts);
       }
 
-      setHasMore(response.data?.next_page_url !== null);
-      setNext(response.data?.next_page_url);
+      setHasMore(response.data.next_page_url !== null);
+      setNext(response.data.next_page_url);
 
-      // Update stats
       if (response.data?.stats && !isLoadMore) {
         setStats({
-          totalProducts: response.data.meta?.total || products.length,
-          avgPrice: 0, // Would come from API
-          topCategories: [],
-          priceRange: { min: 0, max: 5000 },
-          inStockCount: 0,
-          freeShippingCount: 0
+          totalProducts: response.data.meta?.total || filteredProducts.length,
+          avgPrice: response.data.stats.avgPrice || 0,
+          topCategories: response.data.stats.topCategories || [],
+          priceRange: response.data.stats.priceRange || { min: 0, max: 0 },
+          inStockCount: response.data.stats.inStockCount || 0,
+          freeShippingCount: response.data.stats.freeShippingCount || 0
         });
       }
-
     } catch (err) {
       console.error('Failed to load products:', err);
-      setError('Failed to load products');
-      setProducts([]);
-      setStats(null);
+      setError('Failed to load products. Please try again.');
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [categoryId, filters, next, buildQueryParams, transformProducts]);
+  }, [filters, next, buildQueryParams, transformProducts, applyClientFilters]);
 
   // Load all categories
   const loadCategories = useCallback(async () => {
@@ -273,13 +375,13 @@ export default function CategoryPage() {
   // Filter change handler with debouncing
   const handleFiltersChange = useCallback((newFilters: Partial<FilterState>) => {
     const updatedFilters = { ...filters, ...newFilters };
-    // Ensure the current category is always selected
-    updatedFilters.categories = [categoryId];
+    const categoryIdentifier = resolvedCategoryId || categoryId;
+    updatedFilters.categories = [categoryIdentifier];
     setFilters(updatedFilters);
 
     // Update URL params
     const params = new URLSearchParams();
-    params.set('category', categoryId);
+    params.set('category', categoryIdentifier);
     if (updatedFilters.author) params.set('author', updatedFilters.author);
     if (updatedFilters.publisher) params.set('publisher', updatedFilters.publisher);
     if (updatedFilters.language) params.set('language', updatedFilters.language);
@@ -289,7 +391,7 @@ export default function CategoryPage() {
     if (updatedFilters.freeShipping) params.set('freeShipping', '1');
     if (updatedFilters.inStock) params.set('inStock', '1');
 
-    const newUrl = `/categories/${categoryId}${params.toString() ? `?${params.toString()}` : ''}`;
+    const newUrl = `/categories/${categoryIdentifier}${params.toString() ? `?${params.toString()}` : ''}`;
     router.replace(newUrl, { scroll: false });
 
     // Reset pagination and reload
@@ -297,16 +399,17 @@ export default function CategoryPage() {
     debounceFilter(() => {
       loadProducts(false);
     });
-  }, [filters, categoryId, router, loadProducts, debounceFilter]);
+  }, [filters, categoryId, router, loadProducts, debounceFilter, resolvedCategoryId]);
 
   // Reset filters
   const handleResetFilters = useCallback(() => {
-    const resetFilters = { ...DEFAULT_FILTERS, categories: [categoryId] };
+    const categoryIdentifier = resolvedCategoryId || categoryId;
+    const resetFilters = { ...DEFAULT_FILTERS, categories: [categoryIdentifier] };
     setFilters(resetFilters);
     setNext(null);
     router.replace(`/categories/${categoryId}`, { scroll: false });
     loadProducts(false);
-  }, [categoryId, loadProducts, router]);
+  }, [categoryId, loadProducts, router, resolvedCategoryId]);
 
   // Load more products for infinite scroll
   const handleLoadMore = useCallback(() => {
@@ -319,7 +422,14 @@ export default function CategoryPage() {
   useEffect(() => {
     loadCategoryData();
     loadCategories();
-  }, [categoryId]);
+  }, [categoryId, loadCategoryData, loadCategories]);
+
+  useEffect(() => {
+    if (resolvedCategoryId) {
+      setNext(null);
+      loadProducts(false);
+    }
+  }, [resolvedCategoryId, loadProducts]);
 
   useEffect(() => {
     if (category) {
@@ -410,14 +520,15 @@ export default function CategoryPage() {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-start gap-6 mb-4">
-          {(category.image_url || category.image) && (
-            <div className="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 shadow-lg">
+          {(category.image || category.image_url || categoryImageSrc) && (
+            <div className="relative w-full h-48 sm:h-60 md:h-72 lg:h-80 rounded-2xl overflow-hidden border border-border/40 bg-muted">
               <Image
-                src={category.image_url || category.image || ''}
+                src={categoryImageSrc || category.image || category.image_url || '/book-placeholder.svg'}
                 alt={category.name}
-                width={96}
-                height={96}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
+                onError={() => setCategoryImageSrc('/book-placeholder.svg')}
+                priority
               />
             </div>
           )}
@@ -565,22 +676,36 @@ export default function CategoryPage() {
               </div>
             ) : viewMode === 'grid' ? (
               <div className="min-h-[600px]">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {products.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      variant="default"
-                      showCategory={false}
-                      showAuthor={true}
-                      showRating={true}
-                      showDiscount={true}
-                      showWishlist={true}
-                      showQuickView={true}
-                      showAddToCart={true}
-                      showBuyNow={false}
-                    />
-                  ))}
+                <div
+                  className={cn(
+                    'grid gap-4 md:gap-6',
+                    isMobile ? 'grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                  )}
+                >
+                  {products.map((product) =>
+                    isMobile ? (
+                      <MobileProductCard
+                        key={product.id}
+                        product={product}
+                        variant="grid"
+                        className="h-full"
+                      />
+                    ) : (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        variant="default"
+                        showCategory={false}
+                        showAuthor={true}
+                        showRating={true}
+                        showDiscount={true}
+                        showWishlist={true}
+                        showQuickView={true}
+                        showAddToCart={true}
+                        showBuyNow={false}
+                      />
+                    )
+                  )}
                 </div>
 
                 {hasMore && (
@@ -589,6 +714,7 @@ export default function CategoryPage() {
                       onClick={handleLoadMore}
                       disabled={loadingMore}
                       variant="outline"
+                      className={cn(isMobile ? 'w-full h-12 text-base' : 'px-6')}
                     >
                       {loadingMore ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -602,22 +728,31 @@ export default function CategoryPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {products.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    variant="large"
-                    className="w-full"
-                    showCategory={false} // Already showing category at top
-                    showAuthor={true}
-                    showRating={true}
-                    showDiscount={true}
-                    showWishlist={true}
-                    showQuickView={true}
-                    showAddToCart={true}
-                    showBuyNow={false}
-                  />
-                ))}
+                {products.map((product) =>
+                  isMobile ? (
+                    <MobileProductCard
+                      key={product.id}
+                      product={product}
+                      variant="list"
+                      className="w-full"
+                    />
+                  ) : (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      variant="large"
+                      className="w-full"
+                      showCategory={false}
+                      showAuthor={true}
+                      showRating={true}
+                      showDiscount={true}
+                      showWishlist={true}
+                      showQuickView={true}
+                      showAddToCart={true}
+                      showBuyNow={false}
+                    />
+                  )
+                )}
 
                 {hasMore && (
                   <div className="flex justify-center py-8">
@@ -625,12 +760,14 @@ export default function CategoryPage() {
                       onClick={handleLoadMore}
                       disabled={loadingMore}
                       variant="outline"
+                      className={cn(isMobile ? 'w-full h-12 text-base' : 'px-6')}
                     >
                       {loadingMore ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       ) : (
-                        'Load More Products'
+                        <TrendingUp className="h-4 w-4 mr-2" />
                       )}
+                      Load More Products
                     </Button>
                   </div>
                 )}

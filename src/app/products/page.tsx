@@ -204,34 +204,106 @@ export default function ProductsPage() {
 
   // Build query parameters from filters
   const buildQueryParams = useCallback((currentFilters: FilterState) => {
-    const params: any = {};
+    const params: Record<string, any> = {
+      per_page: 20
+    };
 
     if (currentFilters.search) params.search = currentFilters.search;
+
     if (currentFilters.categories.length > 0) {
-      params.categories = currentFilters.categories.join(',');
+      params.category_id = currentFilters.categories[0];
     }
+
     if (currentFilters.author) params.author = currentFilters.author;
     if (currentFilters.publisher) params.publisher = currentFilters.publisher;
     if (currentFilters.language) params.language = currentFilters.language;
-    if (currentFilters.tags.length > 0) {
-      params.tags = currentFilters.tags.join(',');
-    }
+
     if (currentFilters.priceRange[0] > 0) {
-      params.price_min = currentFilters.priceRange[0];
+      params.min_price = currentFilters.priceRange[0];
     }
     if (currentFilters.priceRange[1] < DEFAULT_FILTERS.priceRange[1]) {
-      params.price_max = currentFilters.priceRange[1];
+      params.max_price = currentFilters.priceRange[1];
     }
-    if (currentFilters.minRating > 0) {
-      params.rating = currentFilters.minRating;
+
+    const sortBy = currentFilters.sortBy || 'created_at';
+    const sortOrder = currentFilters.sortOrder || 'desc';
+
+    if (sortBy === 'price') {
+      params.sort_by = sortOrder === 'asc' ? 'price_low_to_high' : 'price_high_to_low';
+      params.sort_order = sortOrder;
+    } else if (sortBy === 'discount') {
+      params.sort_by = 'discount_percentage';
+      params.sort_order = sortOrder;
+    } else {
+      params.sort_by = sortBy;
+      params.sort_order = sortOrder;
     }
-    if (currentFilters.freeShipping) params.free_shipping = '1';
-    if (currentFilters.inStock) params.in_stock = '1';
-    params.sort = currentFilters.sortBy;
-    params.order = currentFilters.sortOrder;
-    params.limit = 20;
 
     return params;
+  }, []);
+
+  const applyClientFilters = useCallback((items: Product[], currentFilters: FilterState) => {
+    return items.filter((product) => {
+      if (currentFilters.categories.length > 0) {
+        const categoryIds = currentFilters.categories.map(String);
+        if (!categoryIds.includes(String(product.category_id))) {
+          return false;
+        }
+      }
+
+      if (currentFilters.author) {
+        if (!product.author || !product.author.toLowerCase().includes(currentFilters.author.toLowerCase())) {
+          return false;
+        }
+      }
+
+      if (currentFilters.publisher) {
+        if (!product.publisher || !product.publisher.toLowerCase().includes(currentFilters.publisher.toLowerCase())) {
+          return false;
+        }
+      }
+
+      if (currentFilters.language) {
+        if (!product.language || product.language.toLowerCase() !== currentFilters.language.toLowerCase()) {
+          return false;
+        }
+      }
+
+      if (currentFilters.priceRange[0] > 0 && product.price < currentFilters.priceRange[0]) {
+        return false;
+      }
+
+      if (currentFilters.priceRange[1] < DEFAULT_FILTERS.priceRange[1] && product.price > currentFilters.priceRange[1]) {
+        return false;
+      }
+
+      if (currentFilters.minRating > 0) {
+        const ratingValue = product.rating || product.average_rating;
+        if (!ratingValue || ratingValue < currentFilters.minRating) {
+          return false;
+        }
+      }
+
+      if (currentFilters.inStock) {
+        const inStock = product.in_stock ?? product.stock_quantity > 0;
+        if (!inStock) {
+          return false;
+        }
+      }
+
+      if (currentFilters.freeShipping) {
+        const hasFreeShipping = Boolean(
+          product.free_shipping_enabled ||
+          product.metadata?.free_shipping ||
+          product.attributes?.free_shipping
+        );
+        if (!hasFreeShipping) {
+          return false;
+        }
+      }
+
+      return true;
+    });
   }, []);
 
   // Load products with infinite scroll
@@ -245,13 +317,28 @@ export default function ProductsPage() {
       }
 
       const queryParams = buildQueryParams(filters);
+
+      if (isLoadMore && next) {
+        try {
+          const nextUrl = new URL(next);
+          const nextPage = nextUrl.searchParams.get('page');
+          if (nextPage) {
+            queryParams.page = nextPage;
+          }
+        } catch (error) {
+          console.warn('Failed to parse next page URL:', error);
+        }
+      }
+
       const response = await productApi.getProducts(queryParams);
       const transformedProducts = transformProducts(response.data);
 
+      const filteredProducts = applyClientFilters(transformedProducts, filters);
+
       if (isLoadMore) {
-        setProducts(prev => [...prev, ...transformedProducts]);
+        setProducts(prev => [...prev, ...filteredProducts]);
       } else {
-        setProducts(transformedProducts);
+        setProducts(filteredProducts);
       }
 
       setHasMore(response.data.next_page_url !== null);
@@ -269,7 +356,7 @@ export default function ProductsPage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [filters, next, buildQueryParams, transformProducts]);
+  }, [filters, next, buildQueryParams, transformProducts, applyClientFilters]);
 
   // Load categories
   const loadCategories = useCallback(async () => {

@@ -5,7 +5,7 @@ async function fetchCategoryForMeta(id: string) {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
     
-    const response = await fetch(`${apiUrl}/categories/${id}`, {
+    const response = await fetch(`${apiUrl}/categories/${encodeURIComponent(id)}`, {
       next: { revalidate: 3600 }, // Cache for 1 hour
     });
     
@@ -21,8 +21,9 @@ async function fetchCategoryForMeta(id: string) {
   }
 }
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const category = await fetchCategoryForMeta(params.id);
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const category = await fetchCategoryForMeta(id);
   
   if (!category) {
     return {
@@ -33,7 +34,8 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://v2.bookbharat.com';
   const categoryUrl = `${baseUrl}/categories/${category.slug || category.id}`;
-  const categoryImage = category.image_url || `${baseUrl}/book-placeholder.svg`;
+  const placeholderImage = `${baseUrl}/book-placeholder.svg`;
+  const categoryImage = category.image || category.image_url || placeholderImage;
 
   const title = `${category.name} Books | BookBharat`;
   const description = category.description || 
