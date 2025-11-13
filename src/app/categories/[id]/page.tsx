@@ -6,7 +6,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { VirtualProductGrid } from '@/components/product/VirtualProductGrid';
 import { AdvancedProductFilters, DEFAULT_FILTERS, type FilterState } from '@/components/product/AdvancedProductFilters';
 import { ProductCard } from '@/components/ui/product-card';
 import { CategorySchema } from '@/components/seo/CategorySchema';
@@ -565,15 +564,42 @@ export default function CategoryPage() {
                 </Button>
               </div>
             ) : viewMode === 'grid' ? (
-              <VirtualProductGrid
-                products={products}
-                hasMore={hasMore}
-                isLoading={loadingMore}
-                loadMore={handleLoadMore}
-                next={next}
-                className="min-h-[600px]"
-                cardVariant="default"
-              />
+              <div className="min-h-[600px]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+                  {products.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      variant="default"
+                      showCategory={false}
+                      showAuthor={true}
+                      showRating={true}
+                      showDiscount={true}
+                      showWishlist={true}
+                      showQuickView={true}
+                      showAddToCart={true}
+                      showBuyNow={false}
+                    />
+                  ))}
+                </div>
+
+                {hasMore && (
+                  <div className="flex justify-center py-8">
+                    <Button
+                      onClick={handleLoadMore}
+                      disabled={loadingMore}
+                      variant="outline"
+                    >
+                      {loadingMore ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <TrendingUp className="h-4 w-4 mr-2" />
+                      )}
+                      Load More Products
+                    </Button>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="space-y-4">
                 {products.map((product) => (

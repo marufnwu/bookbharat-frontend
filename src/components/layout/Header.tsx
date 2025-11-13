@@ -106,7 +106,8 @@ export function Header() {
   const handleSearch = (query: string) => {
     if (query.trim()) {
       setShowSuggestions(false);
-      router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+      // Redirect to unified products page with search parameter
+      router.push(`/products?search=${encodeURIComponent(query.trim())}`);
       }
   };
 

@@ -79,7 +79,8 @@ export function MobileHeader() {
       setShowSuggestions(false);
       setIsSearchOpen(false);
       setSearchQuery('');
-      router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+      // Redirect to unified products page with search parameter
+      router.push(`/products?search=${encodeURIComponent(query.trim())}`);
     }
   };
 

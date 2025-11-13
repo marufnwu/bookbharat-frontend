@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { VirtualProductGrid } from '@/components/product/VirtualProductGrid';
 import { AdvancedProductFilters, DEFAULT_FILTERS, type FilterState } from '@/components/product/AdvancedProductFilters';
 import { ProductCard } from '@/components/ui/product-card';
+import { MobileProductCard } from '@/components/ui/mobile-product-card';
 import { useConfig } from '@/contexts/ConfigContext';
 import { productApi, categoryApi } from '@/lib/api';
 import { Product, Category } from '@/types';
@@ -155,6 +155,20 @@ export default function ProductsPage() {
   const [stats, setStats] = useState<ProductStats | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Track viewport for responsive adjustments
+  useEffect(() => {
+    const checkMobile = () => {
+      if (typeof window !== 'undefined') {
+        setIsMobile(window.innerWidth < 640);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Filter state with URL sync
   const [filters, setFilters] = useState<FilterState>(() => {
@@ -190,34 +204,34 @@ export default function ProductsPage() {
 
   // Build query parameters from filters
   const buildQueryParams = useCallback((currentFilters: FilterState) => {
-    const params = new URLSearchParams();
+    const params: any = {};
 
-    if (currentFilters.search) params.set('search', currentFilters.search);
+    if (currentFilters.search) params.search = currentFilters.search;
     if (currentFilters.categories.length > 0) {
-      params.set('categories', currentFilters.categories.join(','));
+      params.categories = currentFilters.categories.join(',');
     }
-    if (currentFilters.author) params.set('author', currentFilters.author);
-    if (currentFilters.publisher) params.set('publisher', currentFilters.publisher);
-    if (currentFilters.language) params.set('language', currentFilters.language);
+    if (currentFilters.author) params.author = currentFilters.author;
+    if (currentFilters.publisher) params.publisher = currentFilters.publisher;
+    if (currentFilters.language) params.language = currentFilters.language;
     if (currentFilters.tags.length > 0) {
-      params.set('tags', currentFilters.tags.join(','));
+      params.tags = currentFilters.tags.join(',');
     }
     if (currentFilters.priceRange[0] > 0) {
-      params.set('price_min', currentFilters.priceRange[0].toString());
+      params.price_min = currentFilters.priceRange[0];
     }
     if (currentFilters.priceRange[1] < DEFAULT_FILTERS.priceRange[1]) {
-      params.set('price_max', currentFilters.priceRange[1].toString());
+      params.price_max = currentFilters.priceRange[1];
     }
     if (currentFilters.minRating > 0) {
-      params.set('rating', currentFilters.minRating.toString());
+      params.rating = currentFilters.minRating;
     }
-    if (currentFilters.freeShipping) params.set('free_shipping', '1');
-    if (currentFilters.inStock) params.set('in_stock', '1');
-    params.set('sort', currentFilters.sortBy);
-    params.set('order', currentFilters.sortOrder);
-    params.set('limit', '20');
+    if (currentFilters.freeShipping) params.free_shipping = '1';
+    if (currentFilters.inStock) params.in_stock = '1';
+    params.sort = currentFilters.sortBy;
+    params.order = currentFilters.sortOrder;
+    params.limit = 20;
 
-    return params.toString();
+    return params;
   }, []);
 
   // Load products with infinite scroll
@@ -231,9 +245,7 @@ export default function ProductsPage() {
       }
 
       const queryParams = buildQueryParams(filters);
-      const url = next ? `/products?${next.split('?')[1]}` : `/products?${queryParams}`;
-
-      const response = await productApi.getProducts(url);
+      const response = await productApi.getProducts(queryParams);
       const transformedProducts = transformProducts(response.data);
 
       if (isLoadMore) {
@@ -274,20 +286,20 @@ export default function ProductsPage() {
     const updatedFilters = { ...filters, ...newFilters };
     setFilters(updatedFilters);
 
-    // Update URL params
-    const params = new URLSearchParams();
-    if (updatedFilters.search) params.set('search', updatedFilters.search);
-    if (updatedFilters.categories.length > 0) params.set('category', updatedFilters.categories[0]);
-    if (updatedFilters.author) params.set('author', updatedFilters.author);
-    if (updatedFilters.publisher) params.set('publisher', updatedFilters.publisher);
-    if (updatedFilters.language) params.set('language', updatedFilters.language);
-    if (updatedFilters.priceRange[0] > 0) params.set('minPrice', updatedFilters.priceRange[0].toString());
-    if (updatedFilters.priceRange[1] < DEFAULT_FILTERS.priceRange[1]) params.set('maxPrice', updatedFilters.priceRange[1].toString());
-    if (updatedFilters.minRating > 0) params.set('rating', updatedFilters.minRating.toString());
-    if (updatedFilters.freeShipping) params.set('freeShipping', '1');
-    if (updatedFilters.inStock) params.set('inStock', '1');
+    // Update URL params for browser history
+    const urlParams = new URLSearchParams();
+    if (updatedFilters.search) urlParams.set('search', updatedFilters.search);
+    if (updatedFilters.categories.length > 0) urlParams.set('category', updatedFilters.categories[0]);
+    if (updatedFilters.author) urlParams.set('author', updatedFilters.author);
+    if (updatedFilters.publisher) urlParams.set('publisher', updatedFilters.publisher);
+    if (updatedFilters.language) urlParams.set('language', updatedFilters.language);
+    if (updatedFilters.priceRange[0] > 0) urlParams.set('minPrice', updatedFilters.priceRange[0].toString());
+    if (updatedFilters.priceRange[1] < DEFAULT_FILTERS.priceRange[1]) urlParams.set('maxPrice', updatedFilters.priceRange[1].toString());
+    if (updatedFilters.minRating > 0) urlParams.set('rating', updatedFilters.minRating.toString());
+    if (updatedFilters.freeShipping) urlParams.set('freeShipping', '1');
+    if (updatedFilters.inStock) urlParams.set('inStock', '1');
 
-    const newUrl = params.toString() ? `/products?${params.toString()}` : '/products';
+    const newUrl = urlParams.toString() ? `/products?${urlParams.toString()}` : '/products';
     router.replace(newUrl, { scroll: false });
 
     // Reset pagination and reload
@@ -396,92 +408,183 @@ export default function ProductsPage() {
     <div className="container mx-auto px-4 py-6">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Products</h1>
-            {stats && (
-              <p className="text-gray-600 mt-1">
-                {stats.totalProducts.toLocaleString()} products found
-                {activeFilterCount > 0 && ` with ${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''} applied`}
-              </p>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Product Catalog</h1>
+              {stats && (
+                <p className="text-gray-600 mt-1">
+                  {stats.totalProducts.toLocaleString()} products found
+                  {activeFilterCount > 0 && ` with ${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''} applied`}
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMobileFilters(true)}
+                className="lg:hidden"
+              >
+                <SlidersHorizontal className="h-4 w-4 mr-2" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">
+                    {activeFilterCount}
+                  </Badge>
+                )}
+              </Button>
+
+              <div className="hidden sm:flex items-center bg-gray-50 rounded-lg border">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className="rounded-r-none"
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="rounded-l-none"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Integrated Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search products by name, author, category..."
+              value={filters.search}
+              onChange={(e) => {
+                const newSearch = e.target.value;
+                handleFiltersChange({ search: newSearch });
+              }}
+              className={cn(
+                'pl-10 pr-10 rounded-xl bg-white shadow-sm focus-visible:ring-2 focus-visible:ring-primary/40',
+                isMobile ? 'py-3 text-sm' : 'py-6 text-base'
+              )}
+            />
+            {filters.search && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleFiltersChange({ search: '' })}
+                className="absolute right-1 top-1/2 -translate-y-1/2 px-3"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowMobileFilters(true)}
-              className="lg:hidden"
-            >
-              <SlidersHorizontal className="h-4 w-4 mr-2" />
-              Filters
-              {activeFilterCount > 0 && (
-                <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">
-                  {activeFilterCount}
-                </Badge>
-              )}
-            </Button>
-
-            <div className="hidden sm:flex items-center bg-gray-50 rounded-lg border">
+          {/* Category Quick Filters */}
+          {categories.length > 0 && (
+            <div className={cn(
+              'flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide',
+              isMobile ? '-mx-4 px-4' : ''
+            )}>
               <Button
-                variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('grid')}
-                className="rounded-r-none"
+                variant={filters.categories.length === 0 ? 'default' : 'outline'}
+                size={isMobile ? 'sm' : 'default'}
+                onClick={() => handleFiltersChange({ categories: [] })}
+                className={cn(
+                  'whitespace-nowrap transition-all',
+                  isMobile ? 'px-3 py-2 text-xs h-auto rounded-full' : ''
+                )}
               >
-                <Grid3X3 className="h-4 w-4" />
+                All Products
               </Button>
-              <Button
-                variant={viewMode === 'list' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-                className="rounded-l-none"
-              >
-                <List className="h-4 w-4" />
-              </Button>
+              {categories.slice(0, 10).map((category) => (
+                <Button
+                  key={category.id}
+                  variant={filters.categories.includes(category.id.toString()) ? 'default' : 'outline'}
+                  size={isMobile ? 'sm' : 'default'}
+                  onClick={() => {
+                    const isSelected = filters.categories.includes(category.id.toString());
+                    const newCategories = isSelected
+                      ? filters.categories.filter(c => c !== category.id.toString())
+                      : [category.id.toString()];
+                    handleFiltersChange({ categories: newCategories });
+                  }}
+                  className={cn(
+                    'whitespace-nowrap transition-all',
+                    isMobile ? 'px-3 py-2 text-xs h-auto rounded-full' : ''
+                  )}
+                >
+                  {category.name}
+                  {category.product_count && (
+                    <Badge variant="secondary" className={cn(
+                      'ml-2 h-5 px-1.5 text-xs',
+                      isMobile ? 'hidden' : ''
+                    )}>
+                      {category.product_count}
+                    </Badge>
+                  )}
+                </Button>
+              ))}
             </div>
-          </div>
+          )}
         </div>
 
         {/* Quick Stats */}
         {stats && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mt-6">
-            <div className="bg-blue-50 rounded-lg p-3 text-center">
-              <div className="text-lg font-semibold text-blue-600">{stats.totalProducts.toLocaleString()}</div>
-              <div className="text-xs text-blue-800">Total Products</div>
+          <div className={cn(
+            'mt-6 grid gap-4',
+            isMobile ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6'
+          )}>
+            <div className="bg-blue-50 rounded-2xl p-3 sm:p-4 text-center shadow-sm">
+              <div className={cn('font-semibold text-blue-600', isMobile ? 'text-base' : 'text-lg')}>
+                {stats.totalProducts.toLocaleString()}
+              </div>
+              <div className="text-[11px] sm:text-xs text-blue-800">Total Products</div>
             </div>
-            <div className="bg-green-50 rounded-lg p-3 text-center">
-              <div className="text-lg font-semibold text-green-600">{stats.inStockCount.toLocaleString()}</div>
-              <div className="text-xs text-green-800">In Stock</div>
+            <div className="bg-green-50 rounded-2xl p-3 sm:p-4 text-center shadow-sm">
+              <div className={cn('font-semibold text-green-600', isMobile ? 'text-base' : 'text-lg')}>
+                {stats.inStockCount.toLocaleString()}
+              </div>
+              <div className="text-[11px] sm:text-xs text-green-800">In Stock</div>
             </div>
-            <div className="bg-purple-50 rounded-lg p-3 text-center">
-              <div className="text-lg font-semibold text-purple-600">{stats.freeShippingCount.toLocaleString()}</div>
-              <div className="text-xs text-purple-800">Free Shipping</div>
+            <div className="bg-purple-50 rounded-2xl p-3 sm:p-4 text-center shadow-sm">
+              <div className={cn('font-semibold text-purple-600', isMobile ? 'text-base' : 'text-lg')}>
+                {stats.freeShippingCount.toLocaleString()}
+              </div>
+              <div className="text-[11px] sm:text-xs text-purple-800">Free Shipping</div>
             </div>
-            <div className="bg-orange-50 rounded-lg p-3 text-center">
-              <div className="text-lg font-semibold text-orange-600">
+            <div className="bg-orange-50 rounded-2xl p-3 sm:p-4 text-center shadow-sm">
+              <div className={cn('font-semibold text-orange-600', isMobile ? 'text-base' : 'text-lg')}>
                 {currencySymbol}{Math.round(stats.avgPrice)}
               </div>
-              <div className="text-xs text-orange-800">Avg Price</div>
+              <div className="text-[11px] sm:text-xs text-orange-800">Avg Price</div>
             </div>
-            <div className="bg-red-50 rounded-lg p-3 text-center">
-              <div className="text-lg font-semibold text-red-600">
-                {currencySymbol}{stats.priceRange.min}
-              </div>
-              <div className="text-xs text-red-800">Min Price</div>
-            </div>
-            <div className="bg-indigo-50 rounded-lg p-3 text-center">
-              <div className="text-lg font-semibold text-indigo-600">
-                {currencySymbol}{stats.priceRange.max}
-              </div>
-              <div className="text-xs text-indigo-800">Max Price</div>
-            </div>
+            {!isMobile && (
+              <>
+                <div className="bg-red-50 rounded-2xl p-3 sm:p-4 text-center shadow-sm">
+                  <div className="text-lg font-semibold text-red-600">
+                    {currencySymbol}{stats.priceRange.min}
+                  </div>
+                  <div className="text-xs text-red-800">Min Price</div>
+                </div>
+                <div className="bg-indigo-50 rounded-2xl p-3 sm:p-4 text-center shadow-sm">
+                  <div className="text-lg font-semibold text-indigo-600">
+                    {currencySymbol}{stats.priceRange.max}
+                  </div>
+                  <div className="text-xs text-indigo-800">Max Price</div>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col lg:flex-row lg:gap-6">
         {/* Filters Sidebar - Desktop */}
         <aside className="hidden lg:block w-80 flex-shrink-0">
           <AdvancedProductFilters
@@ -536,33 +639,83 @@ export default function ProductsPage() {
                 </Button>
               </div>
             ) : viewMode === 'grid' ? (
-              <VirtualProductGrid
-                products={products}
-                hasMore={hasMore}
-                isLoading={loadingMore}
-                loadMore={handleLoadMore}
-                next={next}
-                className="min-h-[600px]"
-                cardVariant="default"
-              />
+              <div className="min-h-[600px]">
+                <div
+                  className={cn(
+                    'grid gap-4 md:gap-6',
+                    isMobile ? 'grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                  )}
+                >
+                  {products.map((product) =>
+                    isMobile ? (
+                      <MobileProductCard
+                        key={product.id}
+                        product={product}
+                        variant="grid"
+                        className="h-full"
+                      />
+                    ) : (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        variant="default"
+                        showCategory={true}
+                        showAuthor={true}
+                        showRating={true}
+                        showDiscount={true}
+                        showWishlist={true}
+                        showQuickView={true}
+                        showAddToCart={true}
+                        showBuyNow={false}
+                      />
+                    )
+                  )}
+                </div>
+                {hasMore && (
+                  <div className="flex justify-center py-8">
+                    <Button
+                      onClick={handleLoadMore}
+                      disabled={loadingMore}
+                      variant="outline"
+                      className={cn(isMobile ? 'w-full h-12 text-base' : 'px-6')}
+                    >
+                      {loadingMore ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <TrendingUp className="h-4 w-4 mr-2" />
+                      )}
+                      Load More Products
+                    </Button>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="space-y-4">
-                {products.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    variant="large"
-                    className="w-full"
-                    showCategory={true}
-                    showAuthor={true}
-                    showRating={true}
-                    showDiscount={true}
-                    showWishlist={true}
-                    showQuickView={true}
-                    showAddToCart={true}
-                    showBuyNow={false}
-                  />
-                ))}
+                {products.map((product) =>
+                  isMobile ? (
+                    <MobileProductCard
+                      key={product.id}
+                      product={product}
+                      variant="list"
+                      className="w-full"
+                    />
+                  ) : (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      variant="large"
+                      className="w-full"
+                      showCategory={true}
+                      showAuthor={true}
+                      showRating={true}
+                      showDiscount={true}
+                      showWishlist={true}
+                      showQuickView={true}
+                      showAddToCart={true}
+                      showBuyNow={false}
+                    />
+                  )
+                )}
 
                 {hasMore && (
                   <div className="flex justify-center py-8">
@@ -570,6 +723,7 @@ export default function ProductsPage() {
                       onClick={handleLoadMore}
                       disabled={loadingMore}
                       variant="outline"
+                      className={cn(isMobile ? 'w-full h-12 text-base' : 'px-6')}
                     >
                       {loadingMore ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
