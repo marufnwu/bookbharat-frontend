@@ -113,7 +113,8 @@ export function Header() {
   };
 
   const handleSuggestionClick = (suggestion: any) => {
-    if (suggestion.type === "product") {
+    // All suggestions from API are products, navigate to product details
+    if (suggestion.slug || suggestion.id) {
       router.push(`/products/${suggestion.slug || suggestion.id}`);
     } else {
       handleSearch(suggestion.title || suggestion.name);
@@ -230,38 +231,60 @@ export function Header() {
                 </div>
               )}
 
-              {/* Search Suggestions - Ultra Mobile Optimized */}
+              {/* Search Suggestions - Enhanced with Images */}
               {showSuggestions && searchSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-xl z-50 max-h-48 sm:max-h-64 overflow-y-auto mobile-optimized">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-xl z-50 max-h-64 sm:max-h-96 overflow-y-auto">
                   {searchSuggestions.map((suggestion, index) => (
                     <button
                       key={index}
                       type="button"
-                      className="w-full px-2 py-1.5 sm:px-3 sm:py-2 text-left hover:bg-muted active:bg-muted/80 transition-colors border-b border-border last:border-b-0 flex items-start gap-1.5 sm:gap-2 min-h-[40px] sm:min-h-[44px]"
+                      className="w-full px-2 py-2 sm:px-3 sm:py-2.5 text-left hover:bg-muted active:bg-muted/80 transition-colors border-b border-border last:border-b-0 flex items-center gap-2 sm:gap-3 group"
                       onClick={() => handleSuggestionClick(suggestion)}
                     >
-                      <div className="flex-shrink-0 mt-0.5">
-                        {suggestion.type === 'product' ? (
-                          <BookOpen className="h-3 w-3 text-primary" />
-                        ) : suggestion.type === 'category' ? (
-                          <TrendingUp className="h-3 w-3 text-accent" />
-                        ) : (
-                          <Search className="h-3 w-3 text-muted-foreground" />
-                        )}
-                      </div>
+                      {/* Product Image */}
+                      {suggestion.image_url ? (
+                        <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded overflow-hidden bg-gray-100">
+                          <img
+                            src={suggestion.image_url}
+                            alt={suggestion.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            loading="lazy"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded bg-gray-100 flex items-center justify-center">
+                          <BookOpen className="h-6 w-6 text-gray-400" />
+                        </div>
+                      )}
+
+                      {/* Product Info */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-foreground truncate leading-tight">
-                          {suggestion.title || suggestion.name}
+                        <p className="text-sm font-medium text-foreground truncate leading-tight group-hover:text-primary transition-colors">
+                          {suggestion.name}
                         </p>
-                        {(suggestion.author || suggestion.category) && (
+                        {suggestion.author && (
+                          <p className="text-xs text-muted-foreground truncate mt-0.5 leading-tight">
+                            by {suggestion.author}
+                          </p>
+                        )}
+                        {suggestion.publisher && (
                           <p className="text-[10px] text-muted-foreground truncate mt-0.5 leading-tight">
-                            {suggestion.author ? `by ${suggestion.author}` : `in ${suggestion.category}`}
+                            {suggestion.publisher}
                           </p>
                         )}
                       </div>
+
+                      {/* Price */}
                       {suggestion.price && (
-                        <div className="text-xs font-semibold text-primary flex-shrink-0 mt-0.5">
-                          ₹{suggestion.price}
+                        <div className="flex-shrink-0 text-right">
+                          <div className="text-sm font-semibold text-primary">
+                            ₹{suggestion.price}
+                          </div>
+                          {suggestion.discount_percentage > 0 && (
+                            <div className="text-[10px] text-green-600 font-medium">
+                              {suggestion.discount_percentage}% OFF
+                            </div>
+                          )}
                         </div>
                       )}
                     </button>

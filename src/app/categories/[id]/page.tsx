@@ -13,6 +13,7 @@ import { CategorySchema } from '@/components/seo/CategorySchema';
 import { useConfig } from '@/contexts/ConfigContext';
 import { categoryApi, productApi } from '@/lib/api';
 import { Category, Product } from '@/types';
+import { getProductCardProps, getProductGridClasses } from '@/lib/product-card-config';
 import {
   BookOpen,
   Grid3X3,
@@ -676,33 +677,20 @@ export default function CategoryPage() {
               </div>
             ) : viewMode === 'grid' ? (
               <div className="min-h-[600px]">
-                <div
-                  className={cn(
-                    'grid gap-4 md:gap-6',
-                    isMobile ? 'grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
-                  )}
-                >
+                <div className={getProductGridClasses('homepageFeatured')}>
                   {products.map((product) =>
                     isMobile ? (
                       <MobileProductCard
                         key={product.id}
                         product={product}
-                        variant="grid"
+                        variant="minimal"
                         className="h-full"
                       />
                     ) : (
                       <ProductCard
                         key={product.id}
                         product={product}
-                        variant="default"
-                        showCategory={false}
-                        showAuthor={true}
-                        showRating={true}
-                        showDiscount={true}
-                        showWishlist={true}
-                        showQuickView={true}
-                        showAddToCart={true}
-                        showBuyNow={false}
+                        {...getProductCardProps('homepageFeatured', isMobile)}
                       />
                     )
                   )}
@@ -740,16 +728,9 @@ export default function CategoryPage() {
                     <ProductCard
                       key={product.id}
                       product={product}
+                      {...getProductCardProps('homepageFeatured', isMobile)}
                       variant="large"
                       className="w-full"
-                      showCategory={false}
-                      showAuthor={true}
-                      showRating={true}
-                      showDiscount={true}
-                      showWishlist={true}
-                      showQuickView={true}
-                      showAddToCart={true}
-                      showBuyNow={false}
                     />
                   )
                 )}

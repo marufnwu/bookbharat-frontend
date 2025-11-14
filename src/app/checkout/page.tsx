@@ -1356,15 +1356,59 @@ export default function CheckoutPage() {
           if (data.paymentMethod === 'payu' && paymentDetails.payment_data) {
             handlePaymentRedirect(paymentDetails, data.paymentMethod);
           }
-          // For redirect-based gateways (like Cashfree)
+          // FIXED: Explicit PhonePe handler with comprehensive URL extraction and validation
+          else if (data.paymentMethod === 'phonepe') {
+            // Try multiple possible locations for PhonePe payment URL
+            const phonepeUrl = response.redirect_url ||
+                              paymentDetails.payment_url ||
+                              paymentDetails.payment_data?.payment_url ||
+                              paymentDetails.payment_data?.url;
+
+            if (phonepeUrl) {
+              logger.log('📱 PhonePe redirect to:', phonepeUrl);
+              logger.log('📱 Full PhonePe payment details:', paymentDetails);
+              window.location.href = phonepeUrl;
+            } else {
+              // Log full response for debugging
+              logger.error('❌ PhonePe payment URL not found in response');
+              logger.error('Response structure:', JSON.stringify(response, null, 2));
+              logger.error('Payment details:', JSON.stringify(paymentDetails, null, 2));
+              setError('PhonePe payment URL not available. Please try again or use a different payment method.');
+              setIsProcessing(false);
+            }
+          }
+          // For Cashfree and other redirect-based gateways
+          else if (data.paymentMethod === 'cashfree') {
+            const cashfreeUrl = response.redirect_url ||
+                               paymentDetails.payment_url ||
+                               paymentDetails.payment_data?.payment_url;
+
+            if (cashfreeUrl) {
+              logger.log('💰 Cashfree redirect to:', cashfreeUrl);
+              window.location.href = cashfreeUrl;
+            } else {
+              logger.error('❌ Cashfree payment URL not found');
+              setError('Cashfree payment URL not available. Please try again.');
+              setIsProcessing(false);
+            }
+          }
+          // Generic redirect handler for other gateways (fallback)
           else if (response.redirect_url || paymentDetails.payment_url) {
             const redirectUrl = response.redirect_url || paymentDetails.payment_url;
-            logger.log('🔗 Redirecting to:', redirectUrl);
+            logger.log('🔗 Generic redirect to:', redirectUrl);
             window.location.href = redirectUrl;
           }
           // Fallback to handlePaymentRedirect for other gateways
           else if (paymentDetails.payment_data) {
             handlePaymentRedirect(paymentDetails, data.paymentMethod);
+          }
+          // No valid redirect found
+          else {
+            logger.error('❌ No valid payment redirect found');
+            logger.error('Payment method:', data.paymentMethod);
+            logger.error('Response:', JSON.stringify(response, null, 2));
+            setError(`Unable to process ${data.paymentMethod} payment. Please try again or contact support.`);
+            setIsProcessing(false);
           }
         } else if (data.paymentMethod === 'cod') {
           // COD order - clear cart and go to success page

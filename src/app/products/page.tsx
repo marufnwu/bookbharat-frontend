@@ -26,6 +26,7 @@ import {
   ArrowUpDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getProductCardProps } from '@/lib/product-card-config';
 
 // Lazy load heavy components
 const ProductImageGallery = dynamic(() => import('@/components/product/ProductImageGallery'), {
@@ -461,35 +462,7 @@ export default function ProductsPage() {
     return count;
   }, [filters]);
 
-  if (loading && products.length === 0) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-lg font-medium">Loading products...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error && products.length === 0) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center max-w-md">
-            <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <Button onClick={() => loadProducts(false)}>
-              Try Again
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Don't hide the entire page while loading - keep header, search, filters visible
 
   return (
     <div className="container mx-auto px-4 py-6">
@@ -575,48 +548,62 @@ export default function ProductsPage() {
           {/* Category Quick Filters */}
           {categories.length > 0 && (
             <div className={cn(
-              'flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide',
-              isMobile ? '-mx-4 px-4' : ''
+              'relative',
+              isMobile ? '-mx-4' : ''
             )}>
-              <Button
-                variant={filters.categories.length === 0 ? 'default' : 'outline'}
-                size={isMobile ? 'sm' : 'default'}
-                onClick={() => handleFiltersChange({ categories: [] })}
-                className={cn(
-                  'whitespace-nowrap transition-all',
-                  isMobile ? 'px-3 py-2 text-xs h-auto rounded-full' : ''
-                )}
+              <div className={cn(
+                'flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide scroll-smooth snap-x snap-mandatory',
+                isMobile ? 'px-4' : ''
+              )}
+                style={isMobile ? {
+                  WebkitOverflowScrolling: 'touch',
+                  scrollBehavior: 'smooth'
+                } : undefined}
               >
-                All Products
-              </Button>
-              {categories.slice(0, 10).map((category) => (
                 <Button
-                  key={category.id}
-                  variant={filters.categories.includes(category.id.toString()) ? 'default' : 'outline'}
+                  variant={filters.categories.length === 0 ? 'default' : 'outline'}
                   size={isMobile ? 'sm' : 'default'}
-                  onClick={() => {
-                    const isSelected = filters.categories.includes(category.id.toString());
-                    const newCategories = isSelected
-                      ? filters.categories.filter(c => c !== category.id.toString())
-                      : [category.id.toString()];
-                    handleFiltersChange({ categories: newCategories });
-                  }}
+                  onClick={() => handleFiltersChange({ categories: [] })}
                   className={cn(
-                    'whitespace-nowrap transition-all',
-                    isMobile ? 'px-3 py-2 text-xs h-auto rounded-full' : ''
+                    'whitespace-nowrap transition-all flex-shrink-0 snap-start',
+                    isMobile ? 'px-4 py-2.5 text-xs h-auto rounded-full min-w-[80px]' : ''
                   )}
                 >
-                  {category.name}
-                  {category.product_count && (
-                    <Badge variant="secondary" className={cn(
-                      'ml-2 h-5 px-1.5 text-xs',
-                      isMobile ? 'hidden' : ''
-                    )}>
-                      {category.product_count}
-                    </Badge>
-                  )}
+                  All Products
                 </Button>
-              ))}
+                {categories.slice(0, 10).map((category) => (
+                  <Button
+                    key={category.id}
+                    variant={filters.categories.includes(category.id.toString()) ? 'default' : 'outline'}
+                    size={isMobile ? 'sm' : 'default'}
+                    onClick={() => {
+                      const isSelected = filters.categories.includes(category.id.toString());
+                      const newCategories = isSelected
+                        ? filters.categories.filter(c => c !== category.id.toString())
+                        : [category.id.toString()];
+                      handleFiltersChange({ categories: newCategories });
+                    }}
+                    className={cn(
+                      'whitespace-nowrap transition-all flex-shrink-0 snap-start',
+                      isMobile ? 'px-4 py-2.5 text-xs h-auto rounded-full' : ''
+                    )}
+                  >
+                    {category.name}
+                    {category.product_count && !isMobile && (
+                      <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
+                        {category.product_count}
+                      </Badge>
+                    )}
+                  </Button>
+                ))}
+              </div>
+              {/* Scroll indicators for mobile */}
+              {isMobile && categories.length > 3 && (
+                <>
+                  <div className="absolute right-0 top-0 bottom-2 w-12 bg-gradient-to-l from-white to-transparent pointer-events-none" />
+                  <div className="absolute left-0 top-0 bottom-2 w-12 bg-gradient-to-r from-white to-transparent pointer-events-none" />
+                </>
+              )}
             </div>
           )}
         </div>
@@ -716,7 +703,26 @@ export default function ProductsPage() {
             "min-h-[600px]",
             viewMode === 'grid' ? "" : "space-y-4"
           )}>
-            {products.length === 0 && !loading ? (
+            {/* Initial Loading State */}
+            {loading && products.length === 0 ? (
+              <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+                  <p className="text-lg font-medium">Loading products...</p>
+                </div>
+              </div>
+            ) : error && products.length === 0 ? (
+              <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center max-w-md">
+                  <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                  <h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
+                  <p className="text-gray-600 mb-4">{error}</p>
+                  <Button onClick={() => loadProducts(false)}>
+                    Try Again
+                  </Button>
+                </div>
+              </div>
+            ) : products.length === 0 && !loading ? (
               <div className="flex flex-col items-center justify-center py-16">
                 <BookOpen className="h-16 w-16 text-gray-300 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
@@ -734,26 +740,11 @@ export default function ProductsPage() {
                   )}
                 >
                   {products.map((product) =>
-                    isMobile ? (
-                      <MobileProductCard
-                        key={product.id}
-                        product={product}
-                        variant="grid"
-                        className="h-full"
-                      />
-                    ) : (
+                    (
                       <ProductCard
                         key={product.id}
                         product={product}
-                        variant="default"
-                        showCategory={true}
-                        showAuthor={true}
-                        showRating={true}
-                        showDiscount={true}
-                        showWishlist={true}
-                        showQuickView={true}
-                        showAddToCart={true}
-                        showBuyNow={false}
+                        {...getProductCardProps('homepageFeatured', isMobile)}
                       />
                     )
                   )}
@@ -779,29 +770,13 @@ export default function ProductsPage() {
             ) : (
               <div className="space-y-4">
                 {products.map((product) =>
-                  isMobile ? (
-                    <MobileProductCard
-                      key={product.id}
-                      product={product}
-                      variant="list"
-                      className="w-full"
-                    />
-                  ) : (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      variant="large"
-                      className="w-full"
-                      showCategory={true}
-                      showAuthor={true}
-                      showRating={true}
-                      showDiscount={true}
-                      showWishlist={true}
-                      showQuickView={true}
-                      showAddToCart={true}
-                      showBuyNow={false}
-                    />
-                  )
+                  (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        {...getProductCardProps('homepageFeatured', isMobile)}
+                      />
+                    )
                 )}
 
                 {hasMore && (

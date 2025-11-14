@@ -173,8 +173,18 @@ export default function PaymentProcessPage() {
   };
 
   const handlePhonePePayment = (data: any) => {
-    // Redirect to PhonePe payment URL
-    window.location.href = data.payment_url;
+    // FIXED: Comprehensive PhonePe URL extraction with validation
+    const phonepeUrl = data.payment_url || data.payment_data?.payment_url || data.payment_data?.url;
+
+    if (phonepeUrl) {
+      console.log('📱 PhonePe redirect to:', phonepeUrl);
+      window.location.href = phonepeUrl;
+    } else {
+      console.error('❌ PhonePe payment URL not found in data:', data);
+      setError('PhonePe payment URL not available. Please try again.');
+      setPaymentStatus('failed');
+      setIsProcessing(false);
+    }
   };
 
   const handleCODOrder = () => {
