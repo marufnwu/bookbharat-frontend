@@ -1,5 +1,10 @@
 # syntax=docker.io/docker/dockerfile:1
 
+# Build with BuildKit for faster builds:
+# DOCKER_BUILDKIT=1 docker build -t bb-front:latest .
+# Or with docker-compose:
+# DOCKER_BUILDKIT=1 docker-compose build
+
 FROM node:20-alpine AS base
 
 # Install dependencies only when needed
@@ -10,7 +15,9 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
-RUN \
+RUN --mount=type=cache,target=/root/.npm \
+    --mount=type=cache,target=/root/.yarn \
+    --mount=type=cache,target=/root/.pnpm-store \
   if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
   elif [ -f package-lock.json ]; then npm ci; \
   elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \
@@ -25,10 +32,6 @@ COPY --from=deps /app/node_modules ./node_modules
 
 # Copy all source files
 COPY . .
-
-# Debug: List files to verify they're copied
-RUN echo "=== Checking if layout components exist ===" && \
-    ls -la src/components/layout/ || echo "Layout directory not found!"
 
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
@@ -50,12 +53,18 @@ ENV NEXT_PUBLIC_ENABLE_WISHLIST=${NEXT_PUBLIC_ENABLE_WISHLIST}
 ENV NEXT_PUBLIC_ENABLE_REVIEWS=${NEXT_PUBLIC_ENABLE_REVIEWS}
 ENV NEXT_PUBLIC_ENABLE_CHAT_SUPPORT=${NEXT_PUBLIC_ENABLE_CHAT_SUPPORT}
 
-RUN \
+RUN --mount=type=cache,target=/root/.npm \
+    --mount=type=cache,target=/root/.yarn \
+    --mount=type=cache,target=/root/.pnpm-store \
   if [ -f yarn.lock ]; then yarn run build; \
   elif [ -f package-lock.json ]; then npm run build; \
   elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \
   else echo "Lockfile not found." && exit 1; \
-  fi
+  fi && \
+  echo "✅ Build successful"
+
+# Clear unnecessary build artifacts
+RUN rm -rf .next/cache node_modules/.cache
 
 # Production image, copy all the files and run next
 FROM base AS runner
