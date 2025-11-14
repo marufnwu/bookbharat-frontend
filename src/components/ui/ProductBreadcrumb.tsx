@@ -54,7 +54,7 @@ export function ProductBreadcrumb({ product, className = '' }: ProductBreadcrumb
             ) : (
               <Link
                 href={crumb.href}
-                className="hover:text-foreground transition-colors truncate max-w-[120px] sm:max-w-none touch-target"
+                className="flex items-center hover:text-foreground transition-colors truncate max-w-[120px] sm:max-w-none touch-target"
                 title={crumb.label}
               >
                 {Icon && <Icon className="h-4 w-4 mr-1 flex-shrink-0" />}

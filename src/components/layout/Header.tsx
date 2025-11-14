@@ -137,26 +137,13 @@ export function Header() {
   // Get primary navigation items, fallback to hardcoded if config not loaded
   const primaryNavigation = navigation?.header.primary || fallbackNavigation;
 
-
-  // Show mobile header for small screens
-  const [isMobile, setIsMobile] = useState(false);
-  
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 1024);
-    };
-    checkScreenSize();
-    window.addEventListener("resize", checkScreenSize);
-    return () => window.removeEventListener("resize", checkScreenSize);
-  }, []);
-
-  // Return mobile header for mobile devices
-  if (isMobile && mounted) {
-    return <MobileHeader />;
-  }
-
   return (
-    <header className="bg-background border-b border-border sticky top-0 z-50">
+    <>
+      {/* Mobile Header - Hidden on desktop */}
+      <MobileHeader />
+
+      {/* Desktop Header - Hidden on mobile */}
+      <header className="hidden lg:block bg-background border-b border-border sticky top-0 z-50">
       {/* Top bar - Hidden on mobile for compact design */}
       <div className="bg-primary text-primary-foreground hidden lg:block">
         <div className="max-w-7xl mx-auto compact-container">
@@ -502,5 +489,6 @@ export function Header() {
         )}
       </div>
     </header>
+    </>
   );
 }
