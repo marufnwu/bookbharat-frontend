@@ -30,6 +30,7 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
 
       const result = await response.json();
       const seoConfig = result.data?.seo || result.seo || result.data?.seo || {};
+      const siteConfig = result.data?.site || result.site || {};
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
       // Generate metadata object from backend configuration
@@ -44,6 +45,11 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
         authors: seoConfig.meta_tags?.author ? [{ name: seoConfig.meta_tags.author }] : undefined,
         creator: seoConfig.meta_tags?.author,
         publisher: seoConfig.meta_tags?.publisher,
+        icons: siteConfig.favicon ? {
+          icon: siteConfig.favicon,
+          shortcut: siteConfig.favicon,
+          apple: siteConfig.favicon,
+        } : undefined,
         robots: {
           index: seoConfig.meta_tags?.meta_robots?.includes('index') || true,
           follow: seoConfig.meta_tags?.meta_robots?.includes('follow') || true,

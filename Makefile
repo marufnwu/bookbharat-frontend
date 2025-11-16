@@ -1,6 +1,6 @@
 # BookBharat Frontend - Docker Commands with BuildKit Optimization
 
-.PHONY: help build build-fast build-no-cache up down restart logs clean deploy deploy-fresh
+.PHONY: help build build-fast build-no-cache up down restart logs clean deploy deploy-fresh deploy-smart verify
 
 # Enable BuildKit for all commands
 export DOCKER_BUILDKIT=1
@@ -11,8 +11,10 @@ help:
 	@echo "BookBharat Frontend - Available Commands:"
 	@echo ""
 	@echo "⚡ Fast Commands (BuildKit Optimized):"
+	@echo "  make deploy-smart   - RECOMMENDED: Smart deployment with cache busting"
 	@echo "  make deploy         - Fast build & deploy (40-90% faster)"
 	@echo "  make build-fast     - Fast build with BuildKit cache"
+	@echo "  make verify         - Verify deployment is working"
 	@echo ""
 	@echo "🐳 Container Management:"
 	@echo "  make up             - Start containers"
@@ -107,3 +109,21 @@ deploy-fresh:
 	@echo "✅ Fresh deployment complete!"
 	@echo ""
 	docker compose logs --tail=50 bb-front
+
+# Deploy smart: Recommended for production (fast build + cache busting)
+deploy-smart:
+	@chmod +x deploy-smart.sh 2>/dev/null || true
+	@./deploy-smart.sh
+
+# Verify deployment is working
+verify:
+	@echo "🔍 Verifying deployment..."
+	@echo ""
+	@echo "📊 Container status:"
+	@docker compose ps bb-front
+	@echo ""
+	@echo "🏥 Health check:"
+	@curl -f http://localhost:3000/api/health 2>/dev/null && echo "✅ Health check passed" || echo "❌ Health check failed"
+	@echo ""
+	@echo "📋 Recent logs:"
+	@docker compose logs --tail=20 bb-front

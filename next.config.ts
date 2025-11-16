@@ -36,9 +36,19 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_BUILD_TIME: 'true'
   },
 
-  // Skip static generation for pages that use dynamic features
+  // Generate unique build ID for cache busting
+  // Changes on every deployment to ensure fresh content
   generateBuildId: async () => {
-    return 'build'
+    // Use timestamp for unique build ID (ensures cache invalidation)
+    return `build-${Date.now()}`
+
+    // Alternative: Use git commit hash for reproducible builds
+    // const { execSync } = require('child_process');
+    // try {
+    //   return execSync('git rev-parse --short HEAD').toString().trim();
+    // } catch {
+    //   return `build-${Date.now()}`;
+    // }
   },
 
   // Enable compression
