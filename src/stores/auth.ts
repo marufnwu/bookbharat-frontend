@@ -122,7 +122,13 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setUser: (user) => set({ user, isAuthenticated: !!user }),
-      setToken: (token) => set({ token }),
+      setToken: (token) => {
+        set({ token, isAuthenticated: !!token });
+        // Store token in localStorage for API client
+        if (typeof window !== 'undefined' && token) {
+          localStorage.setItem('auth_token', token);
+        }
+      },
       setHasHydrated: (state) => set({ hasHydrated: state }),
       
       clearAuth: () => {
