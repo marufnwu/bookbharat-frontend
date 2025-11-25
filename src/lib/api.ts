@@ -1030,6 +1030,16 @@ class ApiClient {
 // Create and export a singleton instance
 export const apiClient = new ApiClient();
 
+// Create a public client for unauthenticated requests (tracking, etc.)
+export const publicClient = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+});
+
 // Export individual API modules for better organization
 export const authApi = {
   login: apiClient.login.bind(apiClient),
@@ -1161,15 +1171,18 @@ export const orderApi = {
 
   // Public tracking methods
   async trackOrder(data: { order_id: number; tracking_number?: string }) {
-    return publicClient.post('/tracking/track', data);
+    const response = await publicClient.post('/tracking/track', data);
+    return response.data;
   },
 
   async trackByOrderNumber(orderNumber: string) {
-    return publicClient.get(`/tracking/order/${orderNumber}`);
+    const response = await publicClient.get(`/tracking/order/${orderNumber}`);
+    return response.data;
   },
 
   async trackShipment(data: { carrier: string; tracking_number: string }) {
-    return publicClient.post('/tracking/shipment', data);
+    const response = await publicClient.post('/tracking/shipment', data);
+    return response.data;
   },
 };
 

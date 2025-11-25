@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Search, Package, AlertTriangle } from 'lucide-react';
+import { orderApi } from '@/lib/api';
 
 export function TrackOrderClient() {
   const [searchType, setSearchType] = useState<'orderNumber' | 'orderId'>('orderNumber');
@@ -28,37 +29,22 @@ export function TrackOrderClient() {
 
       let response;
       if (searchType === 'orderNumber') {
-        response = await fetch(`/api/v1/tracking/order/${encodeURIComponent(searchValue.trim())}`);
+        response = await orderApi.trackByOrderNumber(searchValue.trim());
       } else {
         const orderId = parseInt(searchValue.trim());
         if (isNaN(orderId)) {
           throw new Error('Invalid order ID');
         }
-        response = await fetch('/api/v1/tracking/track', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            order_id: orderId,
-          }),
-        });
+        response = await orderApi.trackOrder({ order_id: orderId });
       }
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to fetch tracking information');
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        setTrackingData(data.data);
+      if (response.success && response.data) {
+        setTrackingData(response.data);
       } else {
-        setError(data.message || 'Failed to fetch tracking information');
+        setError(response.message || 'Failed to fetch tracking information');
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch tracking information');
+      setError(err.response?.data?.message || err.message || 'Failed to fetch tracking information');
     } finally {
       setLoading(false);
     }
@@ -108,7 +94,7 @@ export function TrackOrderClient() {
                     onChange={(e) => setSearchType(e.target.value as 'orderNumber' | 'orderId')}
                     className="text-primary"
                   />
-                  <span>Order Number (e.g., BB-2024-001)</span>
+                  <span>Order Number (e.g., ORD-2024-001)</span>
                 </label>
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
@@ -131,7 +117,7 @@ export function TrackOrderClient() {
                 <Input
                   id="searchValue"
                   type="text"
-                  placeholder={searchType === 'orderNumber' ? 'Enter order number (e.g., BB-2024-001)' : 'Enter order ID (e.g., 12345)'}
+                  placeholder={searchType === 'orderNumber' ? 'Enter order number (e.g., ORD-2024-001)' : 'Enter order ID (e.g., 12345)'}
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   onKeyPress={handleKeyPress}
