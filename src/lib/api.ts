@@ -108,7 +108,7 @@ class ApiClient {
   constructor() {
     this.client = axios.create({
       baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
-      timeout: 10000, // Reduced timeout for faster failures
+      timeout: 30000, // Increased timeout to 30 seconds to prevent frequent timeouts
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -642,7 +642,7 @@ class ApiClient {
     // Create a separate axios instance without auth interceptors for public endpoints
     const publicClient = axios.create({
       baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
-      timeout: 10000,
+      timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

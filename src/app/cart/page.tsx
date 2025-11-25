@@ -70,7 +70,7 @@ export default function CartPage() {
   const analytics = useAnalytics();
   const { isAuthenticated } = useAuthStore();
 
-  const cartSummary = useCartSummary(cart, (siteConfig?.payment?.currency_symbol || '?'));
+  const cartSummary = useCartSummary(cart, (siteConfig?.payment?.currency_symbol || '₹'));
 
   useEffect(() => {
     // Cart page should not pass pincode/payment - shipping calculated at checkout

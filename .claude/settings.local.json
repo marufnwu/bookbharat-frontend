@@ -85,7 +85,9 @@
       "mcp__chrome-devtools__evaluate_script",
       "mcp__chrome-devtools__wait_for",
       "Bash(api_test.json)",
-      "Bash(npx shadcn@latest add:*)"
+      "Bash(npx shadcn@latest add:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_wait_for"
     ],
     "deny": [],
     "ask": []
