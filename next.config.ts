@@ -111,6 +111,18 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
 
+  // Rewrites to proxy feed requests to backend
+  async rewrites() {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1$/, '') || 'http://localhost:8000';
+    return [
+      // Product Feeds - proxy to backend
+      {
+        source: '/feeds/:path*',
+        destination: `${backendUrl}/feeds/:path*`,
+      },
+    ];
+  },
+
   // Cache headers for static assets
   async headers() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
@@ -124,6 +136,20 @@ const nextConfig: NextConfig = {
       apiOrigin = apiUrl.replace(/\/(api|api-v\d+).*/, '');
     }
     return [
+      // Feed files - cache for 1 hour
+      {
+        source: '/feeds/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=3600, s-maxage=3600',
+          },
+          {
+            key: 'Content-Type',
+            value: 'application/xml; charset=utf-8',
+          },
+        ],
+      },
       {
         source: '/:all*(svg|jpg|jpeg|png|webp|gif|ico)',
         headers: [
