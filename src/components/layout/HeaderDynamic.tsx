@@ -74,14 +74,14 @@ function HeaderDynamicComponent() {
       href: child.url
     })) || []
   })) || [
-    { name: 'Home', href: '/' },
-    { name: 'Books', href: '/products' },
-    { name: 'Categories', href: '/categories', children: [] },
-    { name: 'New Arrivals', href: '/products?filter=new' },
-    { name: 'Best Sellers', href: '/products?filter=bestseller' },
-    { name: 'About', href: '/about' },
-    { name: 'Contact', href: '/contact' },
-  ];
+      { name: 'Home', href: '/' },
+      { name: 'Books', href: '/products' },
+      { name: 'Categories', href: '/categories', children: [] },
+      { name: 'New Arrivals', href: '/products?filter=new' },
+      { name: 'Best Sellers', href: '/products?filter=bestseller' },
+      { name: 'About', href: '/about' },
+      { name: 'Contact', href: '/contact' },
+    ];
 
   // Initialize mounted state
   useEffect(() => {
@@ -203,9 +203,11 @@ function HeaderDynamicComponent() {
               </div>
             </div>
             <div>
-              <span>
-                Free shipping on orders above ₹{siteConfig?.payment.free_shipping_threshold || 0}!
-              </span>
+              {siteConfig?.payment?.free_shipping_enabled !== false && (siteConfig?.payment?.free_shipping_threshold || 0) > 0 && (
+                <span>
+                  Free shipping on orders above ₹{siteConfig.payment.free_shipping_threshold}!
+                </span>
+              )}
             </div>
           </div>
         </div>

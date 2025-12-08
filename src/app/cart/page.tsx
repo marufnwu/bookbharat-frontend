@@ -58,11 +58,11 @@ export default function CartPage() {
     getAvailableCoupons
   } = useCartStore();
 
-  const { 
-    addToWishlist, 
-    isInWishlist, 
+  const {
+    addToWishlist,
+    isInWishlist,
     bulkMoveToCart,
-    shareWishlist 
+    shareWishlist
   } = useWishlistStore();
 
   const { siteConfig } = useConfig();
@@ -95,7 +95,7 @@ export default function CartPage() {
     setUpdating(itemId);
     try {
       await updateQuantity(itemId, newQuantity);
-      
+
       // Track quantity change
       const item = cart?.items.find(i => i.id === itemId);
       if (item) {
@@ -115,12 +115,12 @@ export default function CartPage() {
     try {
       const item = cart?.items.find(i => i.id === itemId);
       await removeItem(itemId);
-      
+
       // Track item removal
       if (item) {
         analytics.trackRemoveFromCart(item.product, item.quantity);
       }
-      
+
       toast.success('Removed from cart');
     } finally {
       setRemoving(null);
@@ -268,162 +268,162 @@ export default function CartPage() {
                 className="block"
               >
                 <Card className={`p-3 lg:p-6 ${item.bundle_variant_id ? 'border-2 border-green-200 bg-green-50/30' : ''}`}>
-                {/* Bundle Header Badge */}
-                {item.bundle_variant_id && item.attributes?.bundle_name && (
-                  <div className="mb-3 pb-3 border-b border-green-200">
-                    <div className="flex items-center gap-2">
-                      <div className="bg-green-600 text-white p-1.5 rounded-lg">
-                        <Gift className="h-4 w-4" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-bold text-green-900">
-                            {item.attributes.bundle_name}
-                          </span>
-                          <Badge className="bg-green-600 text-white text-xs">
-                            Bundle Pack
-                          </Badge>
+                  {/* Bundle Header Badge */}
+                  {item.bundle_variant_id && item.attributes?.bundle_name && (
+                    <div className="mb-3 pb-3 border-b border-green-200">
+                      <div className="flex items-center gap-2">
+                        <div className="bg-green-600 text-white p-1.5 rounded-lg">
+                          <Gift className="h-4 w-4" />
                         </div>
-                        {item.attributes.bundle_quantity && (
-                          <div className="text-xs text-green-700 mt-0.5">
-                            {item.attributes.bundle_quantity} items per bundle • Total: {item.quantity} × {item.attributes.bundle_quantity} = {item.quantity * item.attributes.bundle_quantity} items
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-bold text-green-900">
+                              {item.attributes.bundle_name}
+                            </span>
+                            <Badge className="bg-green-600 text-white text-xs">
+                              Bundle Pack
+                            </Badge>
+                          </div>
+                          {item.attributes.bundle_quantity && (
+                            <div className="text-xs text-green-700 mt-0.5">
+                              {item.attributes.bundle_quantity} items per bundle • Total: {item.quantity} × {item.attributes.bundle_quantity} = {item.quantity * item.attributes.bundle_quantity} items
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 lg:gap-4">
+                    {/* Image */}
+                    <div className="w-20 h-24 lg:w-24 lg:h-32 bg-muted rounded flex-shrink-0 overflow-hidden relative">
+                      {item.product?.images?.[0]?.image_url || item.product?.images?.[0]?.url ? (
+                        <Image
+                          src={item.product.images[0].image_url || item.product.images[0].url || ''}
+                          alt={item.product.name}
+                          width={96}
+                          height={128}
+                          className="object-cover w-full h-full"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <BookOpen className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                      )}
+                      {/* Bundle Badge Overlay */}
+                      {item.bundle_variant_id && item.attributes?.bundle_quantity && (
+                        <div className="absolute top-1 right-1 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">
+                          ×{item.attributes.bundle_quantity}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Details */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex-1">
+                          <h3 className="text-sm lg:text-base font-medium line-clamp-2 mb-1">
+                            {item.product.name}
+                          </h3>
+                          <p className="text-xs lg:text-sm text-muted-foreground">
+                            {(item.product as any).author || 'Unknown'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => addToWishlist(item.product)}
+                            className="text-muted-foreground hover:text-red-500"
+                            title="Add to Wishlist"
+                          >
+                            <Heart className={`h-4 w-4 ${isInWishlist(item.product.id) ? 'fill-red-500 text-red-500' : ''}`} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveItem(item.id)}
+                            disabled={removing === item.id}
+                            className="hidden lg:flex text-muted-foreground hover:text-destructive"
+                          >
+                            {removing === item.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Price */}
+                      <div className="mb-2">
+                        {item.bundle_variant_id ? (
+                          // Bundle Price Display
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-base lg:text-lg font-bold text-green-700">
+                                {cartSummary.currencySymbol}{parseFloat(String(item.unit_price || item.price || 0)).toFixed(2)}
+                              </span>
+                              <Badge className="bg-green-600 text-white text-xs">Bundle Price</Badge>
+                            </div>
+                            {item.attributes?.bundle_quantity && (
+                              <div className="text-xs text-green-700">
+                                ({cartSummary.currencySymbol}{(parseFloat(String(item.unit_price || item.price || 0)) / item.attributes.bundle_quantity).toFixed(2)} per item)
+                              </div>
+                            )}
+                            {item.product.price && (
+                              <div className="text-xs text-gray-500 line-through">
+                                Regular: {cartSummary.currencySymbol}{(parseFloat(String(item.product.price)) * (item.attributes?.bundle_quantity || 1)).toFixed(2)}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          // Regular Price Display
+                          <div className="flex items-center gap-2">
+                            <span className="text-base lg:text-lg font-bold">
+                              {cartSummary.currencySymbol}{parseFloat(String(item.unit_price || item.price || item.product.price)).toFixed(2)}
+                            </span>
+                            {item.product.compare_price && item.product.compare_price > item.product.price && (
+                              <span className="text-xs text-muted-foreground line-through">
+                                {cartSummary.currencySymbol}{parseFloat(String(item.product.compare_price)).toFixed(2)}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
-                    </div>
-                  </div>
-                )}
-                
-                <div className="flex gap-3 lg:gap-4">
-                  {/* Image */}
-                  <div className="w-20 h-24 lg:w-24 lg:h-32 bg-muted rounded flex-shrink-0 overflow-hidden relative">
-                    {item.product?.images?.[0]?.image_url || item.product?.images?.[0]?.url ? (
-                      <Image
-                        src={item.product.images[0].image_url || item.product.images[0].url || ''}
-                        alt={item.product.name}
-                        width={96}
-                        height={128}
-                        className="object-cover w-full h-full"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <BookOpen className="h-8 w-8 text-muted-foreground" />
-                      </div>
-                    )}
-                    {/* Bundle Badge Overlay */}
-                    {item.bundle_variant_id && item.attributes?.bundle_quantity && (
-                      <div className="absolute top-1 right-1 bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">
-                        ×{item.attributes.bundle_quantity}
-                      </div>
-                    )}
-                  </div>
 
-                  {/* Details */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex-1">
-                        <h3 className="text-sm lg:text-base font-medium line-clamp-2 mb-1">
-                          {item.product.name}
-                        </h3>
-                        <p className="text-xs lg:text-sm text-muted-foreground">
-                          {(item.product as any).author || 'Unknown'}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => addToWishlist(item.product)}
-                          className="text-muted-foreground hover:text-red-500"
-                          title="Add to Wishlist"
-                        >
-                          <Heart className={`h-4 w-4 ${isInWishlist(item.product.id) ? 'fill-red-500 text-red-500' : ''}`} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveItem(item.id)}
-                          disabled={removing === item.id}
-                          className="hidden lg:flex text-muted-foreground hover:text-destructive"
-                        >
-                          {removing === item.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
+                      {/* Quantity & Remove */}
+                      <div className="flex items-center justify-between">
+                        <MobileQuantityControls
+                          quantity={item.quantity}
+                          onIncrease={() => handleQuantityChange(item.id, item.quantity + 1)}
+                          onDecrease={() => handleQuantityChange(item.id, item.quantity - 1)}
+                          disabled={updating === item.id}
+                        />
 
-                    {/* Price */}
-                    <div className="mb-2">
-                      {item.bundle_variant_id ? (
-                        // Bundle Price Display
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-base lg:text-lg font-bold text-green-700">
-                              {cartSummary.currencySymbol}{parseFloat(String(item.unit_price || item.price || 0)).toFixed(2)}
-                            </span>
-                            <Badge className="bg-green-600 text-white text-xs">Bundle Price</Badge>
-                          </div>
-                          {item.attributes?.bundle_quantity && (
-                            <div className="text-xs text-green-700">
-                              ({cartSummary.currencySymbol}{(parseFloat(String(item.unit_price || item.price || 0)) / item.attributes.bundle_quantity).toFixed(2)} per item)
-                            </div>
-                          )}
-                          {item.product.price && (
-                            <div className="text-xs text-gray-500 line-through">
-                              Regular: {cartSummary.currencySymbol}{(parseFloat(String(item.product.price)) * (item.attributes?.bundle_quantity || 1)).toFixed(2)}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        // Regular Price Display
-                        <div className="flex items-center gap-2">
-                          <span className="text-base lg:text-lg font-bold">
-                            {cartSummary.currencySymbol}{parseFloat(String(item.unit_price || item.price || item.product.price)).toFixed(2)}
+                        {/* Bundle Quantity Label */}
+                        {item.bundle_variant_id && (
+                          <span className="text-xs text-green-700 font-medium">
+                            {item.quantity} bundle{item.quantity > 1 ? 's' : ''}
                           </span>
-                          {item.product.compare_price && item.product.compare_price > item.product.price && (
-                            <span className="text-xs text-muted-foreground line-through">
-                              {cartSummary.currencySymbol}{parseFloat(String(item.product.compare_price)).toFixed(2)}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                        )}
+                      </div>
 
-                    {/* Quantity & Remove */}
-                    <div className="flex items-center justify-between">
-                      <MobileQuantityControls
-                        quantity={item.quantity}
-                        onIncrease={() => handleQuantityChange(item.id, item.quantity + 1)}
-                        onDecrease={() => handleQuantityChange(item.id, item.quantity - 1)}
-                        disabled={updating === item.id}
-                      />
-                      
-                      {/* Bundle Quantity Label */}
-                      {item.bundle_variant_id && (
-                        <span className="text-xs text-green-700 font-medium">
-                          {item.quantity} bundle{item.quantity > 1 ? 's' : ''}
-                        </span>
-                      )}
+                      {/* Mobile Remove Button */}
+                      <button
+                        onClick={() => handleRemoveItem(item.id)}
+                        disabled={removing === item.id}
+                        className="p-2 text-destructive lg:hidden"
+                      >
+                        {removing === item.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </button>
                     </div>
-
-                    {/* Mobile Remove Button */}
-                    <button
-                      onClick={() => handleRemoveItem(item.id)}
-                      disabled={removing === item.id}
-                      className="p-2 text-destructive lg:hidden"
-                    >
-                      {removing === item.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </button>
                   </div>
-                </div>
-              </Card>
+                </Card>
               </MobileGestureCard>
             ))}
           </div>
@@ -492,7 +492,7 @@ export default function CartPage() {
 
           {/* Quick Info Pills */}
           <div className="flex gap-2 flex-wrap">
-            {cartSummary.shippingCost === 0 && !cartSummary.requiresPincode && (
+            {cartSummary.shippingCost === 0 && !cartSummary.requiresPincode && siteConfig?.payment?.free_shipping_enabled !== false && (
               <span className="text-[10px] bg-green-50 text-green-700 px-2 py-1 rounded-full font-medium">
                 FREE Delivery
               </span>
@@ -609,7 +609,7 @@ export default function CartPage() {
               <span className="text-muted-foreground">Delivery</span>
               {cartSummary.requiresPincode ? (
                 <span className="text-xs text-muted-foreground italic">At checkout</span>
-              ) : cartSummary.shippingCost === 0 ? (
+              ) : cartSummary.shippingCost === 0 && siteConfig?.payment?.free_shipping_enabled !== false ? (
                 <span className="text-green-600 font-semibold">FREE</span>
               ) : (
                 <span className="font-medium">{cartSummary.currencySymbol}{cartSummary.shippingCost.toFixed(2)}</span>
@@ -656,8 +656,8 @@ export default function CartPage() {
 
         {/* Checkout Button - Mobile Optimized */}
         <div className="p-2 bg-white">
-          <Button 
-            asChild 
+          <Button
+            asChild
             className="w-full h-11 text-sm md:h-14 md:text-base font-bold shadow-md bg-blue-600 hover:bg-blue-700 text-white"
             onClick={() => {
               if (cart) {

@@ -626,12 +626,14 @@ export default function ProductsPage() {
               </div>
               <div className="text-[11px] sm:text-xs text-green-800">In Stock</div>
             </div>
-            <div className="bg-purple-50 rounded-2xl p-3 sm:p-4 text-center shadow-sm">
-              <div className={cn('font-semibold text-purple-600', isMobile ? 'text-base' : 'text-lg')}>
-                {stats.freeShippingCount.toLocaleString()}
+            {siteConfig?.payment?.free_shipping_enabled !== false && (
+              <div className="bg-purple-50 rounded-2xl p-3 sm:p-4 text-center shadow-sm">
+                <div className={cn('font-semibold text-purple-600', isMobile ? 'text-base' : 'text-lg')}>
+                  {stats.freeShippingCount.toLocaleString()}
+                </div>
+                <div className="text-[11px] sm:text-xs text-purple-800">Free Shipping</div>
               </div>
-              <div className="text-[11px] sm:text-xs text-purple-800">Free Shipping</div>
-            </div>
+            )}
             <div className="bg-orange-50 rounded-2xl p-3 sm:p-4 text-center shadow-sm">
               <div className={cn('font-semibold text-orange-600', isMobile ? 'text-base' : 'text-lg')}>
                 {currencySymbol}{Math.round(stats.avgPrice)}
@@ -740,13 +742,13 @@ export default function ProductsPage() {
                   )}
                 >
                   {products.map((product) =>
-                    (
-                      <ProductCard
-                        key={product.id}
-                        product={product}
-                        {...getProductCardProps('homepageFeatured', isMobile)}
-                      />
-                    )
+                  (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      {...getProductCardProps('homepageFeatured', isMobile)}
+                    />
+                  )
                   )}
                 </div>
                 {hasMore && (
@@ -770,13 +772,13 @@ export default function ProductsPage() {
             ) : (
               <div className="space-y-4">
                 {products.map((product) =>
-                  (
-                      <ProductCard
-                        key={product.id}
-                        product={product}
-                        {...getProductCardProps('homepageFeatured', isMobile)}
-                      />
-                    )
+                (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    {...getProductCardProps('homepageFeatured', isMobile)}
+                  />
+                )
                 )}
 
                 {hasMore && (

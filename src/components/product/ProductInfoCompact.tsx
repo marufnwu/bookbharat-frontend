@@ -59,11 +59,11 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
     try {
       setAddingToCart(true);
       await addToCart(product, quantity, selectedBundleVariant?.id);
-      
-      const successMessage = selectedBundleVariant 
-        ? `${selectedBundleVariant.name} added to cart!` 
+
+      const successMessage = selectedBundleVariant
+        ? `${selectedBundleVariant.name} added to cart!`
         : 'Added to cart!';
-      
+
       toast.success(successMessage);
     } catch (error) {
       toast.error('Failed to add to cart');
@@ -347,13 +347,15 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
 
       {/* Mobile-First Key Features */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 pt-2 sm:pt-3 border-t">
-        <div className="flex items-start gap-1.5 sm:gap-2">
-          <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary mt-0.5 flex-shrink-0" />
-          <div>
-            <div className="text-[10px] sm:text-xs font-medium">Free Delivery</div>
-            <div className="text-[9px] sm:text-xs text-muted-foreground">On orders above ₹499</div>
+        {siteConfig?.payment?.free_shipping_enabled !== false && (siteConfig?.payment?.free_shipping_threshold || 0) > 0 && (
+          <div className="flex items-start gap-1.5 sm:gap-2">
+            <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary mt-0.5 flex-shrink-0" />
+            <div>
+              <div className="text-[10px] sm:text-xs font-medium">Free Delivery</div>
+              <div className="text-[9px] sm:text-xs text-muted-foreground">On orders above {currencySymbol}{siteConfig.payment.free_shipping_threshold}</div>
+            </div>
           </div>
-        </div>
+        )}
         <div className="flex items-start gap-1.5 sm:gap-2">
           <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary mt-0.5 flex-shrink-0" />
           <div>

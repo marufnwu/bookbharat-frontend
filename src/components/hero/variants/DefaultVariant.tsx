@@ -7,8 +7,12 @@ import { OptimizedImage } from '@/components/ui/optimized-image';
 import { cn } from '@/lib/utils';
 import { ArrowRight, Star, Truck, Shield, BookOpen, ShoppingBag } from 'lucide-react';
 import { HeroVariantProps } from '../types';
+import { useConfig } from '@/contexts/ConfigContext';
 
 export function DefaultVariant({ config, className }: HeroVariantProps) {
+  const { siteConfig } = useConfig();
+  const freeShippingEnabled = siteConfig?.payment?.free_shipping_enabled !== false;
+
   return (
     <section className={cn(
       'relative bg-gradient-to-b from-white to-gray-50/50 py-2 md:py-3',
@@ -38,14 +42,14 @@ export function DefaultVariant({ config, className }: HeroVariantProps) {
             <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-3/4 h-3 bg-gradient-to-r from-blue-200 to-purple-200 rounded-full opacity-50"></div>
           </span>
         </h1>
-        
+
         <p className="text-base text-gray-600 mb-3 max-w-2xl mx-auto leading-relaxed">
-          Curated collection of bestsellers and classics. Free shipping, easy returns, and unbeatable customer service.
+          Curated collection of bestsellers and classics.{freeShippingEnabled ? ' Free shipping,' : ''} easy returns, and unbeatable customer service.
         </p>
-        
+
         <div className="flex flex-col sm:flex-row gap-3 justify-center mb-3">
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             className="bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white shadow-xl hover:shadow-2xl transition-all duration-300 px-8 py-4"
             asChild
           >
@@ -55,9 +59,9 @@ export function DefaultVariant({ config, className }: HeroVariantProps) {
             </Link>
           </Button>
           {config.secondaryCta && (
-            <Button 
+            <Button
               size="lg"
-              variant="outline" 
+              variant="outline"
               className="px-8 py-4 border-2"
               asChild
             >
@@ -74,11 +78,15 @@ export function DefaultVariant({ config, className }: HeroVariantProps) {
             <Star className="h-4 w-4 text-yellow-500 fill-current" />
             <span>4.9/5 Rating</span>
           </div>
-          <span className="text-gray-300">•</span>
-          <div className="flex items-center gap-2">
-            <Truck className="h-4 w-4 text-green-600" />
-            <span>Free Shipping</span>
-          </div>
+          {freeShippingEnabled && (
+            <>
+              <span className="text-gray-300">•</span>
+              <div className="flex items-center gap-2">
+                <Truck className="h-4 w-4 text-green-600" />
+                <span>Free Shipping</span>
+              </div>
+            </>
+          )}
           <span className="text-gray-300">•</span>
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-blue-600" />
@@ -91,8 +99,8 @@ export function DefaultVariant({ config, className }: HeroVariantProps) {
           <div className="relative mb-8">
             <div className="flex justify-center items-end space-x-3">
               {config.featuredProducts.slice(0, 7).map((book, index) => (
-                <div 
-                  key={book.id} 
+                <div
+                  key={book.id}
                   className={`
                     bg-white rounded-lg shadow-lg border border-gray-200/50 p-2 hover:shadow-xl transition-all duration-300 hover:-translate-y-1
                     ${index === 3 ? 'w-20 h-28 scale-110' : 'w-16 h-24'}

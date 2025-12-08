@@ -26,6 +26,7 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useConfig } from '@/contexts/ConfigContext';
 
 export default function MobileCartPage() {
   const [updating, setUpdating] = useState<number | null>(null);
@@ -46,6 +47,10 @@ export default function MobileCartPage() {
     removeCoupon,
     getAvailableCoupons
   } = useCartStore();
+
+  const { siteConfig } = useConfig();
+  const freeShippingEnabled = siteConfig?.payment?.free_shipping_enabled !== false;
+  const freeShippingThreshold = siteConfig?.payment?.free_shipping_threshold || 0;
 
   useEffect(() => {
     getCart();
@@ -261,17 +266,19 @@ export default function MobileCartPage() {
         </AnimatePresence>
 
         {/* Delivery Info Card */}
-        <div className="bg-blue-50 rounded-xl p-4 mt-4">
-          <div className="flex items-start gap-3">
-            <Truck className="h-5 w-5 text-blue-600 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-blue-900">Free Delivery</p>
-              <p className="text-xs text-blue-700 mt-0.5">
-                On orders above ₹499 • Usually delivered in 2-3 days
-              </p>
+        {freeShippingEnabled && freeShippingThreshold > 0 && (
+          <div className="bg-blue-50 rounded-xl p-4 mt-4">
+            <div className="flex items-start gap-3">
+              <Truck className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-blue-900">Free Delivery</p>
+                <p className="text-xs text-blue-700 mt-0.5">
+                  On orders above ₹{freeShippingThreshold} • Usually delivered in 2-3 days
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Security Badge */}
         <div className="bg-green-50 rounded-xl p-4">

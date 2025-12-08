@@ -10,6 +10,7 @@ import FrequentlyBoughtTogether from '@/components/product/FrequentlyBoughtToget
 import RelatedProducts from '@/components/product/RelatedProducts';
 import { productApi } from '@/lib/api';
 import { Product } from '@/types';
+import { useConfig } from '@/contexts/ConfigContext';
 import {
   BookOpen,
   Loader2,
@@ -28,6 +29,10 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const { siteConfig } = useConfig();
+  const freeShippingEnabled = siteConfig?.payment?.free_shipping_enabled !== false;
+  const freeShippingThreshold = (siteConfig?.payment?.free_shipping_threshold || 0) > 0;
 
   // Load product data
   useEffect(() => {
@@ -258,7 +263,7 @@ export default function ProductDetailPage() {
               <ProductInfoCompact product={product} />
             </div>
 
-  
+
             {/* Trust Indicators */}
             <div className="bg-white rounded-2xl p-6 shadow border border-gray-200">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -380,10 +385,12 @@ export default function ProductDetailPage() {
         </div>
         {/* Trust Indicators Mini Bar */}
         <div className="flex justify-center gap-4 pb-2 px-4">
-          <div className="flex items-center gap-1 text-xs text-gray-600">
-            <Truck className="h-3 w-3" />
-            <span>Free Delivery</span>
-          </div>
+          {freeShippingEnabled && freeShippingThreshold && (
+            <div className="flex items-center gap-1 text-xs text-gray-600">
+              <Truck className="h-3 w-3" />
+              <span>Free Delivery</span>
+            </div>
+          )}
           <div className="flex items-center gap-1 text-xs text-gray-600">
             <Shield className="h-3 w-3" />
             <span>Secure</span>

@@ -63,6 +63,7 @@ interface FooterClientProps {
   social: SocialLinks;
   shipping?: any;
   payment?: {
+    free_shipping_enabled?: boolean;
     free_shipping_threshold?: number;
   };
 }
@@ -73,6 +74,8 @@ export function FooterClient({
   social = {},
   payment = {}
 }: FooterClientProps) {
+  const freeShippingEnabled = payment?.free_shipping_enabled !== false;
+  const freeShippingThreshold = payment?.free_shipping_threshold || 0;
   const [email, setEmail] = useState('');
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
@@ -117,11 +120,11 @@ export function FooterClient({
   };
 
   const features = [
-    {
+    ...(freeShippingEnabled && freeShippingThreshold > 0 ? [{
       icon: Truck,
       title: 'Free Shipping',
-      description: `Above ₹${payment.free_shipping_threshold || 0}`,
-    },
+      description: `Above ₹${freeShippingThreshold}`,
+    }] : []),
     {
       icon: RotateCcw,
       title: 'Easy Returns',
@@ -259,9 +262,8 @@ export function FooterClient({
                   onClick={() => toggleSection(section.title)}
                 >
                   <h3 className="font-semibold text-sm">{section.title}</h3>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${
-                    expandedSections.includes(section.title) ? 'rotate-180' : ''
-                  }`} />
+                  <ChevronDown className={`h-4 w-4 transition-transform ${expandedSections.includes(section.title) ? 'rotate-180' : ''
+                    }`} />
                 </button>
 
                 {/* Desktop always visible */}
@@ -269,9 +271,8 @@ export function FooterClient({
                   {section.title}
                 </h3>
 
-                <ul className={`space-y-2 text-sm ${
-                  expandedSections.includes(section.title) || 'hidden md:block'
-                }`}>
+                <ul className={`space-y-2 text-sm ${expandedSections.includes(section.title) || 'hidden md:block'
+                  }`}>
                   {section.links.map((link, linkIndex) => (
                     <li key={linkIndex}>
                       <Link

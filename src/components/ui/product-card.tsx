@@ -55,13 +55,13 @@ export const ProductCard = React.memo(function ProductCard({
 }: ProductCardProps) {
   const { siteConfig } = useConfig();
   const { addToCart: addToCartStore } = useCartStore();
-  const { 
-    addToWishlist, 
-    removeFromWishlist, 
+  const {
+    addToWishlist,
+    removeFromWishlist,
     isInWishlist,
-    isLoading: wishlistLoading 
+    isLoading: wishlistLoading
   } = useWishlistStore();
-  
+
   const [addingToCart, setAddingToCart] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -78,9 +78,9 @@ export const ProductCard = React.memo(function ProductCard({
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!product.in_stock) return;
-    
+
     try {
       setAddingToCart(true);
       await addToCartStore(product, 1);
@@ -94,7 +94,7 @@ export const ProductCard = React.memo(function ProductCard({
   const handleWishlistToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     try {
       if (isWishlisted) {
         await removeFromWishlist(product.id);
@@ -109,9 +109,9 @@ export const ProductCard = React.memo(function ProductCard({
   const handleBuyNow = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!product.in_stock) return;
-    
+
     try {
       setBuyingNow(true);
       await addToCartStore(product, 1);
@@ -160,8 +160,8 @@ export const ProductCard = React.memo(function ProductCard({
   const getFreeShippingProgress = () => {
     // Use zone-based free shipping threshold if available, otherwise use default
     const freeShippingThreshold = siteConfig?.shipping?.free_shipping_thresholds?.default ||
-                              siteConfig?.payment?.free_shipping_threshold ||
-                              0; // No fallback - should always come from config
+      siteConfig?.payment?.free_shipping_threshold ||
+      0; // No fallback - should always come from config
     return Math.min((product.price / freeShippingThreshold) * 100, 100);
   };
 
@@ -240,8 +240,8 @@ export const ProductCard = React.memo(function ProductCard({
   const freeShippingProgress = useMemo(() => {
     // Use zone-based free shipping threshold if available, otherwise use default
     const freeShippingThreshold = siteConfig?.shipping?.free_shipping_thresholds?.default ||
-                              siteConfig?.payment?.free_shipping_threshold ||
-                              0; // No fallback - should always come from config
+      siteConfig?.payment?.free_shipping_threshold ||
+      0; // No fallback - should always come from config
     return Math.min((product.price / freeShippingThreshold) * 100, 100);
   }, [product.price, siteConfig?.shipping?.free_shipping_thresholds?.default, siteConfig?.payment?.free_shipping_threshold]);
 
@@ -386,7 +386,7 @@ export const ProductCard = React.memo(function ProductCard({
           </div>
 
           {/* Free Shipping Info - Only show if product has free shipping OR is close to threshold */}
-          {mounted && siteConfig && (
+          {mounted && siteConfig && siteConfig?.payment?.free_shipping_enabled !== false && (
             <div className="space-y-2">
               {hasProductFreeShipping() ? (
                 <div className={cn(
@@ -401,8 +401,8 @@ export const ProductCard = React.memo(function ProductCard({
                 // Only show progress for products within reasonable range of free shipping
                 (() => {
                   const freeShippingThreshold = siteConfig?.shipping?.free_shipping_thresholds?.default ||
-                                            siteConfig?.payment?.free_shipping_threshold ||
-                                            500;
+                    siteConfig?.payment?.free_shipping_threshold ||
+                    500;
                   const isCloseToThreshold = product.price < freeShippingThreshold && product.price > (freeShippingThreshold * 0.6); // Show progress if within 60% of threshold
 
                   return isCloseToThreshold ? (
