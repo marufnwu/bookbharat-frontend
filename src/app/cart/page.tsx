@@ -582,6 +582,44 @@ export default function CartPage() {
                     {applyingCoupon ? '...' : 'Apply'}
                   </button>
                 </div>
+
+                {/* Available Offers - Mobile */}
+                {availableCoupons && availableCoupons.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-blue-200">
+                    <p className="text-xs font-medium text-blue-900 mb-2">Available Offers:</p>
+                    <div className="space-y-2">
+                      {availableCoupons.slice(0, 3).map((coupon: any) => (
+                        <div
+                          key={coupon.code}
+                          className="flex items-center justify-between bg-white p-2 rounded border border-blue-200 cursor-pointer hover:bg-blue-50 transition-colors"
+                          onClick={async () => {
+                            setApplyingCoupon(true);
+                            try {
+                              await handleApplyCoupon(coupon.code);
+                            } catch (error) {
+                              // Error handled
+                            } finally {
+                              setApplyingCoupon(false);
+                            }
+                          }}
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-blue-800 bg-blue-100 px-1.5 py-0.5 rounded">{coupon.code}</span>
+                              {coupon.discount_type === 'percentage' && (
+                                <span className="text-[10px] text-green-600 font-medium">{coupon.discount_value}% OFF</span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-gray-600 mt-0.5 line-clamp-1">{coupon.description}</p>
+                          </div>
+                          <button className="text-xs text-blue-600 font-semibold hover:text-blue-800 px-2">
+                            Apply
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

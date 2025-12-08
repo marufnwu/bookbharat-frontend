@@ -20,7 +20,8 @@ import {
   CheckCircle,
   Tag,
   Info,
-  HelpCircle
+  HelpCircle,
+  ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -181,15 +182,16 @@ export function OrderSummaryCard({
         {!summary.couponCode && (
           <div className="mt-3 pt-3 border-t border-border">
             {!showCouponField ? (
-              <Button
-                variant="outline"
-                size="sm"
+              <button
                 onClick={() => setShowCouponField(true)}
-                className="w-full border-dashed text-xs"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border-2 border-dashed border-purple-300 hover:border-purple-400 rounded-lg text-sm font-medium text-purple-700 hover:text-purple-800 transition-all duration-200 group"
               >
-                <Percent className="h-3 w-3 mr-2" />
-                Have a coupon code?
-              </Button>
+                <div className="w-6 h-6 bg-purple-100 group-hover:bg-purple-200 rounded-full flex items-center justify-center transition-colors">
+                  <Percent className="h-3 w-3 text-purple-600" />
+                </div>
+                <span>Have a coupon code? <span className="text-purple-500 group-hover:underline">Click here</span></span>
+                <ChevronRight className="h-4 w-4 text-purple-400 group-hover:translate-x-0.5 transition-transform" />
+              </button>
             ) : (
               <div className="flex gap-2">
                 <Input
@@ -360,15 +362,16 @@ export function OrderSummaryCard({
         {!summary.couponCode && (
           <div className="space-y-3">
             {!showCouponField ? (
-              <Button
-                variant="outline"
-                size="sm"
+              <button
                 onClick={() => setShowCouponField(true)}
-                className="w-full border-dashed"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 border-2 border-dashed border-purple-300 hover:border-purple-400 rounded-lg text-sm font-medium text-purple-700 hover:text-purple-800 transition-all duration-200 group"
               >
-                <Percent className="h-4 w-4 mr-2" />
-                Have a coupon code?
-              </Button>
+                <div className="w-7 h-7 bg-purple-100 group-hover:bg-purple-200 rounded-full flex items-center justify-center transition-colors">
+                  <Percent className="h-4 w-4 text-purple-600" />
+                </div>
+                <span>Have a coupon code? <span className="text-purple-500 group-hover:underline">Click here</span></span>
+                <ChevronRight className="h-4 w-4 text-purple-400 group-hover:translate-x-0.5 transition-transform" />
+              </button>
             ) : (
               <div className="flex space-x-2">
                 <Input

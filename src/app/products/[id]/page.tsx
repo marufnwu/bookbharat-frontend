@@ -270,7 +270,7 @@ export default function ProductDetailPage() {
                 <Shield className="h-5 w-5 text-green-600" />
                 Why Buy From BookBharat?
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                     <Truck className="h-5 w-5 text-blue-600" />
