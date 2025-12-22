@@ -131,8 +131,8 @@ export default async function Home() {
 
     // Check if we have any data - if not, use fallback
     const hasData = heroConfig || (categories && categories.length > 0) ||
-                   (featuredBooks && featuredBooks.length > 0) ||
-                   (homepageSections && homepageSections.length > 0);
+      (featuredBooks && featuredBooks.length > 0) ||
+      (homepageSections && homepageSections.length > 0);
 
     if (!hasData) {
       return SimpleHome();

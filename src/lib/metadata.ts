@@ -151,7 +151,7 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
     };
   } catch (error) {
     console.error('Failed to generate dynamic metadata, using fallback:', error);
-    
+
     // Fallback to hardcoded metadata if backend fails
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
