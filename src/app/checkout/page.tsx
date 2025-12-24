@@ -1536,22 +1536,7 @@ export default function CheckoutPage() {
       <div className="container mx-auto px-4 py-4 lg:py-8">
         <div className="animate-pulse space-y-6">
           {/* Progress indicator skeleton */}
-          <Card className="mb-6 lg:mb-10">
-            <CardHeader className="pb-4">
-              <div className="h-6 bg-muted rounded w-1/3"></div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-2 bg-muted rounded-full w-full mb-4"></div>
-              <div className="flex justify-between">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="flex flex-col items-center">
-                    <div className="w-10 h-10 rounded-full bg-muted mb-2"></div>
-                    <div className="h-3 bg-muted rounded w-16"></div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+
 
           {/* Main content skeleton */}
           <div className="grid lg:grid-cols-3 gap-4 lg:gap-8">
@@ -1679,81 +1664,7 @@ export default function CheckoutPage() {
             <span>Checkout</span>
           </nav>
 
-          {/* Progress Indicator */}
-          <Card className="mb-6 lg:mb-10">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center text-base lg:text-lg">
-                <CheckCircle className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                Checkout Progress
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="relative">
-                <div className="absolute top-5 left-0 w-full h-0.5 bg-muted -z-10">
-                  <div
-                    className="h-full bg-primary transition-all duration-500 ease-in-out"
-                    style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
-                  />
-                </div>
 
-                <div className="flex items-center justify-between">
-                  {steps.map((step, index) => {
-                    const Icon = step.icon;
-                    const isClickable = step.completed || step.id === currentStep || (step.skip && step.id === 2);
-                    return (
-                      <div key={step.id} className="flex flex-col items-center">
-                        <button
-                          onClick={() => {
-                            if (isClickable && !step.skip) {
-                              window.location.hash = step.hash;
-                            }
-                          }}
-                          disabled={!isClickable || step.skip}
-                          className={`w-8 h-8 lg:w-10 lg:h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${step.completed
-                            ? 'bg-primary text-primary-foreground'
-                            : step.id === currentStep
-                              ? 'bg-primary text-primary-foreground ring-2 ring-primary/20'
-                              : step.skip
-                                ? 'bg-muted text-muted-foreground'
-                                : 'bg-muted text-muted-foreground'
-                            } ${isClickable && !step.skip ? 'cursor-pointer hover:ring-2 hover:ring-primary/30' : 'cursor-default'}`}
-                        >
-                          {step.completed ? (
-                            <Check className="h-4 w-4 lg:h-5 lg:w-5" />
-                          ) : step.skip ? (
-                            <span className="text-xs">Skip</span>
-                          ) : (
-                            <Icon className="h-3 w-3 lg:h-4 lg:w-4" />
-                          )}
-                        </button>
-                        <div className="mt-2 lg:mt-3 text-center min-w-[80px] lg:min-w-[100px]">
-                          <div className={`text-xs lg:text-sm font-medium transition-colors duration-300 ${step.id === currentStep
-                            ? 'text-primary'
-                            : step.completed
-                              ? 'text-primary'
-                              : step.skip
-                                ? 'text-muted-foreground'
-                                : 'text-muted-foreground'
-                            }`}>
-                            {step.name}
-                          </div>
-                          {step.skip && (
-                            <Badge variant="secondary" className="text-xs mt-1">Skipped</Badge>
-                          )}
-                          {step.completed && (
-                            <Badge variant="secondary" className="text-xs mt-1 bg-primary/10 text-primary">Completed</Badge>
-                          )}
-                          {step.id === currentStep && (
-                            <Badge className="text-xs mt-1">Current</Badge>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
           <div className="grid lg:grid-cols-3 gap-4 lg:gap-8">
             {/* Checkout Form */}
