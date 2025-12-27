@@ -34,13 +34,18 @@ services:
     # SECURITY: Read-only root filesystem (with required Next.js write paths)
     read_only: true
     
-    # SECURITY: Temporary filesystem for writable directories
-    # Next.js needs these paths even in production for runtime operations
-    # uid=1001,gid=1001 ensures nextjs user can write (matches USER nextjs in Dockerfile)
-    tmpfs:
-      - /tmp:size=512m,uid=1001,gid=1001                          # Image optimization, temp files
-      - /app/.next/cache:size=500m,uid=1001,gid=1001              # ISR cache, route cache
-      - /app/.next/server:size=200m,uid=1001,gid=1001             # Runtime manifests, app paths
+    # SECURITY: Writable volumes for Next.js runtime
+    # Using volumes instead of tmpfs for better compatibility
+    volumes:
+      - next-cache:/app/.next/cache
+      - next-server:/app/.next/server
+      - tmp-data:/tmp
+    
+    # Alternative: Use tmpfs with explicit mode
+    # tmpfs:
+    #   - /tmp:size=512m,mode=1777
+    #   - /app/.next/cache:size=500m,mode=0755,uid=1001,gid=1001
+    #   - /app/.next/server:size=200m,mode=0755,uid=1001,gid=1001
     
     # SECURITY: Resource limits (adjusted for Next.js production needs)
     deploy:
@@ -79,3 +84,9 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+# Define volumes for Next.js runtime data
+volumes:
+  next-cache:
+  next-server:
+  tmp-data:
