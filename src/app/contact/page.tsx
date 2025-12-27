@@ -13,6 +13,10 @@ import {
   BookOpen
 } from 'lucide-react';
 
+// CRITICAL: Force dynamic rendering to prevent build timeout
+// Backend API is not accessible during Docker build isolation
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Contact Us',
   description: 'Get in touch with BookBharat. We\'re here to help!',
