@@ -16,6 +16,12 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useConfig } from '@/contexts/ConfigContext';
 import { useCartStore } from '@/stores/cart';
 import { useHydratedAuth } from '@/stores/auth';
@@ -56,7 +62,8 @@ import {
   Timer,
   DollarSign,
   Info,
-  Sparkles
+  Sparkles,
+  Asterisk
 } from 'lucide-react';
 
 
@@ -192,7 +199,7 @@ export default function CheckoutPage() {
   const [couponCode, setCouponCode] = useState(persistedState.couponCode || '?');
   const [applyCouponLoading, setApplyCouponLoading] = useState(false);
   const { siteConfig } = useConfig();
-  const { cart, getCart, applyCoupon, removeCoupon, setPaymentMethod, setDeliveryPincode, isLoading: cartLoading } = useCartStore();
+  const { cart, getCart, applyCoupon, removeCoupon, setPaymentMethod, selectedPaymentMethod: storePaymentMethod, setDeliveryPincode, isLoading: cartLoading } = useCartStore();
   const { user, isAuthenticated } = useHydratedAuth();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
@@ -220,6 +227,7 @@ export default function CheckoutPage() {
       required: boolean;
       type: 'fixed' | 'percentage';
       value: number;
+      percentage?: number;  // Add percentage field for advance payment
       description?: string;
     } | null;
     service_charges?: {
@@ -242,6 +250,7 @@ export default function CheckoutPage() {
   const [codChargeAmount, setCodChargeAmount] = useState<number>(0); // Track COD charge for display
   const [paymentFlowSettings, setPaymentFlowSettings] = useState<PaymentFlowSettings>({ type: 'two_tier', default_payment_type: 'none' });
   const [isProcessingPaymentTypeChange, setIsProcessingPaymentTypeChange] = useState(false);
+  const lastPaymentMethodRef = useRef<string | null>(null); // Track last payment method to prevent infinite loop
 
   const {
     register,
@@ -480,30 +489,33 @@ export default function CheckoutPage() {
     }
   }, [cart?.summary, codConfig]);
 
-  // Update cart when payment type changes
-  // This triggers backend recalculation of charges based on selected payment method
+  // Update cart when payment type changes - CLEAN & SIMPLE
   useEffect(() => {
-    if (paymentType && !isProcessingPaymentTypeChange) {
-      const updateCartPaymentMethod = async () => {
-        try {
-          setIsProcessingPaymentTypeChange(true);
-          logger.log('Payment type changed to:', paymentType);
+    if (!paymentType) return;
 
-          // Update payment method in cart store
-          // NOTE: setPaymentMethod() internally calls getCart() with the payment method
-          await setPaymentMethod(paymentType);
+    const actualPaymentMethod = paymentType === 'cod'
+      ? 'cod'
+      : (availablePaymentMethods[0]?.payment_method || null);
 
-          logger.log('Cart updated with payment method:', paymentType);
-        } catch (error) {
-          logger.error('Failed to update cart payment method:', error);
-        } finally {
-          setIsProcessingPaymentTypeChange(false);
-        }
-      };
-
-      updateCartPaymentMethod();
+    // Skip if same as last update - prevents infinite loop
+    if (lastPaymentMethodRef.current === actualPaymentMethod) {
+      return;
     }
-  }, [paymentType]);
+
+    const updateCart = async () => {
+      try {
+        await setPaymentMethod(actualPaymentMethod);
+        lastPaymentMethodRef.current = actualPaymentMethod; // Track update
+        logger.log('✅ Cart updated with payment method:', actualPaymentMethod);
+      } catch (error) {
+        logger.error('❌ Failed to update payment method:', error);
+      }
+    };
+
+    // Debounce to prevent rapid API calls
+    const timer = setTimeout(updateCart, 300);
+    return () => clearTimeout(timer);
+  }, [paymentType, availablePaymentMethods]); // Removed setPaymentMethod to prevent infinite loop
 
 
   // Ref to track ongoing pincode validation requests to prevent duplicates
@@ -1242,6 +1254,23 @@ export default function CheckoutPage() {
     handlePaymentTypeChange();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentType]); // CRITICAL: Only depend on paymentType - NOT isProcessingPaymentTypeChange to avoid loop!
+
+  // Auto-select first available gateway when online payment is selected OR COD with advance payment
+  useEffect(() => {
+    const shouldAutoSelect =
+      (paymentType === 'online') ||
+      (paymentType === 'cod' && codConfig?.advance_payment?.required);
+
+    if (shouldAutoSelect && availablePaymentMethods.length > 0) {
+      // Automatically select the first available gateway
+      const firstGateway = availablePaymentMethods[0].payment_method;
+      // Only set if not already set to avoid loops or overriding user selection (though UI is hidden now)
+      if (getValues('paymentMethod') !== firstGateway) {
+        setValue('paymentMethod', firstGateway);
+        logger.log('🤖 Auto-selected payment gateway:', firstGateway);
+      }
+    }
+  }, [paymentType, availablePaymentMethods, setValue, codConfig]);
 
   // Handle payment gateway redirection
   const handlePaymentRedirect = (paymentDetails: any, gateway: string) => {
@@ -2224,605 +2253,182 @@ export default function CheckoutPage() {
                       </Card>
                     )}
 
-                    {/* Navigation - Desktop Only */}
-                    <div className="hidden lg:flex flex-col sm:flex-row gap-3 lg:gap-4 sm:justify-between sm:items-center">
-                      <Button type="button" variant="outline" onClick={prevStep} className="order-2 sm:order-1">
-                        <ChevronLeft className="w-4 h-4 mr-2" />
-                        Back to Shipping
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={handleContinueToNext}
-                        disabled={!isCurrentStepValid() || calculatingShipping}
-                        className="order-1 sm:order-2"
-                      >
-                        {calculatingShipping ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Calculating...
-                          </>
-                        ) : (
-                          <>
-                            Continue to Payment
-                            <ChevronRight className="w-4 h-4 ml-2" />
-                          </>
-                        )}
-                      </Button>
-                    </div>
+
                   </div>
                 )}
+
+
 
                 {/* STEP 3: PAYMENT & REVIEW */}
                 {currentStep === 3 && (
                   <div className="space-y-4 lg:space-y-6">
+                    {/* Payment Type Selection Card */}
+                    <Card>
+                      <CardHeader className="pb-3 lg:pb-4">
+                        <CardTitle className="flex items-center text-base lg:text-lg">
+                          <CreditCard className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+                          Select Payment Method
+                        </CardTitle>
+                        <p className="text-xs lg:text-sm text-muted-foreground mt-1">
+                          Choose how you'd like to pay for your order
+                        </p>
+                      </CardHeader>
+                      <CardContent className="space-y-3 lg:space-y-4">
 
-                    {/* Payment Flow: TWO-TIER (Default) */}
-                    {paymentFlowSettings.type === 'two_tier' && (
-                      <>
-                        {/* Step 1: Payment Type Selection */}
-                        <Card>
-                          <CardHeader className="pb-3 lg:pb-4">
-                            <CardTitle className="flex items-center text-sm lg:text-base">
-                              <CreditCard className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                              Choose Payment Type
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-3 lg:space-y-4">
-                            <div className="space-y-2 lg:space-y-3">
-                              {/* Online Payment Option */}
-                              <label
-                                className={`flex items-center p-3 lg:p-4 border-2 rounded-lg transition-colors ${isProcessingPaymentTypeChange
-                                  ? 'cursor-not-allowed opacity-60'
-                                  : paymentType === 'online'
-                                    ? 'border-primary bg-primary/5 cursor-pointer'
-                                    : 'border-border hover:bg-muted/50 cursor-pointer'
-                                  }`}
-                                onClick={() => !isProcessingPaymentTypeChange && setPaymentType('online')}
-                              >
-                                <CreditCard className="h-5 w-5 mr-3 text-primary" />
+                        {/* Online Payment Option */}
+                        {availablePaymentMethods.length > 0 && (
+                          <div
+                            onClick={() => setPaymentType('online')}
+                            className={`cursor-pointer border-2 rounded-lg p-3 lg:p-4 transition-all ${paymentType === 'online'
+                              ? 'border-primary bg-primary/5 shadow-sm'
+                              : 'border-border hover:border-primary/50'
+                              }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center flex-1">
+                                <div className={`w-4 h-4 lg:w-5 lg:h-5 rounded-full border-2 mr-3 flex items-center justify-center flex-shrink-0 ${paymentType === 'online' ? 'border-primary' : 'border-gray-300'
+                                  }`}>
+                                  {paymentType === 'online' && (
+                                    <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-primary"></div>
+                                  )}
+                                </div>
                                 <div className="flex-1">
                                   <div className="flex items-center justify-between">
-                                    <div className="font-medium text-sm lg:text-base">Full Payment (Pay Online Now)</div>
-                                    <div className="text-sm lg:text-base font-bold text-primary">
-                                      {siteConfig?.payment?.currency_symbol || '₹'}
-                                      {(() => {
-                                        // Calculate base total: cart total minus any COD charge that might be in it
-                                        const cartTotal = cart?.summary?.total || 0;
-                                        const codInCart = cart?.summary?.charges?.find((c: any) => c.code === 'cod_service_charge')?.amount || 0;
-                                        return (cartTotal - codInCart).toFixed(2);
-                                      })()}
-                                    </div>
+                                    <p className="font-semibold text-sm lg:text-base">💳 Online Payment</p>
+                                    <p className="font-bold text-sm lg:text-base text-primary ml-2">
+                                      {currencySymbol}{(subtotal + calculatedShippingCost + tax).toFixed(2)}
+                                    </p>
                                   </div>
-                                  <div className="text-xs lg:text-sm text-muted-foreground">Pay the full amount securely online</div>
                                 </div>
-                                <div className={`w-5 h-5 border-2 rounded-full flex items-center justify-center ml-3 ${paymentType === 'online'
-                                  ? 'border-primary bg-primary'
-                                  : 'border-border'
-                                  }`}>
-                                  {paymentType === 'online' && !isProcessingPaymentTypeChange && (
-                                    <div className="w-2.5 h-2.5 bg-primary-foreground rounded-full" />
-                                  )}
-                                  {isProcessingPaymentTypeChange && paymentType === 'online' && (
-                                    <div className="w-2.5 h-2.5 border border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                                  )}
-                                </div>
-                              </label>
-
-                              {/* COD Option (only if enabled) */}
-                              {codConfig && codConfig.enabled && (
-                                <label
-                                  className={`flex items-center p-3 lg:p-4 border-2 rounded-lg transition-colors ${isProcessingPaymentTypeChange
-                                    ? 'cursor-not-allowed opacity-60'
-                                    : paymentType === 'cod'
-                                      ? 'border-primary bg-primary/5 cursor-pointer'
-                                      : 'border-border hover:bg-muted/50 cursor-pointer'
-                                    }`}
-                                  onClick={() => !isProcessingPaymentTypeChange && setPaymentType('cod')}
-                                >
-                                  <DollarSign className="h-5 w-5 mr-3 text-green-600" />
-                                  <div className="flex-1">
-                                    <div className="flex items-center justify-between">
-                                      <div className="font-medium text-sm lg:text-base">{codConfig.display_name}</div>
-                                      <div className="text-right">
-                                        <div className="text-sm lg:text-base font-bold text-green-600">
-                                          {siteConfig?.payment?.currency_symbol || '₹'}
-                                          {(() => {
-                                            // Calculate base total (without COD charge)
-                                            const cartTotal = cart?.summary?.total || 0;
-                                            const codInCart = cart?.summary?.charges?.find((c: any) => c.code === 'cod_service_charge')?.amount || 0;
-                                            const baseTotal = cartTotal - codInCart;
-
-                                            // Calculate COD charge: use state if set, otherwise calculate from config
-                                            let codFee = codChargeAmount;
-                                            if (codFee === 0 && codConfig?.service_charges?.enabled && codConfig.service_charges.value > 0) {
-                                              if (codConfig.service_charges.type === 'percentage') {
-                                                codFee = (baseTotal * codConfig.service_charges.value) / 100;
-                                              } else {
-                                                codFee = codConfig.service_charges.value;
-                                              }
-                                            }
-
-                                            return (baseTotal + codFee).toFixed(2);
-                                          })()}
-                                        </div>
-                                        {(() => {
-                                          // Calculate COD fee for display
-                                          const cartTotal = cart?.summary?.total || 0;
-                                          const codInCart = cart?.summary?.charges?.find((c: any) => c.code === 'cod_service_charge')?.amount || 0;
-                                          const baseTotal = cartTotal - codInCart;
-
-                                          let displayFee = codChargeAmount;
-                                          if (displayFee === 0 && codConfig?.service_charges?.enabled && codConfig.service_charges.value > 0) {
-                                            if (codConfig.service_charges.type === 'percentage') {
-                                              displayFee = (baseTotal * codConfig.service_charges.value) / 100;
-                                            } else {
-                                              displayFee = codConfig.service_charges.value;
-                                            }
-                                          }
-
-                                          return displayFee > 0 && (
-                                            <div className="text-[10px] text-orange-600 font-medium">
-                                              +{siteConfig?.payment?.currency_symbol || '₹'}
-                                              {displayFee.toFixed(2)} COD fee
-                                            </div>
-                                          );
-                                        })()}
-                                      </div>
-                                    </div>
-                                    <div className="text-xs lg:text-sm text-muted-foreground">{codConfig.description}</div>
-                                    {codConfig.advance_payment && codConfig.advance_payment.required && (
-                                      <div className="text-xs mt-1 text-orange-600 font-medium">
-                                        ⚠️ Partial payment required upfront
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className={`w-5 h-5 border-2 rounded-full flex items-center justify-center ml-3 ${paymentType === 'cod'
-                                    ? 'border-primary bg-primary'
-                                    : 'border-border'
-                                    }`}>
-                                    {paymentType === 'cod' && !isProcessingPaymentTypeChange && (
-                                      <div className="w-2.5 h-2.5 bg-primary-foreground rounded-full" />
-                                    )}
-                                    {isProcessingPaymentTypeChange && paymentType === 'cod' && (
-                                      <div className="w-2.5 h-2.5 border border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                                    )}
-                                  </div>
-                                </label>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-
-                        {/* Step 2: Payment Gateway Selection (for Online) or COD Details */}
-                        {paymentType === 'online' && (
-                          <Card>
-                            <CardHeader className="pb-3 lg:pb-4">
-                              <CardTitle className="flex items-center text-sm lg:text-base">
-                                <Lock className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                                Select Payment Gateway
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-3 lg:space-y-4">
-                              <div className="space-y-2 lg:space-y-3">
-                                {paymentMethods.length === 0 && (
-                                  <div className="text-center text-muted-foreground py-4">
-                                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                                    <p className="text-sm">Loading payment gateways...</p>
-                                  </div>
-                                )}
-                                {paymentMethods.map((method) => {
-                                  return (
-                                    <label
-                                      key={method.id}
-                                      className={`flex items-center p-3 lg:p-4 border rounded-lg cursor-pointer transition-colors ${selectedPaymentMethod === method.id
-                                        ? 'border-primary bg-primary/5'
-                                        : 'border-border hover:bg-muted/50'
-                                        }`}
-                                    >
-                                      <input
-                                        {...register('paymentMethod', {
-                                          onChange: (e) => {
-                                            logger.log('Payment method selected:', e.target.value);
-                                          }
-                                        })}
-                                        type="radio"
-                                        value={method.id}
-                                        className="sr-only"
-                                        checked={selectedPaymentMethod === method.id}
-                                      />
-                                      <div className="mr-3 flex-shrink-0">{method.icon()}</div>
-                                      <div className="flex-1">
-                                        <div className="font-medium text-sm lg:text-base">{method.name}</div>
-                                        <div className="text-xs lg:text-sm text-muted-foreground">{method.description}</div>
-                                      </div>
-                                      <div className={`w-4 h-4 border-2 rounded-full ${selectedPaymentMethod === method.id
-                                        ? 'border-primary bg-primary'
-                                        : 'border-border'
-                                        }`}>
-                                        {selectedPaymentMethod === method.id && (
-                                          <div className="w-2 h-2 bg-primary-foreground rounded-full m-0.5" />
-                                        )}
-                                      </div>
-                                    </label>
-                                  );
-                                })}
                               </div>
-
-                              {errors.paymentMethod && (
-                                <p className="text-sm text-destructive">{errors.paymentMethod.message}</p>
-                              )}
-                            </CardContent>
-                          </Card>
+                              <Shield className="h-4 w-4 lg:h-5 lg:w-5 text-green-600 ml-2 flex-shrink-0" />
+                            </div>
+                          </div>
                         )}
 
-                        {/* COD Details */}
-                        {paymentType === 'cod' && codConfig && (
-                          <Card>
-                            <CardHeader className="pb-3 lg:pb-4">
-                              <CardTitle className="flex items-center text-sm lg:text-base">
-                                <Package className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                                Cash on Delivery Details
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                              {/* If advance payment required */}
-                              {codConfig.advance_payment && codConfig.advance_payment.required ? (
-                                <>
-                                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                                    <div className="flex items-start gap-3">
-                                      <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
-                                      <div>
-                                        <h4 className="font-semibold text-orange-900 mb-2">Advance Payment Required</h4>
-                                        <p className="text-sm text-orange-800 mb-3">
-                                          To place a COD order, you need to pay a partial amount online now and the remaining on delivery.
-                                        </p>
-                                        <div className="grid grid-cols-2 gap-3 text-sm">
-                                          <div className="bg-white border border-orange-200 rounded p-3">
-                                            <p className="text-orange-600 text-xs mb-1">Pay Now (Online)</p>
-                                            <p className="text-lg font-bold text-orange-900">
-                                              {currencySymbol}{(() => {
-                                                // CRITICAL: Use cart.summary values directly for accuracy
-                                                const cartSubtotal = cart?.summary?.discounted_subtotal || 0;
-                                                const cartShipping = cart?.summary?.shipping_cost || 0;
-                                                const cartTax = cart?.summary?.tax_amount || 0;
-                                                const baseAmount = cartSubtotal + cartShipping + cartTax;
-                                                const advanceAmount = codConfig.advance_payment.type === 'percentage'
-                                                  ? (baseAmount * codConfig.advance_payment.value) / 100
-                                                  : Math.min(codConfig.advance_payment.value, baseAmount);
-                                                return advanceAmount.toFixed(2);
-                                              })()}
-                                            </p>
-                                          </div>
-                                          <div className="bg-white border border-orange-200 rounded p-3">
-                                            <p className="text-orange-600 text-xs mb-1">Pay on Delivery</p>
-                                            <p className="text-lg font-bold text-orange-900">
-                                              {currencySymbol}{(() => {
-                                                // CRITICAL: Use cart.summary values directly for accuracy
-                                                const cartSubtotal = cart?.summary?.discounted_subtotal || 0;
-                                                const cartShipping = cart?.summary?.shipping_cost || 0;
-                                                const cartTax = cart?.summary?.tax_amount || 0;
-                                                const cartCharges = cart?.summary?.total_charges || 0;
-                                                const baseAmount = cartSubtotal + cartShipping + cartTax;
-                                                const advanceAmount = codConfig.advance_payment.type === 'percentage'
-                                                  ? (baseAmount * codConfig.advance_payment.value) / 100
-                                                  : Math.min(codConfig.advance_payment.value, baseAmount);
-                                                // COD amount = remaining baseAmount + COD charges
-                                                const codAmount = baseAmount - advanceAmount + cartCharges;
-                                                return codAmount.toFixed(2);
-                                              })()}
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Select gateway for advance payment */}
-                                  <div>
-                                    <h4 className="font-medium text-sm mb-3">Select Payment Gateway for Advance Payment</h4>
-                                    <div className="space-y-2">
-                                      {paymentMethods.length === 0 && (
-                                        <div className="text-center text-muted-foreground py-4">
-                                          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                                          <p className="text-sm">Loading payment gateways...</p>
-                                        </div>
-                                      )}
-                                      {paymentMethods.map((method) => {
-                                        return (
-                                          <label
-                                            key={method.id}
-                                            className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${selectedPaymentMethod === method.id
-                                              ? 'border-primary bg-primary/5'
-                                              : 'border-border hover:bg-muted/50'
-                                              }`}
-                                          >
-                                            <input
-                                              {...register('paymentMethod')}
-                                              type="radio"
-                                              value={method.id}
-                                              className="sr-only"
-                                              checked={selectedPaymentMethod === method.id}
-                                            />
-                                            <div className="mr-3 flex-shrink-0">{method.icon()}</div>
-                                            <div className="flex-1">
-                                              <div className="font-medium text-sm">{method.name}</div>
-                                            </div>
-                                            <div className={`w-4 h-4 border-2 rounded-full ${selectedPaymentMethod === method.id
-                                              ? 'border-primary bg-primary'
-                                              : 'border-border'
-                                              }`}>
-                                              {selectedPaymentMethod === method.id && (
-                                                <div className="w-2 h-2 bg-primary-foreground rounded-full m-0.5" />
-                                              )}
-                                            </div>
-                                          </label>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                </>
-                              ) : (
-                                /* No advance payment - Pure COD */
-                                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                  <div className="flex items-start gap-3">
-                                    <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                                    <div className="flex-1">
-                                      <h4 className="font-semibold text-green-900 mb-2">Cash on Delivery Confirmed</h4>
-                                      <p className="text-sm text-green-800 mb-2">
-                                        You will pay the full amount when your order is delivered.
-                                      </p>
-                                      <div className="bg-white border border-green-200 rounded p-3 inline-block">
-                                        <p className="text-green-600 text-xs mb-1">Total Amount (Pay on Delivery)</p>
-                                        <p className="text-2xl font-bold text-green-900">{currencySymbol}{total.toFixed(2)}</p>
-                                      </div>
-                                    </div>
+                        {/* COD Option (if available) */}
+                        {codConfig?.enabled && (
+                          <div
+                            onClick={() => setPaymentType('cod')}
+                            className={`cursor-pointer border-2 rounded-lg p-3 lg:p-4 transition-all ${paymentType === 'cod'
+                              ? 'border-primary bg-primary/5 shadow-sm'
+                              : 'border-border hover:border-primary/50'
+                              }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center flex-1">
+                                <div className={`w-4 h-4 lg:w-5 lg:h-5 rounded-full border-2 mr-3 flex items-center justify-center flex-shrink-0 ${paymentType === 'cod' ? 'border-primary' : 'border-gray-300'
+                                  }`}>
+                                  {paymentType === 'cod' && (
+                                    <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-primary"></div>
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <p className="font-semibold text-sm lg:text-base">{codConfig.display_name || '💵 Cash on Delivery'}</p>
+                                    <p className="font-bold text-sm lg:text-base text-primary ml-2">
+                                      {currencySymbol}{(subtotal + calculatedShippingCost + tax + codChargeAmount).toFixed(2)}
+                                    </p>
                                   </div>
                                 </div>
-                              )}
-                            </CardContent>
-                          </Card>
+                              </div>
+                            </div>
+                          </div>
                         )}
-                      </>
-                    )}
 
-                    {/* Payment Flow: SINGLE LIST - All gateways in one list */}
-                    {paymentFlowSettings.type === 'single_list' && (
-                      <Card>
+                        {/* No Payment Methods Available */}
+                        {!codConfig?.enabled && availablePaymentMethods.length === 0 && (
+                          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+                            <AlertCircle className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
+                            <p className="text-sm text-yellow-800 font-medium">
+                              No payment methods available
+                            </p>
+                            <p className="text-xs text-yellow-700 mt-1">
+                              Please contact support to complete your order
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+
+                    {/* Gateway Selection removed - automatically uses first gateway */}
+
+                    {/* Why COD Price is Higher - Educational Section */}
+                    {codChargeAmount > 0 && paymentType === 'cod' && (
+                      <Card className="bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200">
                         <CardHeader className="pb-3 lg:pb-4">
-                          <CardTitle className="flex items-center text-sm lg:text-base">
-                            <CreditCard className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                            Select Payment Method
+                          <CardTitle className="text-sm lg:text-base flex items-center text-orange-800">
+                            <Info className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+                            Why COD price is higher?
                           </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-3 lg:space-y-4">
-                          <div className="space-y-2 lg:space-y-3">
-                            {/* All gateways including COD in single list */}
-                            {paymentMethods.map((method) => {
-                              return (
-                                <label
-                                  key={method.id}
-                                  className={`flex items-center p-3 lg:p-4 border rounded-lg cursor-pointer transition-colors ${selectedPaymentMethod === method.id
-                                    ? 'border-primary bg-primary/5'
-                                    : 'border-border hover:bg-muted/50'
-                                    }`}
-                                >
-                                  <input
-                                    {...register('paymentMethod')}
-                                    type="radio"
-                                    value={method.id}
-                                    className="sr-only"
-                                    checked={selectedPaymentMethod === method.id}
-                                  />
-                                  <div className="mr-3 flex-shrink-0">{method.icon()}</div>
-                                  <div className="flex-1">
-                                    <div className="font-medium text-sm lg:text-base">{method.name}</div>
-                                    <div className="text-xs lg:text-sm text-muted-foreground">{method.description}</div>
-                                  </div>
-                                  <div className={`w-4 h-4 border-2 rounded-full ${selectedPaymentMethod === method.id
-                                    ? 'border-primary bg-primary'
-                                    : 'border-border'
-                                    }`}>
-                                    {selectedPaymentMethod === method.id && (
-                                      <div className="w-2 h-2 bg-primary-foreground rounded-full m-0.5" />
-                                    )}
-                                  </div>
-                                </label>
-                              );
-                            })}
+                        <CardContent className="space-y-3">
+                          <p className="text-xs lg:text-sm text-orange-700">
+                            Cash on Delivery orders have additional service charges to cover logistics and handling costs. Watch this short video to understand why:
+                          </p>
 
-                            {/* COD in the same list */}
-                            {codConfig && codConfig.enabled && (
-                              <label
-                                className={`flex items-center p-3 lg:p-4 border rounded-lg transition-colors ${isProcessingPaymentTypeChange
-                                  ? 'cursor-not-allowed opacity-60'
-                                  : selectedPaymentMethod === 'cod'
-                                    ? 'border-primary bg-primary/5 cursor-pointer'
-                                    : 'border-border hover:bg-muted/50 cursor-pointer'
-                                  }`}
-                                onClick={() => {
-                                  if (!isProcessingPaymentTypeChange) {
-                                    setValue('paymentMethod', 'cod');
-                                    setPaymentType('cod');
-                                  }
-                                }}
-                              >
-                                <DollarSign className="h-5 w-5 mr-3 text-green-600" />
-                                <div className="flex-1">
-                                  <div className="font-medium text-sm lg:text-base">{codConfig.display_name}</div>
-                                  <div className="text-xs lg:text-sm text-muted-foreground">{codConfig.description}</div>
-                                </div>
-                                <div className={`w-4 h-4 border-2 rounded-full ${selectedPaymentMethod === 'cod'
-                                  ? 'border-primary bg-primary'
-                                  : 'border-border'
-                                  }`}>
-                                  {selectedPaymentMethod === 'cod' && !isProcessingPaymentTypeChange && (
-                                    <div className="w-2 h-2 bg-primary-foreground rounded-full m-0.5" />
-                                  )}
-                                  {isProcessingPaymentTypeChange && selectedPaymentMethod === 'cod' && (
-                                    <div className="w-2 h-2 border border-primary-foreground border-t-transparent rounded-full animate-spin m-0.5" />
-                                  )}
-                                </div>
-                              </label>
-                            )}
+                          {/* YouTube Video Embed */}
+                          <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-black">
+                            <iframe
+                              className="absolute top-0 left-0 w-full h-full"
+                              src="https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1"
+                              title="Why COD price is higher"
+                              frameBorder="0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            ></iframe>
+                          </div>
+
+                          <div className="flex items-start space-x-2 text-xs lg:text-sm text-orange-700 bg-white/50 p-2 lg:p-3 rounded-lg">
+                            <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-orange-600" />
+                            <p>
+                              <span className="font-medium">Tip:</span> Save {currencySymbol}{codChargeAmount.toFixed(2)} by choosing online payment instead!
+                            </p>
                           </div>
                         </CardContent>
                       </Card>
                     )}
 
-                    {/* Payment Flow: COD FIRST - COD prominently shown first */}
-                    {paymentFlowSettings.type === 'cod_first' && (
-                      <>
-                        {/* COD Option - Prominent */}
-                        {codConfig && codConfig.enabled && (
-                          <Card className="border-2 border-green-500">
-                            <CardHeader className="pb-3 lg:pb-4 bg-green-50">
-                              <CardTitle className="flex items-center text-sm lg:text-base text-green-900">
-                                <DollarSign className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                                Cash on Delivery (Recommended)
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-3 lg:space-y-4">
-                              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                <p className="text-sm text-green-800 mb-3">{codConfig.description}</p>
-                                <Button
-                                  type="button"
-                                  className="w-full bg-green-600 hover:bg-green-700"
-                                  disabled={isProcessingPaymentTypeChange}
-                                  onClick={() => {
-                                    if (!isProcessingPaymentTypeChange) {
-                                      setValue('paymentMethod', 'cod');
-                                      setPaymentType('cod');
-                                    }
-                                  }}
-                                >
-                                  {isProcessingPaymentTypeChange ? (
-                                    <>
-                                      <div className="w-4 h-4 border border-white border-t-transparent rounded-full animate-spin mr-2" />
-                                      Processing...
-                                    </>
-                                  ) : (
-                                    'Pay on Delivery'
-                                  )}
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )}
 
-                        {/* Divider */}
-                        <div className="relative">
-                          <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-border"></div>
-                          </div>
-                          <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground">Or pay online</span>
-                          </div>
-                        </div>
-
-                        {/* Online Payment Gateways */}
-                        <Card>
-                          <CardHeader className="pb-3 lg:pb-4">
-                            <CardTitle className="flex items-center text-sm lg:text-base">
-                              <CreditCard className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                              Online Payment Methods
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-3 lg:space-y-4">
-                            <div className="space-y-2 lg:space-y-3">
-                              {paymentMethods.map((method) => {
-                                return (
-                                  <label
-                                    key={method.id}
-                                    className={`flex items-center p-3 lg:p-4 border rounded-lg transition-colors ${isProcessingPaymentTypeChange
-                                      ? 'cursor-not-allowed opacity-60'
-                                      : selectedPaymentMethod === method.id
-                                        ? 'border-primary bg-primary/5 cursor-pointer'
-                                        : 'border-border hover:bg-muted/50 cursor-pointer'
-                                      }`}
-                                  >
-                                    <input
-                                      {...register('paymentMethod')}
-                                      type="radio"
-                                      value={method.id}
-                                      className="sr-only"
-                                      checked={selectedPaymentMethod === method.id}
-                                      disabled={isProcessingPaymentTypeChange}
-                                      onChange={() => !isProcessingPaymentTypeChange && setPaymentType('online')}
-                                    />
-                                    <div className="mr-3 flex-shrink-0">{method.icon()}</div>
-                                    <div className="flex-1">
-                                      <div className="font-medium text-sm lg:text-base">{method.name}</div>
-                                      <div className="text-xs lg:text-sm text-muted-foreground">{method.description}</div>
-                                    </div>
-                                    <div className={`w-4 h-4 border-2 rounded-full ${selectedPaymentMethod === method.id
-                                      ? 'border-primary bg-primary'
-                                      : 'border-border'
-                                      }`}>
-                                      {selectedPaymentMethod === method.id && !isProcessingPaymentTypeChange && (
-                                        <div className="w-2 h-2 bg-primary-foreground rounded-full m-0.5" />
-                                      )}
-                                      {isProcessingPaymentTypeChange && selectedPaymentMethod === method.id && (
-                                        <div className="w-2 h-2 border border-primary-foreground border-t-transparent rounded-full animate-spin m-0.5" />
-                                      )}
-                                    </div>
-                                  </label>
-                                );
-                              })}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </>
-                    )}
-
-                    {/* Order Notes */}
-                    <Card>
-                      <CardContent className="pt-6">
-                        <Textarea
-                          {...register('notes')}
-                          label="Order Notes (Optional)"
-                          placeholder="Any special instructions for delivery..."
-                          rows={3}
-                        />
-                      </CardContent>
-                    </Card>
-
-                    {/* Error Display */}
-                    {error && (
-                      <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-                        <div className="flex">
-                          <AlertCircle className="h-5 w-5 text-destructive mr-3 flex-shrink-0 mt-0.5" />
-                          <p className="text-sm text-destructive">{error}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Navigation - Desktop Only */}
-                    <div className="hidden lg:flex flex-col sm:flex-row gap-3 lg:gap-4 sm:justify-between sm:items-center">
-                      <Button type="button" variant="outline" onClick={prevStep} className="order-2 sm:order-1">
-                        <ChevronLeft className="w-4 h-4 mr-2" />
-                        Back to {sameAsBilling ? 'Shipping' : 'Billing Address'}
-                      </Button>
+                    {/* Place Order Button - Desktop Only */}
+                    <div className="hidden lg:block">
                       <Button
                         type="submit"
-                        disabled={isProcessing || calculatingShipping || !isCurrentStepValid()}
-                        className="order-1 sm:order-2 w-full sm:w-auto"
+                        disabled={isProcessing || !isStep3Valid()}
+                        className="w-full py-5 lg:py-6 text-base lg:text-lg font-bold bg-blue-600 hover:bg-blue-700"
                         form="checkout-form"
                       >
-                        {isProcessing || calculatingShipping ? (
+                        {isProcessing ? (
                           <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            {isProcessing ? 'Processing...' : 'Calculating...'}
+                            <Loader2 className="h-4 w-4 lg:h-5 lg:w-5 mr-2 animate-spin" />
+                            Processing Order...
                           </>
                         ) : (
                           <>
-                            <Lock className="h-4 w-4 mr-2" />
-                            Place Order • {currencySymbol}{total.toFixed(2)}
+                            <Lock className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+                            🔐 Place Order - {currencySymbol}{total.toFixed(2)}
                           </>
                         )}
                       </Button>
+                      {!isStep3Valid() && (
+                        <p className="text-xs lg:text-sm text-center text-muted-foreground mt-2">
+                          {!paymentType
+                            ? 'Please select a payment method to continue'
+                            : 'Ready to place order'}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Security Badge */}
+                    <div className="hidden lg:flex items-center justify-center text-xs text-muted-foreground gap-2 p-3 bg-muted/50 rounded-lg">
+                      <Shield className="h-4 w-4 text-green-600" />
+                      <span>Your payment information is secure and encrypted</span>
                     </div>
                   </div>
                 )}
+
+
               </form>
             </div>
 
@@ -2841,7 +2447,7 @@ export default function CheckoutPage() {
                     total: total,
                     charges: finalChargesList,
                     totalCharges: finalTotalCharges,
-                    bundleDiscount: cart.summary?.bundleDiscount || 0,
+                    bundleDiscount: cart.summary?.bundle_discount || 0,
                     currencySymbol: currencySymbol,
                     itemCount: cart?.total_items || 0
                   }}
@@ -2849,7 +2455,7 @@ export default function CheckoutPage() {
                   onRemoveCoupon={handleRemoveCoupon}
                   applyCouponLoading={applyCouponLoading}
                   variant="checkout"
-                  hasValidShippingAddress={hasValidShippingAddress}
+                  hasValidShippingAddress={!!hasValidShippingAddress}
                   calculatingShipping={calculatingShipping}
                 />
               </div>
@@ -2867,7 +2473,7 @@ export default function CheckoutPage() {
                     total: total,
                     charges: finalChargesList,
                     totalCharges: finalTotalCharges,
-                    bundleDiscount: cart.summary?.bundleDiscount || 0,
+                    bundleDiscount: cart.summary?.bundle_discount || 0,
                     currencySymbol: currencySymbol,
                     itemCount: cart?.total_items || 0
                   }}
@@ -2875,7 +2481,7 @@ export default function CheckoutPage() {
                   onRemoveCoupon={handleRemoveCoupon}
                   applyCouponLoading={applyCouponLoading}
                   variant="checkout"
-                  hasValidShippingAddress={hasValidShippingAddress}
+                  hasValidShippingAddress={!!hasValidShippingAddress}
                   calculatingShipping={calculatingShipping}
                 />
               </div>
@@ -2935,7 +2541,6 @@ export default function CheckoutPage() {
                   type="button"
                   variant="outline"
                   onClick={prevStep}
-                  size="default"
                   className="flex-1 font-bold"
                 >
                   <ChevronLeft className="w-4 h-4 mr-1" />
@@ -3001,8 +2606,8 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-      </div>
-    </ProtectedRoute>
+      </div >
+    </ProtectedRoute >
   );
 }
 

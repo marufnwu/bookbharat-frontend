@@ -142,8 +142,20 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=3600, s-maxage=3600',
+            value: process.env.NODE_ENV === 'development'
+              ? 'no-store, no-cache, must-revalidate, proxy-revalidate'
+              : 'public, max-age=3600, s-maxage=3600',
           },
+          ...(process.env.NODE_ENV === 'development' ? [
+            {
+              key: 'Pragma',
+              value: 'no-cache',
+            },
+            {
+              key: 'Expires',
+              value: '0',
+            },
+          ] : []),
           {
             key: 'Content-Type',
             value: 'application/xml; charset=utf-8',
@@ -188,6 +200,20 @@ const nextConfig: NextConfig = {
             key: 'X-DNS-Prefetch-Control',
             value: 'on',
           },
+          ...(process.env.NODE_ENV === 'development' ? [
+            {
+              key: 'Cache-Control',
+              value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            },
+            {
+              key: 'Pragma',
+              value: 'no-cache',
+            },
+            {
+              key: 'Expires',
+              value: '0',
+            },
+          ] : []),
         ],
       },
     ];
