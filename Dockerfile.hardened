@@ -95,6 +95,9 @@ RUN mkdir .next && chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# CRITICAL: Copy .next/server directory (contains pages-manifest.json and other runtime files)
+COPY --from=builder --chown=nextjs:nodejs /app/.next/server ./.next/server
+
 # ====================
 # SECURITY: Remove dangerous tools to prevent command execution
 # Keep /bin/sh as it's needed by Node.js runtime
