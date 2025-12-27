@@ -29,8 +29,6 @@ const nextConfig: NextConfig = {
       '@radix-ui/react-toast',
       'lucide-react'
     ],
-    // Optimize for read-only container deployments
-    isrFlushToDisk: false,  // Don't write ISR cache to disk on every request
   },
 
   // Set environment variables for build process
