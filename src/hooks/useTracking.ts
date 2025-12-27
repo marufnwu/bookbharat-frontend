@@ -88,7 +88,7 @@ export function useTracking(): TrackingHook {
 
     // Log debug information if enabled
     if (config.debug.console_logging) {
-      console.log('📊 Tracking Event:', event, defaultParams);
+      // Reserved for future debug integration
     }
 
     // Google Analytics (gtag)

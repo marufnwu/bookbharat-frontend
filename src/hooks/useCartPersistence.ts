@@ -27,7 +27,6 @@ export function useCartPersistence() {
       const restored = loadCartFromStorage();
       
       if (restored) {
-        console.log('🛒 Cart restored from storage');
       }
       
       // Enable cart recovery for authenticated users

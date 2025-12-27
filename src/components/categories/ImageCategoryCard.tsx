@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { LucideIcon, TrendingUp, Sparkles, ArrowRight } from 'lucide-react';
+import { useState } from 'react';
 
 interface ImageCategoryCardProps {
   category: {
@@ -34,9 +35,14 @@ export function ImageCategoryCard({
   showProductCount = true,
   className
 }: ImageCategoryCardProps) {
+  const [imageError, setImageError] = useState(false);
   const href = `/categories/${category.slug || category.id}`;
   const categoryImage = category.image_url || category.image;
   const productCount = category.products_count ?? category.product_count;
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
 
   // Image Hero Variant - Enhanced Circular image with name at bottom
   if (variant === 'image-hero') {
@@ -51,7 +57,7 @@ export function ImageCategoryCard({
           <div className="flex flex-col items-center h-full justify-center p-2 md:p-3">
             {/* Enhanced Circular Image */}
             <div className="relative w-14 h-14 md:w-16 md:h-20 lg:w-24 lg:h-24 aspect-square overflow-hidden bg-gradient-to-br from-primary/5 to-secondary/5 rounded-full border-2 border-background shadow-md group-hover:shadow-lg transition-all">
-              {categoryImage ? (
+              {categoryImage && !imageError ? (
                 <>
                   <Image
                     src={categoryImage}
@@ -59,6 +65,7 @@ export function ImageCategoryCard({
                     fill
                     className="object-cover transition-all duration-500 group-hover:scale-110"
                     sizes="(max-width: 640px) 56px, (max-width: 1024px) 64px, 96px"
+                    onError={handleImageError}
                   />
                 </>
               ) : (
@@ -115,13 +122,14 @@ export function ImageCategoryCard({
           <div className="flex flex-col items-center">
             {/* Circular Image */}
             <div className="relative w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 aspect-square overflow-hidden rounded-full border-2 border-background shadow-md group-hover:shadow-lg transition-all bg-gradient-to-br from-primary/5 to-secondary/5">
-              {categoryImage ? (
+              {categoryImage && !imageError ? (
                 <Image
                   src={categoryImage}
                   alt={category.name}
                   fill
                   className="object-cover transition-all duration-500 group-hover:scale-110"
                   sizes="(max-width: 640px) 64px, (max-width: 1024px) 80px, 96px"
+                  onError={handleImageError}
                 />
               ) : (
                 <div className={cn(
@@ -177,13 +185,14 @@ export function ImageCategoryCard({
           <div className="flex flex-col items-center">
             {/* Circular Image */}
             <div className="relative w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 aspect-square overflow-hidden rounded-full border-2 border-background shadow-md group-hover:shadow-lg transition-all bg-gradient-to-br from-primary/5 to-secondary/5">
-              {categoryImage ? (
+              {categoryImage && !imageError ? (
                 <Image
                   src={categoryImage}
                   alt={category.name}
                   fill
                   className="object-cover transition-all duration-500 group-hover:scale-110"
                   sizes="(max-width: 640px) 64px, (max-width: 1024px) 80px, 96px"
+                  onError={handleImageError}
                 />
               ) : (
                 <div className={cn(

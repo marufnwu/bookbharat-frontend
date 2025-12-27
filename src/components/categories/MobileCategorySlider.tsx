@@ -37,6 +37,11 @@ export function MobileCategorySlider({
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [currentScrollIndex, setCurrentScrollIndex] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
+
+  const handleImageError = (categoryId: number) => {
+    setImageErrors(prev => new Set(prev).add(categoryId));
+  };
 
   // Calculate total pages and current scroll index
   useEffect(() => {
@@ -214,6 +219,7 @@ export function MobileCategorySlider({
           const href = `/categories/${category.slug || category.id}`;
           const categoryImage = category.image_url || category.image;
           const productCount = category.products_count ?? category.product_count;
+          const hasImageError = imageErrors.has(category.id);
 
           return (
             <Link
@@ -224,13 +230,14 @@ export function MobileCategorySlider({
               <div className="w-20 h-24 flex flex-col items-center">
               {/* Enhanced Touch Target */}
               <div className="relative w-16 h-16 aspect-square overflow-hidden transition-all duration-300 group-hover:scale-105 rounded-full border-2 border-background shadow-lg group-hover:shadow-xl bg-white">
-                {categoryImage ? (
+                {categoryImage && !hasImageError ? (
                   <Image
                     src={categoryImage}
                     alt={category.name}
                     fill
                     className="object-cover transition-transform duration-300 group-hover:scale-110"
                     sizes="64px"
+                    onError={() => handleImageError(category.id)}
                   />
                 ) : (
                   <div className={cn(

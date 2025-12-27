@@ -23,6 +23,7 @@ import {
 import { newsletterApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { useNavigationMenus, useSiteInfo, useSocialLinks, useHomepageLayout } from '@/contexts/SiteConfigContext';
+import { useConfig } from '@/contexts/ConfigContext';
 
 export function Footer() {
   const [email, setEmail] = useState('');
@@ -35,10 +36,11 @@ export function Footer() {
   const socialLinks = useSocialLinks();
   const homepageLayout = useHomepageLayout();
   const newsletter = homepageLayout?.newsletter;
+  const { siteConfig } = useConfig();
 
   const toggleSection = (section: string) => {
-    setExpandedSections(prev => 
-      prev.includes(section) 
+    setExpandedSections(prev =>
+      prev.includes(section)
         ? prev.filter(s => s !== section)
         : [...prev, section]
     );
@@ -46,7 +48,7 @@ export function Footer() {
 
   const handleNewsletterSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email) {
       toast.error('Please enter your email address');
       return;
@@ -58,13 +60,13 @@ export function Footer() {
     }
 
     setIsSubscribing(true);
-    
+
     try {
-      const response = await newsletterApi.subscribe({ 
+      const response = await newsletterApi.subscribe({
         email,
-        preferences: ['books', 'offers', 'news'] 
+        preferences: ['books', 'offers', 'news']
       });
-      
+
       toast.success(response.message || 'Successfully subscribed to newsletter!');
       setEmail('');
     } catch (error: any) {
@@ -104,11 +106,13 @@ export function Footer() {
   }, [footerSections]);
 
   const features = [
-    {
+    ...(siteConfig?.payment?.free_shipping_enabled !== false ? [{
       icon: Truck,
       title: 'Free Shipping',
-      description: 'Above ₹499',
-    },
+      description: siteConfig?.payment?.free_shipping_threshold && siteConfig.payment.free_shipping_threshold > 0
+        ? `Above ${siteConfig.payment.currency_symbol || '₹'}${siteConfig.payment.free_shipping_threshold}`
+        : 'On all orders',
+    }] : []),
     {
       icon: RotateCcw,
       title: 'Easy Returns',
@@ -275,13 +279,12 @@ export function Footer() {
                   >
                     <h3 className="text-sm font-semibold capitalize">
                       {key === 'primary' ? 'Company' :
-                       key === 'secondary' ? 'Support' :
-                       key === 'legal' ? 'Policies' : key}
+                        key === 'secondary' ? 'Support' :
+                          key === 'legal' ? 'Policies' : key}
                     </h3>
                     <ChevronRight
-                      className={`h-4 w-4 transition-transform ${
-                        expandedSections.includes(key) ? 'rotate-90' : ''
-                      }`}
+                      className={`h-4 w-4 transition-transform ${expandedSections.includes(key) ? 'rotate-90' : ''
+                        }`}
                     />
                   </button>
                   {expandedSections.includes(key) && (
@@ -392,7 +395,7 @@ export function Footer() {
                 {socialLinks?.linkedin_url && (
                   <Link href={socialLinks.linkedin_url} className="text-muted-foreground hover:text-primary transition-colors" target="_blank">
                     <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
                     </svg>
                   </Link>
                 )}

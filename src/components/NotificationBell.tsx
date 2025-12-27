@@ -75,7 +75,7 @@ export default function NotificationBell() {
       webSocketRef.current = new WebSocket(wsUrl)
 
       webSocketRef.current.onopen = () => {
-        console.log('WebSocket connected for notifications')
+        setReconnectAttempts(0)
       }
 
       webSocketRef.current.onmessage = (event) => {
@@ -111,17 +111,7 @@ export default function NotificationBell() {
       }
 
       webSocketRef.current.onclose = () => {
-        console.log('WebSocket disconnected')
-        // Attempt to reconnect after 5 seconds
-        setTimeout(() => {
-          if (webSocketRef.current?.readyState === WebSocket.CLOSED) {
-            const newWs = new WebSocket(wsUrl)
-            newWs.onopen = () => console.log('WebSocket reconnected')
-            newWs.onmessage = webSocketRef.current?.onmessage
-            newWs.onclose = webSocketRef.current?.onclose
-            webSocketRef.current = newWs
-          }
-        }, 5000)
+        setReconnectAttempts(prev => prev + 1)
       }
 
       webSocketRef.current.onerror = (error) => {

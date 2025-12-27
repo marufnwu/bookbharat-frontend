@@ -470,7 +470,7 @@ export default function OrdersPage() {
                         </Button>
                       )}
                       
-                      {order.status === 'shipped' && order.shipping.trackingId && (
+                      {order.status === 'shipped' && order.tracking_number && (
                         <Button variant="outline" size="sm">
                           <Truck className="h-4 w-4 mr-2" />
                           Track Order

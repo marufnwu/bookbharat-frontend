@@ -104,11 +104,11 @@ export function ProductInfo({ product, className = '' }: ProductInfoProps) {
         desc: getFreeShippingDescription(),
         highlight: true
       });
-    } else {
+    } else if (siteConfig?.payment?.free_shipping_enabled !== false && (siteConfig?.payment?.free_shipping_threshold || 0) > 0) {
       features.push({
         icon: Truck,
         text: 'Free Delivery',
-        desc: `On orders above ${currencySymbol}${siteConfig?.payment?.free_shipping_threshold || 0}`,
+        desc: `On orders above ${currencySymbol}${siteConfig?.payment?.free_shipping_threshold}`,
         highlight: false
       });
     }
@@ -254,11 +254,10 @@ export function ProductInfo({ product, className = '' }: ProductInfoProps) {
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
-                      className={`h-4 w-4 ${
-                        i < Math.floor(product.rating || 4.5)
-                          ? 'text-yellow-400 fill-current'
-                          : 'text-gray-300'
-                      }`}
+                      className={`h-4 w-4 ${i < Math.floor(product.rating || 4.5)
+                        ? 'text-yellow-400 fill-current'
+                        : 'text-gray-300'
+                        }`}
                     />
                   ))}
                 </div>
@@ -356,7 +355,7 @@ export function ProductInfo({ product, className = '' }: ProductInfoProps) {
       <Card>
         <CardContent className="p-4 space-y-4">
           {/* Product-level Free Shipping Indicator */}
-          {hasProductFreeShipping() && (
+          {hasProductFreeShipping() && siteConfig?.payment?.free_shipping_enabled !== false && (
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3">
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-10 h-10 bg-green-100 rounded-lg">
@@ -375,8 +374,8 @@ export function ProductInfo({ product, className = '' }: ProductInfoProps) {
             </div>
           )}
 
-          {/* Order-level Free Shipping Progress */}
-          {!hasProductFreeShipping() && (
+          {/* Order-level Free Shipping Progress - Only if enabled */}
+          {!hasProductFreeShipping() && siteConfig?.payment?.free_shipping_enabled !== false && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <div className="flex items-center gap-3 mb-2">
                 <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-lg">
@@ -431,11 +430,10 @@ export function ProductInfo({ product, className = '' }: ProductInfoProps) {
             </div>
 
             {deliveryAvailable !== null && (
-              <div className={`p-3 rounded-lg text-sm ${
-                deliveryAvailable
-                  ? 'bg-green-50 text-green-700 border border-green-200'
-                  : 'bg-red-50 text-red-700 border border-red-200'
-              }`}>
+              <div className={`p-3 rounded-lg text-sm ${deliveryAvailable
+                ? 'bg-green-50 text-green-700 border border-green-200'
+                : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
                 <div className="flex items-center gap-2">
                   {deliveryAvailable ? (
                     <>
@@ -549,17 +547,14 @@ export function ProductInfo({ product, className = '' }: ProductInfoProps) {
       <div className="grid grid-cols-2 gap-4 pt-4 border-t">
         {getFeaturesList().map((feature, index) => (
           <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-            <div className={`flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0 ${
-              feature.highlight ? 'bg-green-100' : 'bg-primary/10'
-            }`}>
-              <feature.icon className={`h-4 w-4 ${
-                feature.highlight ? 'text-green-600' : 'text-primary'
-              }`} />
+            <div className={`flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0 ${feature.highlight ? 'bg-green-100' : 'bg-primary/10'
+              }`}>
+              <feature.icon className={`h-4 w-4 ${feature.highlight ? 'text-green-600' : 'text-primary'
+                }`} />
             </div>
             <div className="min-w-0">
-              <div className={`font-medium text-sm ${
-                feature.highlight ? 'text-green-700' : ''
-              }`}>{feature.text}</div>
+              <div className={`font-medium text-sm ${feature.highlight ? 'text-green-700' : ''
+                }`}>{feature.text}</div>
               <div className="text-xs text-muted-foreground">{feature.desc}</div>
             </div>
           </div>

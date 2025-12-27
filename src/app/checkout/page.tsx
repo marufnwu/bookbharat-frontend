@@ -16,6 +16,12 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useConfig } from '@/contexts/ConfigContext';
 import { useCartStore } from '@/stores/cart';
 import { useHydratedAuth } from '@/stores/auth';
@@ -27,7 +33,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { OrderSummaryCard } from '@/components/cart/OrderSummaryCard';
 import { GatewayIcon } from '@/components/payment/GatewayIcon';
 import { logger } from '@/lib/logger';
-import { 
+import {
   BookOpen,
   CreditCard,
   MapPin,
@@ -56,7 +62,8 @@ import {
   Timer,
   DollarSign,
   Info,
-  Sparkles
+  Sparkles,
+  Asterisk
 } from 'lucide-react';
 
 
@@ -192,7 +199,7 @@ export default function CheckoutPage() {
   const [couponCode, setCouponCode] = useState(persistedState.couponCode || '?');
   const [applyCouponLoading, setApplyCouponLoading] = useState(false);
   const { siteConfig } = useConfig();
-  const { cart, getCart, applyCoupon, removeCoupon, setPaymentMethod, setDeliveryPincode, isLoading: cartLoading } = useCartStore();
+  const { cart, getCart, applyCoupon, removeCoupon, setPaymentMethod, selectedPaymentMethod: storePaymentMethod, setDeliveryPincode, isLoading: cartLoading } = useCartStore();
   const { user, isAuthenticated } = useHydratedAuth();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
@@ -220,11 +227,14 @@ export default function CheckoutPage() {
       required: boolean;
       type: 'fixed' | 'percentage';
       value: number;
+      percentage?: number;  // Add percentage field for advance payment
       description?: string;
     } | null;
     service_charges?: {
+      enabled: boolean;
       type: string;
       value: number;
+      description?: string;
     } | null;
   }
 
@@ -237,8 +247,10 @@ export default function CheckoutPage() {
   // Restore payment type from localStorage if available
   const [paymentType, setPaymentType] = useState<'online' | 'cod' | null>(persistedState.paymentType || null);
   const [codConfig, setCodConfig] = useState<CODConfig | null>(null);
+  const [codChargeAmount, setCodChargeAmount] = useState<number>(0); // Track COD charge for display
   const [paymentFlowSettings, setPaymentFlowSettings] = useState<PaymentFlowSettings>({ type: 'two_tier', default_payment_type: 'none' });
   const [isProcessingPaymentTypeChange, setIsProcessingPaymentTypeChange] = useState(false);
+  const lastPaymentMethodRef = useRef<string | null>(null); // Track last payment method to prevent infinite loop
 
   const {
     register,
@@ -310,7 +322,7 @@ export default function CheckoutPage() {
     selectedBillingAddress,
     paymentType,
   ]);
-  
+
   // Real-time validation functions
   const isStep1Valid = () => {
     if (isAuthenticated) {
@@ -319,37 +331,37 @@ export default function CheckoutPage() {
       const hasEmail = formValues.email?.includes('@');
       return selectedShippingAddress !== null && hasEmail;
     }
-    
+
     // For guest users, check form fields
     const requiredFields = ['email', 'firstName', 'lastName', 'phone', 'pincode', 'area', 'address', 'city', 'district', 'state'];
     const isValid = requiredFields.every(field => {
       const value = formValues[field];
       return value && String(value).trim() !== '';
-    }) && 
-    formValues.email?.includes('@') && 
-    String(formValues.phone || '?').length >= 10 && 
-    String(formValues.pincode || '?').length === 6 && 
-    !pincodeError;
-    
+    }) &&
+      formValues.email?.includes('@') &&
+      String(formValues.phone || '?').length >= 10 &&
+      String(formValues.pincode || '?').length === 6 &&
+      !pincodeError;
+
     return isValid;
   };
 
   const isStep2Valid = () => {
     if (sameAsBilling) return true;
-    
+
     if (isAuthenticated) {
       // For authenticated users, check if billing address is selected
       return selectedBillingAddress !== null;
     }
-    
+
     // For guest users, check form fields
     const requiredFields = ['billing_firstName', 'billing_lastName', 'billing_phone', 'billing_pincode', 'billing_area', 'billing_address', 'billing_city', 'billing_district', 'billing_state'];
     return requiredFields.every(field => {
       const value = formValues[field];
       return value && value.trim() !== '';
-    }) && 
-    formValues.billing_phone?.length >= 10 && 
-    formValues.billing_pincode?.length === 6;
+    }) &&
+      formValues.billing_phone?.length >= 10 &&
+      formValues.billing_pincode?.length === 6;
   };
 
   const isStep3Valid = () => {
@@ -360,7 +372,6 @@ export default function CheckoutPage() {
     if (paymentType === 'online') {
       const paymentMethod = selectedPaymentMethod;
       const isValid = !!paymentMethod && paymentMethod.trim() !== '';
-      logger.log('Step 3 Validation (Online):', { paymentMethod, isValid });
       return isValid;
     }
 
@@ -368,13 +379,11 @@ export default function CheckoutPage() {
     if (paymentType === 'cod' && codConfig?.advance_payment?.required) {
       const paymentMethod = selectedPaymentMethod;
       const isValid = !!paymentMethod && paymentMethod.trim() !== '';
-      logger.log('Step 3 Validation (COD with advance):', { paymentMethod, isValid });
       return isValid;
     }
 
     // If COD without advance, no gateway selection needed
     if (paymentType === 'cod') {
-      logger.log('Step 3 Validation (Pure COD): true');
       return true;
     }
 
@@ -408,9 +417,9 @@ export default function CheckoutPage() {
   // This ensures we get the latest payment options from admin settings
   useEffect(() => {
     if (currentStep === 3 && !isProcessingPaymentTypeChange) { // Payment step
-      logger.log('📝 Refreshing payment methods for payment step');
       const orderTotal = cart?.summary?.total || 0;
       loadPaymentMethods(orderTotal);
+      // Note: COD charge is automatically set by useEffect that watches cart.summary and codConfig
     }
   }, [currentStep]); // Only depend on currentStep to avoid redundant calls when total changes
 
@@ -419,14 +428,12 @@ export default function CheckoutPage() {
     const handleHashChange = () => {
       const hash = window.location.hash || '#shipping';
       const newStep = getStepFromHash(hash);
-      logger.log('Hash changed to:', hash, 'Setting step to:', newStep);
       setCurrentStep(newStep);
     };
 
     // Handle initial hash on mount
     const initialHash = window.location.hash || '#shipping';
     const initialStep = getStepFromHash(initialHash);
-    logger.log('Initial hash:', initialHash, 'Setting initial step to:', initialStep);
     if (initialStep !== currentStep) {
       setCurrentStep(initialStep);
     }
@@ -454,6 +461,63 @@ export default function CheckoutPage() {
     };
   }, []);
 
+  // Track COD charge from cart summary OR codConfig when available
+  useEffect(() => {
+    logger.log('COD charge effect - codConfig:', codConfig?.service_charges, 'cart charges:', cart?.summary?.charges);
+
+    // First priority: get COD charge from cart if present
+    const codChargeFromCart = cart?.summary?.charges?.find((c: any) => c.code === 'cod_service_charge')?.amount;
+    if (codChargeFromCart && codChargeFromCart > 0) {
+      logger.log('Setting COD charge from cart:', codChargeFromCart);
+      setCodChargeAmount(codChargeFromCart);
+      return;
+    }
+
+    // Second priority: calculate from codConfig.service_charges
+    if (codConfig?.service_charges?.enabled && codConfig.service_charges.value > 0) {
+      if (codConfig.service_charges.type === 'percentage') {
+        // For percentage, use the base total (cart total without any COD charge)
+        const baseTotal = cart?.summary?.total || 0;
+        const calculatedCharge = (baseTotal * codConfig.service_charges.value) / 100;
+        logger.log('Setting COD charge from config (percentage):', calculatedCharge);
+        setCodChargeAmount(calculatedCharge);
+      } else {
+        // Fixed charge
+        logger.log('Setting COD charge from config (fixed):', codConfig.service_charges.value);
+        setCodChargeAmount(codConfig.service_charges.value);
+      }
+    }
+  }, [cart?.summary, codConfig]);
+
+  // Update cart when payment type changes - CLEAN & SIMPLE
+  useEffect(() => {
+    if (!paymentType) return;
+
+    const actualPaymentMethod = paymentType === 'cod'
+      ? 'cod'
+      : (availablePaymentMethods[0]?.payment_method || null);
+
+    // Skip if same as last update - prevents infinite loop
+    if (lastPaymentMethodRef.current === actualPaymentMethod) {
+      return;
+    }
+
+    const updateCart = async () => {
+      try {
+        await setPaymentMethod(actualPaymentMethod);
+        lastPaymentMethodRef.current = actualPaymentMethod; // Track update
+        logger.log('✅ Cart updated with payment method:', actualPaymentMethod);
+      } catch (error) {
+        logger.error('❌ Failed to update payment method:', error);
+      }
+    };
+
+    // Debounce to prevent rapid API calls
+    const timer = setTimeout(updateCart, 300);
+    return () => clearTimeout(timer);
+  }, [paymentType, availablePaymentMethods]); // Removed setPaymentMethod to prevent infinite loop
+
+
   // Ref to track ongoing pincode validation requests to prevent duplicates
   const pincodeValidationRef = useRef(false);
   // Ref to track ongoing shipping calculation requests to prevent duplicates
@@ -462,7 +526,7 @@ export default function CheckoutPage() {
   // Watch pincode field and trigger validation when it changes
   useEffect(() => {
     const pincode = formValues.pincode;
-    
+
     const timeoutId = setTimeout(() => {
       if (pincode && pincode.length === 6 && !pincodeValidationRef.current) {
         // Set the ref to prevent multiple simultaneous requests
@@ -473,7 +537,7 @@ export default function CheckoutPage() {
         });
       }
     }, 300);
-    
+
     return () => clearTimeout(timeoutId);
   }, [formValues.pincode]);
 
@@ -491,14 +555,14 @@ export default function CheckoutPage() {
       await getCart();
 
       const currentCart = useCartStore.getState().cart;
-      
+
       if (!currentCart || !currentCart.items || currentCart.items.length === 0) {
         router.push('/cart');
         return;
       }
-      
+
       setLoading(false);
-      
+
     } catch (err) {
       logger.error('Failed to load cart:', err);
       setError('Failed to load cart. Please try again.');
@@ -595,7 +659,6 @@ export default function CheckoutPage() {
   const loadPaymentMethods = async (orderAmount?: number) => {
     try {
       const response = await paymentApi.getPaymentMethods(orderAmount, 'INR');
-      logger.log('Payment methods API response:', response);
 
       // Handle unified gateway response
       const gateways = response?.gateways || [];
@@ -613,7 +676,6 @@ export default function CheckoutPage() {
             ...response.payment_flow,
             type: flowType
           });
-          logger.log('Payment flow settings:', { ...response.payment_flow, type: flowType });
 
           // Handle default payment type from admin settings
           // ONLY if there's no persisted payment type (fresh visit, not user selection)
@@ -622,7 +684,6 @@ export default function CheckoutPage() {
           const defaultPaymentType = (response as any).payment_flow?.default_payment_type;
           if (!hasPersistedPaymentType && !paymentType && !isProcessingPaymentTypeChange) {
             if (defaultPaymentType && defaultPaymentType !== 'none') {
-              logger.log('🎯 Setting default payment type from admin:', defaultPaymentType);
               // Admin has set a default (online or cod) - apply it
               setPaymentType(defaultPaymentType as 'online' | 'cod');
             }
@@ -631,10 +692,7 @@ export default function CheckoutPage() {
         }
 
         // Separate COD from online payment methods
-        logger.log('🔍 All gateways received:', gateways);
-        logger.log('🎛️ Payment flow settings:', response.payment_flow);
         const codGateway = gateways.find((g: any) => g.gateway && g.gateway.includes('cod'));
-        logger.log('💰 COD Gateway found:', codGateway);
         const onlineGateways = gateways.filter((g: any) => !g.gateway || !g.gateway.includes('cod'));
 
         // Transform online gateways only
@@ -649,7 +707,6 @@ export default function CheckoutPage() {
         // Store COD configuration separately
         // Check both: COD gateway exists AND admin has enabled COD visibility
         const isCodEnabled = response.payment_flow?.cod_enabled !== false; // Default to true if not specified
-        logger.log('🔒 Admin COD enabled setting:', isCodEnabled);
 
         if (codGateway && codGateway.is_active !== false && isCodEnabled) {
           const config = {
@@ -659,11 +716,10 @@ export default function CheckoutPage() {
             advance_payment: codGateway.advance_payment || null,
             service_charges: codGateway.service_charges || null
           };
-          logger.log('✅ Setting COD config:', config);
+          logger.log('COD config loaded:', config);
           setCodConfig(config);
           setCodAvailable(true);
         } else {
-          logger.log('❌ COD not available - codGateway:', codGateway, 'adminEnabled:', isCodEnabled);
           setCodConfig(null);
           setCodAvailable(false);
         }
@@ -690,11 +746,13 @@ export default function CheckoutPage() {
     }
   };
 
+
+
   const handleShippingAddressSelect = (address: Address) => {
     setSelectedShippingAddress(address);
     setSelectedAddressId(address.id);
     populateFormFromAddress(address); // This already calls setDeliveryPincode
-    
+
     // populateFormFromAddress already handles shipping calculation via setDeliveryPincode
     // No need to call calculateShipping again - prevents duplicate cart API calls
   };
@@ -705,7 +763,6 @@ export default function CheckoutPage() {
   };
 
   const populateFormFromAddress = (address: Address) => {
-    logger.log('🏠 Populating form from address:', address);
 
     setValue('firstName', address.first_name);
     setValue('lastName', address.last_name || '?');
@@ -720,13 +777,6 @@ export default function CheckoutPage() {
     const district = (address as any).district || address.city;
     setValue('district', district);
     setValue('state', address.state);
-
-    logger.log('🏠 Setting form values:', {
-      district,
-      state: address.state,
-      city: address.city,
-      postalCode: address.postal_code
-    });
 
     // REMOVED: 'address' field - causes conflict with houseNo
     // We use houseNo as the primary field for address_line_1
@@ -745,7 +795,7 @@ export default function CheckoutPage() {
       setSelectedShippingAddress(selectedAddress);
       populateFormFromAddress(selectedAddress); // This already calls setDeliveryPincode
       setShowNewAddressForm(false);
-      
+
       // populateFormFromAddress already handles shipping calculation via setDeliveryPincode
       // No need to call calculateShipping again - prevents duplicate cart API calls
     }
@@ -766,7 +816,7 @@ export default function CheckoutPage() {
         phone: addressData.phone,
         is_default: addresses.length === 0
       });
-      
+
       if (response?.status === 'success' || response?.data) {
         await loadAddresses();
         setShowNewAddressForm(false);
@@ -792,7 +842,7 @@ export default function CheckoutPage() {
         postal_code: addressData.pincode,
         phone: addressData.phone,
       });
-      
+
       if (response?.status === 'success' || response?.data) {
         await loadAddresses();
       }
@@ -805,14 +855,14 @@ export default function CheckoutPage() {
   const handleDeleteAddress = async (addressId: number) => {
     try {
       const response = await addressApi.deleteAddress(addressId);
-      
+
       if (response?.status === 'success' || response?.message) {
         if (selectedAddressId === addressId) {
           setSelectedAddressId(null);
         }
-        
+
         await loadAddresses();
-        
+
         const updatedAddresses = addresses.filter(addr => addr.id !== addressId);
         if (updatedAddresses.length > 0 && !selectedAddressId) {
           handleAddressSelect(updatedAddresses[0].id);
@@ -825,22 +875,22 @@ export default function CheckoutPage() {
 
   const validatePincode = async (pincode: string) => {
     if (pincode.length !== 6) return;
-    
+
     setCalculatingShipping(true);
     setPincodeError(null);
     setPincodeInfo(null);
-    
+
     try {
       const response = await shippingApi.checkPincode(pincode);
-      
+
       if (response.success) {
         setValue('state', response.zone_info?.state || '?');
         setValue('district', response.zone_info?.city || '?');
-        
+
         setPincodeInfo(response.zone_info);
         setEstimatedDelivery(response.estimated_delivery || '3-5 business days');
         setCodAvailable(response.cod_available || false);
-        
+
         await calculateShipping(pincode);
       } else {
         setPincodeError('Sorry, we do not deliver to this pincode. Please try a different pincode.');
@@ -900,7 +950,7 @@ export default function CheckoutPage() {
   const handleApplyCoupon = async (code?: string) => {
     const codeToApply = code || couponCode;
     if (!codeToApply.trim()) return;
-    
+
     try {
       setApplyCouponLoading(true);
       await applyCoupon(codeToApply);
@@ -945,28 +995,28 @@ export default function CheckoutPage() {
       setError(null);
       return true;
     }
-    
+
     // For guest users, validate all form fields
     const requiredFields = ['email', 'firstName', 'lastName', 'phone', 'pincode', 'area', 'address', 'city', 'district', 'state'];
     const formData = getValues();
     const missingFields = requiredFields.filter(field => !formData[field] || formData[field].trim() === '');
-    
+
     if (missingFields.length > 0) {
       setError(`Please fill in all required fields: ${missingFields.join(', ')}`);
       return false;
     }
-    
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       setError('Please enter a valid email address');
       return false;
     }
-    
+
     if (formData.phone.length < 10) {
       setError('Phone number must be at least 10 digits');
       return false;
     }
-    
+
     if (formData.pincode.length !== 6) {
       setError('Pincode must be exactly 6 digits');
       return false;
@@ -976,41 +1026,41 @@ export default function CheckoutPage() {
       setError('Please enter a valid serviceable pincode');
       return false;
     }
-    
+
     setError(null);
-    
+
     // Only call calculateShipping if it's valid and not already calculating
     if (formData.pincode && formData.pincode.length === 6 && !calculatingShipping) {
       await calculateShipping(formData.pincode);
     }
-    
+
     return true;
   };
 
   const validateStep2 = () => {
     if (sameAsBilling) return true;
-    
+
     if (isAuthenticated) {
       // For authenticated users, just check billing address selection
       if (!selectedBillingAddress) {
         setError('Please select a billing address');
         return false;
       }
-      
+
       setError(null);
       return true;
     }
-    
+
     // For guest users, validate all billing form fields
     const requiredFields = ['billing_firstName', 'billing_lastName', 'billing_phone', 'billing_pincode', 'billing_area', 'billing_address', 'billing_city', 'billing_district', 'billing_state'];
     const formData = getValues();
     const missingFields = requiredFields.filter(field => !formData[field] || formData[field].trim() === '');
-    
+
     if (missingFields.length > 0) {
       setError(`Please fill in all required billing fields: ${missingFields.map(f => f.replace('billing_', '')).join(', ')}`);
       return false;
     }
-    
+
     setError(null);
     return true;
   };
@@ -1021,7 +1071,7 @@ export default function CheckoutPage() {
       setError('Please select a payment method');
       return false;
     }
-    
+
     setError(null);
     return true;
   };
@@ -1046,7 +1096,7 @@ export default function CheckoutPage() {
 
   const handleContinueToNext = async () => {
     let isValid = false;
-    
+
     switch (currentStep) {
       case 1:
         isValid = await validateStep1();
@@ -1060,7 +1110,7 @@ export default function CheckoutPage() {
       default:
         isValid = false;
     }
-    
+
     if (isValid) {
       nextStep();
     }
@@ -1094,9 +1144,50 @@ export default function CheckoutPage() {
   const tax = cart?.summary?.tax_amount || 0;
   const totalCharges = cart?.summary?.total_charges || 0;
 
-  // CRITICAL: Use server-calculated total which includes ALL charges (COD, handling, insurance, etc.)
-  // Fallback calculation MUST include totalCharges to match backend
-  const total = cart?.summary?.total || (discountedSubtotal + calculatedShippingCost + tax + totalCharges);
+  // CRITICAL: Robust total calculation handling COD toggle
+  // 1. Identify if cart has COD charge baked in
+  const codInCart = cart?.summary?.charges?.find((c: any) => c.code === 'cod_service_charge')?.amount || 0;
+
+  // 2. Get base total (stripped of COD charge)
+  const cartCurrentTotal = cart?.summary?.total || (discountedSubtotal + calculatedShippingCost + tax + totalCharges);
+  const baseTotal = cartCurrentTotal - codInCart;
+
+  // 3. Determine applicable COD charge for current selection
+  let applicableCodCharge = 0;
+  if (paymentType === 'cod') {
+    // Use state if available (primary source from useEffect)
+    if (codChargeAmount > 0) {
+      applicableCodCharge = codChargeAmount;
+    } else if (codConfig?.service_charges?.enabled && codConfig.service_charges.value > 0) {
+      // Fallback calculation directly from config if state not ready
+      if (codConfig.service_charges.type === 'percentage') {
+        applicableCodCharge = (baseTotal * codConfig.service_charges.value) / 100;
+      } else {
+        applicableCodCharge = codConfig.service_charges.value;
+      }
+    }
+  }
+
+  // 4. Final total for display
+  const total = baseTotal + applicableCodCharge;
+
+  // 5. Final charges list for display
+  let finalChargesList = cart?.summary?.charges || [];
+  if (paymentType === 'cod' && codInCart === 0 && applicableCodCharge > 0) {
+    // Add COD charge if missing from cart but applicable
+    finalChargesList = [...finalChargesList, {
+      code: 'cod_service_charge',
+      name: 'Cash on Delivery Charge',
+      display_label: codConfig?.service_charges?.description || 'COD Service Charge',
+      amount: applicableCodCharge,
+      is_taxable: false,
+      type: 'fixed'
+    }];
+  } else if (paymentType !== 'cod' && codInCart > 0) {
+    // If we switched away from COD but cart still has it (stale), remove it from display list
+    finalChargesList = finalChargesList.filter((c: any) => c.code !== 'cod_service_charge');
+  }
+  const finalTotalCharges = finalChargesList.reduce((acc: number, c: any) => acc + (parseFloat(c.amount) || 0), 0);
 
   // Load payment methods when total changes (but not during payment type changes)
   // DISABLED: This was causing redundant calls. Payment methods are loaded:
@@ -1125,13 +1216,6 @@ export default function CheckoutPage() {
 
   const selectedPaymentMethod = watch('paymentMethod');
 
-  // Debug payment methods and cart changes
-  useEffect(() => {
-    logger.log('💳 Available payment methods:', paymentMethods.length);
-    logger.log('💳 Selected payment method:', selectedPaymentMethod);
-    logger.log('💳 Payment type:', paymentType);
-    logger.log('💳 Cart total:', cart?.summary?.total);
-  }, [paymentMethods.length, selectedPaymentMethod, paymentType, cart?.summary?.total]);
 
   // Handle payment type change - recalculate cart with COD charges
   useEffect(() => {
@@ -1168,8 +1252,25 @@ export default function CheckoutPage() {
     };
 
     handlePaymentTypeChange();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentType]); // CRITICAL: Only depend on paymentType - NOT isProcessingPaymentTypeChange to avoid loop!
+
+  // Auto-select first available gateway when online payment is selected OR COD with advance payment
+  useEffect(() => {
+    const shouldAutoSelect =
+      (paymentType === 'online') ||
+      (paymentType === 'cod' && codConfig?.advance_payment?.required);
+
+    if (shouldAutoSelect && availablePaymentMethods.length > 0) {
+      // Automatically select the first available gateway
+      const firstGateway = availablePaymentMethods[0].payment_method;
+      // Only set if not already set to avoid loops or overriding user selection (though UI is hidden now)
+      if (getValues('paymentMethod') !== firstGateway) {
+        setValue('paymentMethod', firstGateway);
+        logger.log('🤖 Auto-selected payment gateway:', firstGateway);
+      }
+    }
+  }, [paymentType, availablePaymentMethods, setValue, codConfig]);
 
   // Handle payment gateway redirection
   const handlePaymentRedirect = (paymentDetails: any, gateway: string) => {
@@ -1196,7 +1297,7 @@ export default function CheckoutPage() {
       // Skip meta fields that are not part of PayU's expected parameters
       const skipFields = ['payment_url', 'payment_id', 'method', 'success', 'message', 'data', 'gateway', 'timestamp'];
       const submittedFields: any = {};
-      
+
       Object.entries(paymentData).forEach(([key, value]) => {
         if (value !== null && value !== undefined && !skipFields.includes(key)) {
           const input = document.createElement('input');
@@ -1229,7 +1330,7 @@ export default function CheckoutPage() {
           order_id: paymentData.razorpay_order_id,
           name: paymentData.name || 'BookBharat',
           description: paymentData.description || 'Order Payment',
-          handler: function(response: any) {
+          handler: function (response: any) {
             logger.log('✅ Razorpay payment successful:', response);
             // Payment successful, redirect to callback URL with payment details
             const callbackUrl = `${paymentData.callback_url}?razorpay_payment_id=${response.razorpay_payment_id}&razorpay_order_id=${response.razorpay_order_id}&razorpay_signature=${response.razorpay_signature}`;
@@ -1240,7 +1341,7 @@ export default function CheckoutPage() {
             color: '#3B82F6'
           },
           modal: {
-            ondismiss: function() {
+            ondismiss: function () {
               logger.log('⚠️ Razorpay payment cancelled by user');
               setIsProcessing(false);
             }
@@ -1297,11 +1398,11 @@ export default function CheckoutPage() {
       setError('Please select a payment gateway for advance payment');
       return;
     }
-    
+
     try {
       setIsProcessing(true);
       setError(null);
-      
+
       // For authenticated users, use address IDs; for guests, use address objects
       const orderData = {
         items: cart.items.map(item => ({
@@ -1362,9 +1463,9 @@ export default function CheckoutPage() {
         coupon_code: activeCouponCode,
         coupon_discount: couponDiscount
       };
-      
+
       logger.log('📦 Order Data being sent:', orderData);
-      
+
       const response = await orderApi.createOrder(orderData);
       logger.log('✅ Order API Response:', response);
 
@@ -1386,15 +1487,59 @@ export default function CheckoutPage() {
           if (data.paymentMethod === 'payu' && paymentDetails.payment_data) {
             handlePaymentRedirect(paymentDetails, data.paymentMethod);
           }
-          // For redirect-based gateways (like Cashfree)
+          // FIXED: Explicit PhonePe handler with comprehensive URL extraction and validation
+          else if (data.paymentMethod === 'phonepe') {
+            // Try multiple possible locations for PhonePe payment URL
+            const phonepeUrl = response.redirect_url ||
+              paymentDetails.payment_url ||
+              paymentDetails.payment_data?.payment_url ||
+              paymentDetails.payment_data?.url;
+
+            if (phonepeUrl) {
+              logger.log('📱 PhonePe redirect to:', phonepeUrl);
+              logger.log('📱 Full PhonePe payment details:', paymentDetails);
+              window.location.href = phonepeUrl;
+            } else {
+              // Log full response for debugging
+              logger.error('❌ PhonePe payment URL not found in response');
+              logger.error('Response structure:', JSON.stringify(response, null, 2));
+              logger.error('Payment details:', JSON.stringify(paymentDetails, null, 2));
+              setError('PhonePe payment URL not available. Please try again or use a different payment method.');
+              setIsProcessing(false);
+            }
+          }
+          // For Cashfree and other redirect-based gateways
+          else if (data.paymentMethod === 'cashfree') {
+            const cashfreeUrl = response.redirect_url ||
+              paymentDetails.payment_url ||
+              paymentDetails.payment_data?.payment_url;
+
+            if (cashfreeUrl) {
+              logger.log('💰 Cashfree redirect to:', cashfreeUrl);
+              window.location.href = cashfreeUrl;
+            } else {
+              logger.error('❌ Cashfree payment URL not found');
+              setError('Cashfree payment URL not available. Please try again.');
+              setIsProcessing(false);
+            }
+          }
+          // Generic redirect handler for other gateways (fallback)
           else if (response.redirect_url || paymentDetails.payment_url) {
             const redirectUrl = response.redirect_url || paymentDetails.payment_url;
-            logger.log('🔗 Redirecting to:', redirectUrl);
+            logger.log('🔗 Generic redirect to:', redirectUrl);
             window.location.href = redirectUrl;
           }
           // Fallback to handlePaymentRedirect for other gateways
           else if (paymentDetails.payment_data) {
             handlePaymentRedirect(paymentDetails, data.paymentMethod);
+          }
+          // No valid redirect found
+          else {
+            logger.error('❌ No valid payment redirect found');
+            logger.error('Payment method:', data.paymentMethod);
+            logger.error('Response:', JSON.stringify(response, null, 2));
+            setError(`Unable to process ${data.paymentMethod} payment. Please try again or contact support.`);
+            setIsProcessing(false);
           }
         } else if (data.paymentMethod === 'cod') {
           // COD order - clear cart and go to success page
@@ -1420,22 +1565,7 @@ export default function CheckoutPage() {
       <div className="container mx-auto px-4 py-4 lg:py-8">
         <div className="animate-pulse space-y-6">
           {/* Progress indicator skeleton */}
-          <Card className="mb-6 lg:mb-10">
-            <CardHeader className="pb-4">
-              <div className="h-6 bg-muted rounded w-1/3"></div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-2 bg-muted rounded-full w-full mb-4"></div>
-              <div className="flex justify-between">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="flex flex-col items-center">
-                    <div className="w-10 h-10 rounded-full bg-muted mb-2"></div>
-                    <div className="h-3 bg-muted rounded w-16"></div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+
 
           {/* Main content skeleton */}
           <div className="grid lg:grid-cols-3 gap-4 lg:gap-8">
@@ -1450,7 +1580,7 @@ export default function CheckoutPage() {
                   <div className="h-4 bg-muted rounded w-1/2"></div>
                 </CardContent>
               </Card>
-              
+
               {/* Form skeleton */}
               <Card>
                 <CardHeader>
@@ -1485,7 +1615,7 @@ export default function CheckoutPage() {
                   <div className="h-10 bg-muted rounded"></div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="p-4">
                   <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
@@ -1552,1384 +1682,932 @@ export default function CheckoutPage() {
 
   return (
     <ProtectedRoute>
-    <div className="bg-gradient-to-br from-primary/5 via-background to-accent/5 min-h-screen pb-40 lg:pb-0">
-      <div className="container mx-auto px-4 py-4 lg:py-8">
-        {/* Breadcrumb */}
-        <nav className="text-sm text-muted-foreground mb-4 lg:mb-6">
-          <Link href="/" className="hover:text-primary">Home</Link>
-          <span className="mx-2">/</span>
-          <Link href="/cart" className="hover:text-primary">Cart</Link>
-          <span className="mx-2">/</span>
-          <span>Checkout</span>
-        </nav>
+      <div className="bg-gradient-to-br from-primary/5 via-background to-accent/5 min-h-screen pb-40 lg:pb-0">
+        <div className="container mx-auto px-4 py-4 lg:py-8">
+          {/* Breadcrumb */}
+          <nav className="text-sm text-muted-foreground mb-4 lg:mb-6">
+            <Link href="/" className="hover:text-primary">Home</Link>
+            <span className="mx-2">/</span>
+            <Link href="/cart" className="hover:text-primary">Cart</Link>
+            <span className="mx-2">/</span>
+            <span>Checkout</span>
+          </nav>
 
-        {/* Progress Indicator */}
-        <Card className="mb-6 lg:mb-10">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center text-base lg:text-lg">
-              <CheckCircle className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-              Checkout Progress
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="relative">
-              <div className="absolute top-5 left-0 w-full h-0.5 bg-muted -z-10">
-                <div 
-                  className="h-full bg-primary transition-all duration-500 ease-in-out"
-                  style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
-                />
-              </div>
-            
-            <div className="flex items-center justify-between">
-              {steps.map((step, index) => {
-                const Icon = step.icon;
-                const isClickable = step.completed || step.id === currentStep || (step.skip && step.id === 2);
-                return (
-                  <div key={step.id} className="flex flex-col items-center">
-                    <button
-                      onClick={() => {
-                        if (isClickable && !step.skip) {
-                          window.location.hash = step.hash;
-                        }
-                      }}
-                      disabled={!isClickable || step.skip}
-                      className={`w-8 h-8 lg:w-10 lg:h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
-                        step.completed
-                          ? 'bg-primary text-primary-foreground'
-                          : step.id === currentStep
-                          ? 'bg-primary text-primary-foreground ring-2 ring-primary/20'
-                          : step.skip
-                          ? 'bg-muted text-muted-foreground'
-                          : 'bg-muted text-muted-foreground'
-                      } ${isClickable && !step.skip ? 'cursor-pointer hover:ring-2 hover:ring-primary/30' : 'cursor-default'}`}
-                    >
-                      {step.completed ? (
-                        <Check className="h-4 w-4 lg:h-5 lg:w-5" />
-                      ) : step.skip ? (
-                        <span className="text-xs">Skip</span>
-                      ) : (
-                        <Icon className="h-3 w-3 lg:h-4 lg:w-4" />
-                      )}
-                    </button>
-                    <div className="mt-2 lg:mt-3 text-center min-w-[80px] lg:min-w-[100px]">
-                      <div className={`text-xs lg:text-sm font-medium transition-colors duration-300 ${
-                        step.id === currentStep 
-                          ? 'text-primary' 
-                          : step.completed 
-                          ? 'text-primary' 
-                          : step.skip
-                          ? 'text-muted-foreground'
-                          : 'text-muted-foreground'
-                      }`}>
-                        {step.name}
-                      </div>
-                      {step.skip && (
-                        <Badge variant="secondary" className="text-xs mt-1">Skipped</Badge>
-                      )}
-                      {step.completed && (
-                        <Badge variant="secondary" className="text-xs mt-1 bg-primary/10 text-primary">Completed</Badge>
-                      )}
-                      {step.id === currentStep && (
-                        <Badge className="text-xs mt-1">Current</Badge>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        <div className="grid lg:grid-cols-3 gap-4 lg:gap-8">
-          {/* Checkout Form */}
-          <div className="lg:col-span-2 space-y-4 lg:space-y-6">
-            
 
-            <form id="checkout-form" key={currentStep} onSubmit={(e) => {
-              e.preventDefault();
+          <div className="grid lg:grid-cols-3 gap-4 lg:gap-8">
+            {/* Checkout Form */}
+            <div className="lg:col-span-2 space-y-4 lg:space-y-6">
 
-              // For authenticated users with selected address, skip validation
-              if (isAuthenticated && selectedShippingAddress) {
-                // Manually call onSubmit with current form values
-                const formData = getValues();
-                formData.paymentMethod = selectedPaymentMethod || '?';
 
-                // Ensure email is set
-                if (!formData.email) {
-                  setError('Please provide an email address for order confirmation');
-                  return;
+              <form id="checkout-form" key={currentStep} onSubmit={(e) => {
+                e.preventDefault();
+
+                // For authenticated users with selected address, skip validation
+                if (isAuthenticated && selectedShippingAddress) {
+                  // Manually call onSubmit with current form values
+                  const formData = getValues();
+                  formData.paymentMethod = selectedPaymentMethod || '?';
+
+                  // Ensure email is set
+                  if (!formData.email) {
+                    setError('Please provide an email address for order confirmation');
+                    return;
+                  }
+
+                  // Ensure payment method is selected
+                  if (!formData.paymentMethod) {
+                    setError('Please select a payment method');
+                    return;
+                  }
+
+                  onSubmit(formData);
+                } else {
+                  // For guest checkout, use normal validation
+                  handleSubmit(onSubmit, (errors) => {
+                    logger.error('Form validation errors:', errors);
+                    setError('Please fix the form errors before submitting');
+                  })(e);
                 }
+              }}>
 
-                // Ensure payment method is selected
-                if (!formData.paymentMethod) {
-                  setError('Please select a payment method');
-                  return;
-                }
+                {/* STEP 1: SHIPPING DETAILS */}
+                {currentStep === 1 && (
+                  <div className="space-y-4 lg:space-y-6">
 
-                onSubmit(formData);
-              } else {
-                // For guest checkout, use normal validation
-                handleSubmit(onSubmit, (errors) => {
-                  logger.error('Form validation errors:', errors);
-                  setError('Please fix the form errors before submitting');
-                })(e);
-              }
-            }}>
-              
-              {/* STEP 1: SHIPPING DETAILS */}
-              {currentStep === 1 && (
-                <div className="space-y-4 lg:space-y-6">
-                  
-                  {/* Guest Login Prompt */}
-                  {!isAuthenticated && (
-                    <Card className="border-primary/20 bg-primary/5">
-                      <CardHeader className="pb-3 lg:pb-4">
-                        <div className="flex flex-col space-y-3 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
-                          <div className="flex items-center">
-                            <User className="h-4 w-4 lg:h-5 lg:w-5 text-primary mr-2" />
-                            <CardTitle className="text-primary text-sm lg:text-base">Sign In for Faster Checkout</CardTitle>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Button variant="outline" size="sm" asChild>
-                              <Link href="/auth/login">Sign In</Link>
-                            </Button>
-                            <Button size="sm" asChild>
-                              <Link href="/auth/register">Create Account</Link>
-                            </Button>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4 text-sm">
-                          <div className="flex items-center text-muted-foreground">
-                            <Check className="h-3 w-3 lg:h-4 lg:w-4 text-primary mr-2 flex-shrink-0" />
-                            <span>Save your addresses</span>
-                          </div>
-                          <div className="flex items-center text-muted-foreground">
-                            <Check className="h-3 w-3 lg:h-4 lg:w-4 text-primary mr-2 flex-shrink-0" />
-                            <span>Track your orders</span>
-                          </div>
-                          <div className="flex items-center text-muted-foreground">
-                            <Check className="h-3 w-3 lg:h-4 lg:w-4 text-primary mr-2 flex-shrink-0" />
-                            <span>Faster future checkouts</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Contact Information - Only for guest users */}
-                  {!isAuthenticated && (
-                    <Card>
-                      <CardHeader className="pb-3 lg:pb-4">
-                        <CardTitle className="flex items-center text-sm lg:text-base">
-                          <Mail className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                          Contact Information
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3 lg:space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
-                          <Input
-                            {...register('email')}
-                            type="email"
-                            label="Email Address"
-                            placeholder="your.email@example.com"
-                            error={errors.email?.message}
-                            required
-                          />
-                          <Input
-                            {...register('firstName')}
-                            label="Full Name"
-                            placeholder="Enter your full name"
-                            error={errors.firstName?.message}
-                            required
-                          />
-                        </div>
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
-                          <Input
-                            {...register('phone')}
-                            type="tel"
-                            label="Phone Number"
-                            placeholder="Enter 10-digit mobile number"
-                            error={errors.phone?.message}
-                            required
-                          />
-                          <Input
-                            {...register('whatsapp')}
-                            type="tel"
-                            label="WhatsApp Number (Optional)"
-                            placeholder="If different from phone"
-                            error={errors.whatsapp?.message}
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Shipping Address */}
-                  {isAuthenticated ? (
-                    <AddressManager
-                      selectedAddress={selectedShippingAddress}
-                      onAddressSelect={handleShippingAddressSelect}
-                    />
-                  ) : (
-                    <Card>
-                      <CardHeader className="pb-3 lg:pb-4">
-                        <CardTitle className="flex items-center text-sm lg:text-base">
-                          <MapPin className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                          Delivery Address
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3 lg:space-y-4">
-                      
-                      {/* Pincode Field */}
-                      <div className="space-y-2">
-                        <div className="relative">
-                          <Input
-                            {...register('pincode')}
-                            label="Pincode"
-                            placeholder="Enter 6-digit pincode"
-                            error={errors.pincode?.message}
-                            required
-                            maxLength={6}
-                            pattern="[0-9]{6}"
-                          />
-                          
-                          {/* Pincode validation indicator */}
-                          <div className="absolute right-3 top-8 flex items-center">
-                            {formValues.pincode && formValues.pincode.length === 6 && calculatingShipping && (
-                              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                            )}
-                            {formValues.pincode && formValues.pincode.length === 6 && !calculatingShipping && !pincodeError && pincodeInfo && (
-                              <div className="h-4 w-4 rounded-full bg-primary flex items-center justify-center">
-                                <Check className="h-3 w-3 text-primary-foreground" />
-                              </div>
-                            )}
-                            {formValues.pincode && formValues.pincode.length === 6 && !calculatingShipping && pincodeError && (
-                              <div className="h-4 w-4 rounded-full bg-destructive flex items-center justify-center">
-                                <X className="h-3 w-3 text-destructive-foreground" />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {/* Pincode Error */}
-                        {pincodeError && (
-                          <div className="text-sm text-destructive">{pincodeError}</div>
-                        )}
-                        
-                        {/* Pincode Info Display */}
-                        {calculatingShipping ? (
-                          <div className="bg-muted/50 p-3 rounded-lg border">
+                    {/* Guest Login Prompt */}
+                    {!isAuthenticated && (
+                      <Card className="border-primary/20 bg-primary/5">
+                        <CardHeader className="pb-3 lg:pb-4">
+                          <div className="flex flex-col space-y-3 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
                             <div className="flex items-center">
-                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mr-2" />
-                              <span className="text-sm text-muted-foreground">Calculating shipping...</span>
+                              <User className="h-4 w-4 lg:h-5 lg:w-5 text-primary mr-2" />
+                              <CardTitle className="text-primary text-sm lg:text-base">Sign In for Faster Checkout</CardTitle>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Button variant="outline" size="sm" asChild>
+                                <Link href="/auth/login">Sign In</Link>
+                              </Button>
+                              <Button size="sm" asChild>
+                                <Link href="/auth/register">Create Account</Link>
+                              </Button>
                             </div>
                           </div>
-                        ) : pincodeInfo && !pincodeError && (
-                          <div className="bg-primary/10 p-3 rounded-lg border border-primary/20">
-                            <div className="flex items-start space-x-2">
-                              <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                              <div className="space-y-1 text-sm">
-                                <p className="font-medium text-primary">
-                                  ✅ We deliver to {pincodeInfo.city}, {pincodeInfo.state}
-                                </p>
-                                <div className="flex flex-wrap items-center gap-3 lg:gap-4 text-xs text-muted-foreground">
-                                  <div className="flex items-center">
-                                    <Clock className="h-3 w-3 mr-1" />
-                                    {estimatedDelivery}
-                                  </div>
-                                  {hasValidShippingAddress && calculatedShippingCost === 0 && (
-                                    <div className="flex items-center">
-                                      <Truck className="h-3 w-3 mr-1" />
-                                      FREE Delivery
-                                    </div>
-                                  )}
-                                  {!hasValidShippingAddress && cart?.summary?.requires_pincode && (
-                                    <div className="flex items-center text-orange-600">
-                                      <Truck className="h-3 w-3 mr-1" />
-                                      {cart.summary.pincode_message || 'Enter pincode to calculate shipping'}
-                                    </div>
-                                  )}
-                                  {codAvailable && (
-                                    <div className="flex items-center">
-                                      <DollarSign className="h-3 w-3 mr-1" />
-                                      COD Available
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Address Fields */}
-                      {calculatingShipping ? (
-                        <div className="space-y-3">
-                          {[...Array(5)].map((_, idx) => (
-                            <div key={idx} className="animate-pulse">
-                              <div className="h-4 bg-muted rounded w-1/4 mb-2"></div>
-                              <div className="h-10 bg-muted rounded"></div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
-                            <Input
-                              {...register('area')}
-                              label="Village/City/Area"
-                              placeholder="Enter your area"
-                              error={errors.area?.message}
-                              required
-                            />
-                            <Input
-                              {...register('city')}
-                              label="City"
-                              placeholder="Enter city name"
-                              error={errors.city?.message}
-                              required
-                            />
-                          </div>
-
-                          <Input
-                            {...register('address')}
-                            label="Complete Address"
-                            placeholder="House no., Street, Locality"
-                            error={errors.address?.message}
-                            required
-                          />
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
-                            <Input
-                              {...register('houseNo')}
-                              label="House/Flat No. (Optional)"
-                              placeholder="Building, House no."
-                              error={errors.houseNo?.message}
-                            />
-                            <Input
-                              {...register('landmark')}
-                              label="Landmark (Optional)"
-                              placeholder="Near famous place"
-                              error={errors.landmark?.message}
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
-                            <Input
-                              {...register('district')}
-                              label="District"
-                              placeholder="Auto-filled from pincode"
-                              error={errors.district?.message}
-                              required
-                              readOnly
-                              className="bg-muted"
-                            />
-                            <Input
-                              {...register('state')}
-                              label="State"
-                              placeholder="Auto-filled from pincode"
-                              error={errors.state?.message}
-                              required
-                              readOnly
-                              className="bg-muted"
-                            />
-                          </div>
-                        </>
-                      )}
-
-                      {/* Shipping Cost Display */}
-                      {calculatingShipping ? (
-                        <div className="bg-muted/50 p-3 lg:p-4 rounded-lg animate-pulse">
-                          <div className="h-4 bg-muted rounded w-full mb-2"></div>
-                          <div className="h-6 bg-muted rounded w-1/3"></div>
-                        </div>
-                      ) : (
-                        <>
-                          {calculatedShippingCost > 0 && (
-                            <div className="bg-accent p-3 lg:p-4 rounded-lg">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                  <Truck className="h-4 w-4 text-accent-foreground mr-2" />
-                                  <div>
-                                    <p className="font-medium text-sm lg:text-base">Delivery Charges</p>
-                                    <p className="text-xs lg:text-sm text-muted-foreground">Based on your location</p>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-lg lg:text-xl font-bold">
-                                    {currencySymbol}{calculatedShippingCost}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Shipping Calculation Pending */}
-                          {!hasValidShippingAddress && cart?.summary?.requires_pincode && (
-                            <div className="bg-orange-50 border border-orange-200 p-3 lg:p-4 rounded-lg">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                  <Truck className="h-4 w-4 text-orange-600 mr-2" />
-                                  <div>
-                                    <p className="font-medium text-sm lg:text-base text-orange-800">Shipping Calculation Pending</p>
-                                    <p className="text-xs lg:text-sm text-orange-600">
-                                      {cart.summary.pincode_message || 'Enter delivery pincode to calculate shipping charges'}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-sm lg:text-base font-medium text-orange-800">TBD</p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Free Shipping Display */}
-                          {hasValidShippingAddress && calculatedShippingCost === 0 && (
-                            <div className="bg-green-50 border border-green-200 p-3 lg:p-4 rounded-lg">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                  <Truck className="h-4 w-4 text-green-600 mr-2" />
-                                  <div>
-                                    <p className="font-medium text-sm lg:text-base text-green-800">FREE Delivery</p>
-                                    <p className="text-xs lg:text-sm text-green-600">No delivery charges for this order</p>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-lg lg:text-xl font-bold text-green-800">
-                                    {currencySymbol}0
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </CardContent>
-                  </Card>
-                  )}
-
-                  {/* Billing Address Option */}
-                  <Card>
-                    <CardContent className="p-3 lg:p-4">
-                      <div className="flex items-center space-x-3">
-                        <input
-                          type="checkbox"
-                          id="sameAsBilling"
-                          checked={sameAsBilling}
-                          onChange={(e) => handleSameAsBillingChange(e.target.checked)}
-                          className="w-4 h-4 text-primary border-border rounded focus:ring-primary focus:ring-2"
-                        />
-                        <label htmlFor="sameAsBilling" className="text-sm font-medium cursor-pointer flex items-center">
-                          <CheckCircle className="h-4 w-4 text-primary mr-2" />
-                          Use the same address for billing
-                        </label>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Error Display */}
-                  {error && (
-                    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-                      <div className="flex">
-                        <AlertCircle className="h-5 w-5 text-destructive mr-3 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-destructive">{error}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Navigation - Desktop Only */}
-                  <div className="hidden lg:flex flex-col sm:flex-row gap-3 lg:gap-4 sm:justify-between sm:items-center">
-                    <Button type="button" variant="outline" asChild className="order-2 sm:order-1">
-                      <Link href="/cart">
-                        <ChevronLeft className="w-4 h-4 mr-2" />
-                        Back to Cart
-                      </Link>
-                    </Button>
-                    <Button 
-                      type="button" 
-                      onClick={handleContinueToNext}
-                      disabled={!isCurrentStepValid() || calculatingShipping}
-                      className="order-1 sm:order-2"
-                    >
-                      {calculatingShipping ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Calculating...
-                        </>
-                      ) : (
-                        <>
-                          Continue to {sameAsBilling ? 'Payment' : 'Billing Address'}
-                          <ChevronRight className="w-4 h-4 ml-2" />
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 2: BILLING ADDRESS */}
-              {currentStep === 2 && (
-                <div className="space-y-4 lg:space-y-6">
-                  {sameAsBilling ? (
-                    <Card>
-                      <CardContent className="py-8 text-center">
-                        <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                        <p className="text-lg font-medium">Billing address is same as shipping address</p>
-                        <p className="text-muted-foreground mt-2">Click continue to proceed to payment</p>
-                        <div className="flex gap-3 justify-center mt-6">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={prevStep}
-                          >
-                            <ChevronLeft className="w-4 h-4 mr-2" />
-                            Back
-                          </Button>
-                          <Button
-                            type="button"
-                            onClick={() => setSameAsBilling(false)}
-                          >
-                            Use Different Billing Address
-                          </Button>
-                          <Button
-                            type="button"
-                            onClick={nextStep}
-                          >
-                            Continue to Payment
-                            <ChevronRight className="w-4 h-4 ml-2" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ) : isAuthenticated ? (
-                    <AddressManager
-                      selectedAddress={selectedBillingAddress}
-                      onAddressSelect={handleBillingAddressSelect}
-                    />
-                  ) : (
-                    <Card>
-                      <CardHeader className="pb-3 lg:pb-4">
-                        <CardTitle className="flex items-center text-sm lg:text-base">
-                          <Home className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                          Billing Address
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3 lg:space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
-                        <Input
-                          {...register('billing_firstName')}
-                          label="First Name"
-                          placeholder="Enter first name"
-                          error={errors.billing_firstName?.message}
-                          required
-                        />
-                        <Input
-                          {...register('billing_lastName')}
-                          label="Last Name"
-                          placeholder="Enter last name"
-                          error={errors.billing_lastName?.message}
-                          required
-                        />
-                      </div>
-
-                      <Input
-                        {...register('billing_phone')}
-                        type="tel"
-                        label="Phone Number"
-                        placeholder="Enter phone number"
-                        error={errors.billing_phone?.message}
-                        required
-                      />
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
-                        <Input
-                          {...register('billing_pincode')}
-                          label="Pincode"
-                          placeholder="Enter pincode"
-                          error={errors.billing_pincode?.message}
-                          required
-                        />
-                        <Input
-                          {...register('billing_area')}
-                          label="Village/City/Area"
-                          placeholder="Enter area"
-                          error={errors.billing_area?.message}
-                          required
-                        />
-                      </div>
-
-                      <Input
-                        {...register('billing_address')}
-                        label="Complete Address"
-                        placeholder="House No, Street, Area"
-                        error={errors.billing_address?.message}
-                        required
-                      />
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
-                        <Input
-                          {...register('billing_city')}
-                          label="City"
-                          placeholder="Enter city"
-                          error={errors.billing_city?.message}
-                          required
-                        />
-                        <Input
-                          {...register('billing_state')}
-                          label="State"
-                          placeholder="Enter state"
-                          error={errors.billing_state?.message}
-                          required
-                        />
-                      </div>
-
-                      <Input
-                        {...register('billing_district')}
-                        label="District"
-                        placeholder="Enter district"
-                        error={errors.billing_district?.message}
-                        required
-                      />
-                    </CardContent>
-                  </Card>
-                  )}
-
-                  {/* Navigation - Desktop Only */}
-                  <div className="hidden lg:flex flex-col sm:flex-row gap-3 lg:gap-4 sm:justify-between sm:items-center">
-                    <Button type="button" variant="outline" onClick={prevStep} className="order-2 sm:order-1">
-                      <ChevronLeft className="w-4 h-4 mr-2" />
-                      Back to Shipping
-                    </Button>
-                    <Button 
-                      type="button" 
-                      onClick={handleContinueToNext}
-                      disabled={!isCurrentStepValid() || calculatingShipping}
-                      className="order-1 sm:order-2"
-                    >
-                      {calculatingShipping ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Calculating...
-                        </>
-                      ) : (
-                        <>
-                          Continue to Payment
-                          <ChevronRight className="w-4 h-4 ml-2" />
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 3: PAYMENT & REVIEW */}
-              {currentStep === 3 && (
-                <div className="space-y-4 lg:space-y-6">
-
-                  {/* Payment Flow: TWO-TIER (Default) */}
-                  {paymentFlowSettings.type === 'two_tier' && (
-                  <>
-                  {/* Step 1: Payment Type Selection */}
-                  <Card>
-                    <CardHeader className="pb-3 lg:pb-4">
-                      <CardTitle className="flex items-center text-sm lg:text-base">
-                        <CreditCard className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                        Choose Payment Type
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3 lg:space-y-4">
-                      <div className="space-y-2 lg:space-y-3">
-                        {/* Online Payment Option */}
-                        <label
-                          className={`flex items-center p-3 lg:p-4 border-2 rounded-lg transition-colors ${
-                            isProcessingPaymentTypeChange
-                              ? 'cursor-not-allowed opacity-60'
-                              : paymentType === 'online'
-                              ? 'border-primary bg-primary/5 cursor-pointer'
-                              : 'border-border hover:bg-muted/50 cursor-pointer'
-                          }`}
-                          onClick={() => !isProcessingPaymentTypeChange && setPaymentType('online')}
-                        >
-                          <CreditCard className="h-5 w-5 mr-3 text-primary" />
-                          <div className="flex-1">
-                            <div className="font-medium text-sm lg:text-base">Full Payment (Pay Online Now)</div>
-                            <div className="text-xs lg:text-sm text-muted-foreground">Pay the full amount securely online</div>
-                          </div>
-                          <div className={`w-5 h-5 border-2 rounded-full flex items-center justify-center ${
-                            paymentType === 'online'
-                              ? 'border-primary bg-primary'
-                              : 'border-border'
-                          }`}>
-                            {paymentType === 'online' && !isProcessingPaymentTypeChange && (
-                              <div className="w-2.5 h-2.5 bg-primary-foreground rounded-full" />
-                            )}
-                            {isProcessingPaymentTypeChange && paymentType === 'online' && (
-                              <div className="w-2.5 h-2.5 border border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                            )}
-                          </div>
-                        </label>
-
-                        {/* COD Option (only if enabled) */}
-                        {codConfig && codConfig.enabled && (
-                          <label
-                            className={`flex items-center p-3 lg:p-4 border-2 rounded-lg transition-colors ${
-                              isProcessingPaymentTypeChange
-                                ? 'cursor-not-allowed opacity-60'
-                                : paymentType === 'cod'
-                                ? 'border-primary bg-primary/5 cursor-pointer'
-                                : 'border-border hover:bg-muted/50 cursor-pointer'
-                            }`}
-                            onClick={() => !isProcessingPaymentTypeChange && setPaymentType('cod')}
-                          >
-                            <DollarSign className="h-5 w-5 mr-3 text-green-600" />
-                            <div className="flex-1">
-                              <div className="font-medium text-sm lg:text-base">{codConfig.display_name}</div>
-                              <div className="text-xs lg:text-sm text-muted-foreground">{codConfig.description}</div>
-                              {codConfig.advance_payment && codConfig.advance_payment.required && (
-                                <div className="text-xs mt-1 text-orange-600 font-medium">
-                                  ⚠️ Partial payment required upfront
-                                </div>
-                              )}
-                            </div>
-                            <div className={`w-5 h-5 border-2 rounded-full flex items-center justify-center ${
-                              paymentType === 'cod'
-                                ? 'border-primary bg-primary'
-                                : 'border-border'
-                            }`}>
-                              {paymentType === 'cod' && !isProcessingPaymentTypeChange && (
-                                <div className="w-2.5 h-2.5 bg-primary-foreground rounded-full" />
-                              )}
-                              {isProcessingPaymentTypeChange && paymentType === 'cod' && (
-                                <div className="w-2.5 h-2.5 border border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                              )}
-                            </div>
-                          </label>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Step 2: Payment Gateway Selection (for Online) or COD Details */}
-                  {paymentType === 'online' && (
-                    <Card>
-                      <CardHeader className="pb-3 lg:pb-4">
-                        <CardTitle className="flex items-center text-sm lg:text-base">
-                          <Lock className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                          Select Payment Gateway
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3 lg:space-y-4">
-                        <div className="space-y-2 lg:space-y-3">
-                          {paymentMethods.length === 0 && (
-                            <div className="text-center text-muted-foreground py-4">
-                              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                              <p className="text-sm">Loading payment gateways...</p>
-                            </div>
-                          )}
-                          {paymentMethods.map((method) => {
-                            return (
-                              <label
-                                key={method.id}
-                                className={`flex items-center p-3 lg:p-4 border rounded-lg cursor-pointer transition-colors ${
-                                  selectedPaymentMethod === method.id
-                                    ? 'border-primary bg-primary/5'
-                                    : 'border-border hover:bg-muted/50'
-                                }`}
-                              >
-                                <input
-                                  {...register('paymentMethod', {
-                                    onChange: (e) => {
-                                      logger.log('Payment method selected:', e.target.value);
-                                    }
-                                  })}
-                                  type="radio"
-                                  value={method.id}
-                                  className="sr-only"
-                                  checked={selectedPaymentMethod === method.id}
-                                />
-                                <div className="mr-3 flex-shrink-0">{method.icon()}</div>
-                                <div className="flex-1">
-                                  <div className="font-medium text-sm lg:text-base">{method.name}</div>
-                                  <div className="text-xs lg:text-sm text-muted-foreground">{method.description}</div>
-                                </div>
-                                <div className={`w-4 h-4 border-2 rounded-full ${
-                                  selectedPaymentMethod === method.id
-                                    ? 'border-primary bg-primary'
-                                    : 'border-border'
-                                }`}>
-                                  {selectedPaymentMethod === method.id && (
-                                    <div className="w-2 h-2 bg-primary-foreground rounded-full m-0.5" />
-                                  )}
-                                </div>
-                              </label>
-                            );
-                          })}
-                        </div>
-
-                        {errors.paymentMethod && (
-                          <p className="text-sm text-destructive">{errors.paymentMethod.message}</p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* COD Details */}
-                  {paymentType === 'cod' && codConfig && (
-                    <Card>
-                      <CardHeader className="pb-3 lg:pb-4">
-                        <CardTitle className="flex items-center text-sm lg:text-base">
-                          <Package className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                          Cash on Delivery Details
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {/* If advance payment required */}
-                        {codConfig.advance_payment && codConfig.advance_payment.required ? (
-                          <>
-                            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                              <div className="flex items-start gap-3">
-                                <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
-                                <div>
-                                  <h4 className="font-semibold text-orange-900 mb-2">Advance Payment Required</h4>
-                                  <p className="text-sm text-orange-800 mb-3">
-                                    To place a COD order, you need to pay a partial amount online now and the remaining on delivery.
-                                  </p>
-                                  <div className="grid grid-cols-2 gap-3 text-sm">
-                                    <div className="bg-white border border-orange-200 rounded p-3">
-                                      <p className="text-orange-600 text-xs mb-1">Pay Now (Online)</p>
-                                      <p className="text-lg font-bold text-orange-900">
-                                        {currencySymbol}{(() => {
-                                          // CRITICAL: Use cart.summary values directly for accuracy
-                                          const cartSubtotal = cart?.summary?.discounted_subtotal || 0;
-                                          const cartShipping = cart?.summary?.shipping_cost || 0;
-                                          const cartTax = cart?.summary?.tax_amount || 0;
-                                          const baseAmount = cartSubtotal + cartShipping + cartTax;
-                                          const advanceAmount = codConfig.advance_payment.type === 'percentage'
-                                            ? (baseAmount * codConfig.advance_payment.value) / 100
-                                            : Math.min(codConfig.advance_payment.value, baseAmount);
-                                          return advanceAmount.toFixed(2);
-                                        })()}
-                                      </p>
-                                    </div>
-                                    <div className="bg-white border border-orange-200 rounded p-3">
-                                      <p className="text-orange-600 text-xs mb-1">Pay on Delivery</p>
-                                      <p className="text-lg font-bold text-orange-900">
-                                        {currencySymbol}{(() => {
-                                          // CRITICAL: Use cart.summary values directly for accuracy
-                                          const cartSubtotal = cart?.summary?.discounted_subtotal || 0;
-                                          const cartShipping = cart?.summary?.shipping_cost || 0;
-                                          const cartTax = cart?.summary?.tax_amount || 0;
-                                          const cartCharges = cart?.summary?.total_charges || 0;
-                                          const baseAmount = cartSubtotal + cartShipping + cartTax;
-                                          const advanceAmount = codConfig.advance_payment.type === 'percentage'
-                                            ? (baseAmount * codConfig.advance_payment.value) / 100
-                                            : Math.min(codConfig.advance_payment.value, baseAmount);
-                                          // COD amount = remaining baseAmount + COD charges
-                                          const codAmount = baseAmount - advanceAmount + cartCharges;
-                                          return codAmount.toFixed(2);
-                                        })()}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Select gateway for advance payment */}
-                            <div>
-                              <h4 className="font-medium text-sm mb-3">Select Payment Gateway for Advance Payment</h4>
-                              <div className="space-y-2">
-                                {paymentMethods.length === 0 && (
-                                  <div className="text-center text-muted-foreground py-4">
-                                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                                    <p className="text-sm">Loading payment gateways...</p>
-                                  </div>
-                                )}
-                                {paymentMethods.map((method) => {
-                                  return (
-                                    <label
-                                      key={method.id}
-                                      className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
-                                        selectedPaymentMethod === method.id
-                                          ? 'border-primary bg-primary/5'
-                                          : 'border-border hover:bg-muted/50'
-                                      }`}
-                                    >
-                                      <input
-                                        {...register('paymentMethod')}
-                                        type="radio"
-                                        value={method.id}
-                                        className="sr-only"
-                                        checked={selectedPaymentMethod === method.id}
-                                      />
-                                      <div className="mr-3 flex-shrink-0">{method.icon()}</div>
-                                      <div className="flex-1">
-                                        <div className="font-medium text-sm">{method.name}</div>
-                                      </div>
-                                      <div className={`w-4 h-4 border-2 rounded-full ${
-                                        selectedPaymentMethod === method.id
-                                          ? 'border-primary bg-primary'
-                                          : 'border-border'
-                                      }`}>
-                                        {selectedPaymentMethod === method.id && (
-                                          <div className="w-2 h-2 bg-primary-foreground rounded-full m-0.5" />
-                                        )}
-                                      </div>
-                                    </label>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          </>
-                        ) : (
-                          /* No advance payment - Pure COD */
-                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                            <div className="flex items-start gap-3">
-                              <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-                              <div className="flex-1">
-                                <h4 className="font-semibold text-green-900 mb-2">Cash on Delivery Confirmed</h4>
-                                <p className="text-sm text-green-800 mb-2">
-                                  You will pay the full amount when your order is delivered.
-                                </p>
-                                <div className="bg-white border border-green-200 rounded p-3 inline-block">
-                                  <p className="text-green-600 text-xs mb-1">Total Amount (Pay on Delivery)</p>
-                                  <p className="text-2xl font-bold text-green-900">{currencySymbol}{total.toFixed(2)}</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
-                  </>
-                  )}
-
-                  {/* Payment Flow: SINGLE LIST - All gateways in one list */}
-                  {paymentFlowSettings.type === 'single_list' && (
-                  <Card>
-                    <CardHeader className="pb-3 lg:pb-4">
-                      <CardTitle className="flex items-center text-sm lg:text-base">
-                        <CreditCard className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                        Select Payment Method
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3 lg:space-y-4">
-                      <div className="space-y-2 lg:space-y-3">
-                        {/* All gateways including COD in single list */}
-                        {paymentMethods.map((method) => {
-                          return (
-                            <label
-                              key={method.id}
-                              className={`flex items-center p-3 lg:p-4 border rounded-lg cursor-pointer transition-colors ${
-                                selectedPaymentMethod === method.id
-                                  ? 'border-primary bg-primary/5'
-                                  : 'border-border hover:bg-muted/50'
-                              }`}
-                            >
-                              <input
-                                {...register('paymentMethod')}
-                                type="radio"
-                                value={method.id}
-                                className="sr-only"
-                                checked={selectedPaymentMethod === method.id}
-                              />
-                              <div className="mr-3 flex-shrink-0">{method.icon()}</div>
-                              <div className="flex-1">
-                                <div className="font-medium text-sm lg:text-base">{method.name}</div>
-                                <div className="text-xs lg:text-sm text-muted-foreground">{method.description}</div>
-                              </div>
-                              <div className={`w-4 h-4 border-2 rounded-full ${
-                                selectedPaymentMethod === method.id
-                                  ? 'border-primary bg-primary'
-                                  : 'border-border'
-                              }`}>
-                                {selectedPaymentMethod === method.id && (
-                                  <div className="w-2 h-2 bg-primary-foreground rounded-full m-0.5" />
-                                )}
-                              </div>
-                            </label>
-                          );
-                        })}
-
-                        {/* COD in the same list */}
-                        {codConfig && codConfig.enabled && (
-                          <label
-                            className={`flex items-center p-3 lg:p-4 border rounded-lg transition-colors ${
-                              isProcessingPaymentTypeChange
-                                ? 'cursor-not-allowed opacity-60'
-                                : selectedPaymentMethod === 'cod'
-                                ? 'border-primary bg-primary/5 cursor-pointer'
-                                : 'border-border hover:bg-muted/50 cursor-pointer'
-                            }`}
-                            onClick={() => {
-                              if (!isProcessingPaymentTypeChange) {
-                                setValue('paymentMethod', 'cod');
-                                setPaymentType('cod');
-                              }
-                            }}
-                          >
-                            <DollarSign className="h-5 w-5 mr-3 text-green-600" />
-                            <div className="flex-1">
-                              <div className="font-medium text-sm lg:text-base">{codConfig.display_name}</div>
-                              <div className="text-xs lg:text-sm text-muted-foreground">{codConfig.description}</div>
-                            </div>
-                            <div className={`w-4 h-4 border-2 rounded-full ${
-                              selectedPaymentMethod === 'cod'
-                                ? 'border-primary bg-primary'
-                                : 'border-border'
-                            }`}>
-                              {selectedPaymentMethod === 'cod' && !isProcessingPaymentTypeChange && (
-                                <div className="w-2 h-2 bg-primary-foreground rounded-full m-0.5" />
-                              )}
-                              {isProcessingPaymentTypeChange && selectedPaymentMethod === 'cod' && (
-                                <div className="w-2 h-2 border border-primary-foreground border-t-transparent rounded-full animate-spin m-0.5" />
-                              )}
-                            </div>
-                          </label>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                  )}
-
-                  {/* Payment Flow: COD FIRST - COD prominently shown first */}
-                  {paymentFlowSettings.type === 'cod_first' && (
-                  <>
-                    {/* COD Option - Prominent */}
-                    {codConfig && codConfig.enabled && (
-                      <Card className="border-2 border-green-500">
-                        <CardHeader className="pb-3 lg:pb-4 bg-green-50">
-                          <CardTitle className="flex items-center text-sm lg:text-base text-green-900">
-                            <DollarSign className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                            Cash on Delivery (Recommended)
-                          </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-3 lg:space-y-4">
-                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                            <p className="text-sm text-green-800 mb-3">{codConfig.description}</p>
-                            <Button
-                              type="button"
-                              className="w-full bg-green-600 hover:bg-green-700"
-                              disabled={isProcessingPaymentTypeChange}
-                              onClick={() => {
-                                if (!isProcessingPaymentTypeChange) {
-                                  setValue('paymentMethod', 'cod');
-                                  setPaymentType('cod');
-                                }
-                              }}
-                            >
-                              {isProcessingPaymentTypeChange ? (
-                                <>
-                                  <div className="w-4 h-4 border border-white border-t-transparent rounded-full animate-spin mr-2" />
-                                  Processing...
-                                </>
-                              ) : (
-                                'Pay on Delivery'
-                              )}
-                            </Button>
+                        <CardContent className="pt-0">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4 text-sm">
+                            <div className="flex items-center text-muted-foreground">
+                              <Check className="h-3 w-3 lg:h-4 lg:w-4 text-primary mr-2 flex-shrink-0" />
+                              <span>Save your addresses</span>
+                            </div>
+                            <div className="flex items-center text-muted-foreground">
+                              <Check className="h-3 w-3 lg:h-4 lg:w-4 text-primary mr-2 flex-shrink-0" />
+                              <span>Track your orders</span>
+                            </div>
+                            <div className="flex items-center text-muted-foreground">
+                              <Check className="h-3 w-3 lg:h-4 lg:w-4 text-primary mr-2 flex-shrink-0" />
+                              <span>Faster future checkouts</span>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
                     )}
 
-                    {/* Divider */}
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-border"></div>
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">Or pay online</span>
-                      </div>
-                    </div>
+                    {/* Contact Information - Only for guest users */}
+                    {!isAuthenticated && (
+                      <Card>
+                        <CardHeader className="pb-3 lg:pb-4">
+                          <CardTitle className="flex items-center text-sm lg:text-base">
+                            <Mail className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+                            Contact Information
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 lg:space-y-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                            <Input
+                              {...register('email')}
+                              type="email"
+                              label="Email Address"
+                              placeholder="your.email@example.com"
+                              error={errors.email?.message}
+                              required
+                            />
+                            <Input
+                              {...register('firstName')}
+                              label="Full Name"
+                              placeholder="Enter your full name"
+                              error={errors.firstName?.message}
+                              required
+                            />
+                          </div>
 
-                    {/* Online Payment Gateways */}
-                    <Card>
-                      <CardHeader className="pb-3 lg:pb-4">
-                        <CardTitle className="flex items-center text-sm lg:text-base">
-                          <CreditCard className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                          Online Payment Methods
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3 lg:space-y-4">
-                        <div className="space-y-2 lg:space-y-3">
-                          {paymentMethods.map((method) => {
-                            return (
-                              <label
-                                key={method.id}
-                                className={`flex items-center p-3 lg:p-4 border rounded-lg transition-colors ${
-                                  isProcessingPaymentTypeChange
-                                    ? 'cursor-not-allowed opacity-60'
-                                    : selectedPaymentMethod === method.id
-                                    ? 'border-primary bg-primary/5 cursor-pointer'
-                                    : 'border-border hover:bg-muted/50 cursor-pointer'
-                                }`}
-                              >
-                                <input
-                                  {...register('paymentMethod')}
-                                  type="radio"
-                                  value={method.id}
-                                  className="sr-only"
-                                  checked={selectedPaymentMethod === method.id}
-                                  disabled={isProcessingPaymentTypeChange}
-                                  onChange={() => !isProcessingPaymentTypeChange && setPaymentType('online')}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                            <Input
+                              {...register('phone')}
+                              type="tel"
+                              label="Phone Number"
+                              placeholder="Enter 10-digit mobile number"
+                              error={errors.phone?.message}
+                              required
+                            />
+                            <Input
+                              {...register('whatsapp')}
+                              type="tel"
+                              label="WhatsApp Number (Optional)"
+                              placeholder="If different from phone"
+                              error={errors.whatsapp?.message}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Shipping Address */}
+                    {isAuthenticated ? (
+                      <AddressManager
+                        selectedAddress={selectedShippingAddress}
+                        onAddressSelect={handleShippingAddressSelect}
+                      />
+                    ) : (
+                      <Card>
+                        <CardHeader className="pb-3 lg:pb-4">
+                          <CardTitle className="flex items-center text-sm lg:text-base">
+                            <MapPin className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+                            Delivery Address
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 lg:space-y-4">
+
+                          {/* Pincode Field */}
+                          <div className="space-y-2">
+                            <div className="relative">
+                              <Input
+                                {...register('pincode')}
+                                label="Pincode"
+                                placeholder="Enter 6-digit pincode"
+                                error={errors.pincode?.message}
+                                required
+                                maxLength={6}
+                                pattern="[0-9]{6}"
+                              />
+
+                              {/* Pincode validation indicator */}
+                              <div className="absolute right-3 top-8 flex items-center">
+                                {formValues.pincode && formValues.pincode.length === 6 && calculatingShipping && (
+                                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                )}
+                                {formValues.pincode && formValues.pincode.length === 6 && !calculatingShipping && !pincodeError && pincodeInfo && (
+                                  <div className="h-4 w-4 rounded-full bg-primary flex items-center justify-center">
+                                    <Check className="h-3 w-3 text-primary-foreground" />
+                                  </div>
+                                )}
+                                {formValues.pincode && formValues.pincode.length === 6 && !calculatingShipping && pincodeError && (
+                                  <div className="h-4 w-4 rounded-full bg-destructive flex items-center justify-center">
+                                    <X className="h-3 w-3 text-destructive-foreground" />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Pincode Error */}
+                            {pincodeError && (
+                              <div className="text-sm text-destructive">{pincodeError}</div>
+                            )}
+
+                            {/* Pincode Info Display */}
+                            {calculatingShipping ? (
+                              <div className="bg-muted/50 p-3 rounded-lg border">
+                                <div className="flex items-center">
+                                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mr-2" />
+                                  <span className="text-sm text-muted-foreground">Calculating shipping...</span>
+                                </div>
+                              </div>
+                            ) : pincodeInfo && !pincodeError && (
+                              <div className="bg-primary/10 p-3 rounded-lg border border-primary/20">
+                                <div className="flex items-start space-x-2">
+                                  <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                                  <div className="space-y-1 text-sm">
+                                    <p className="font-medium text-primary">
+                                      ✅ We deliver to {pincodeInfo.city}, {pincodeInfo.state}
+                                    </p>
+                                    <div className="flex flex-wrap items-center gap-3 lg:gap-4 text-xs text-muted-foreground">
+                                      <div className="flex items-center">
+                                        <Clock className="h-3 w-3 mr-1" />
+                                        {estimatedDelivery}
+                                      </div>
+                                      {hasValidShippingAddress && calculatedShippingCost === 0 && (
+                                        <div className="flex items-center">
+                                          <Truck className="h-3 w-3 mr-1" />
+                                          FREE Delivery
+                                        </div>
+                                      )}
+                                      {!hasValidShippingAddress && cart?.summary?.requires_pincode && (
+                                        <div className="flex items-center text-orange-600">
+                                          <Truck className="h-3 w-3 mr-1" />
+                                          {cart.summary.pincode_message || 'Enter pincode to calculate shipping'}
+                                        </div>
+                                      )}
+                                      {codAvailable && (
+                                        <div className="flex items-center">
+                                          <DollarSign className="h-3 w-3 mr-1" />
+                                          COD Available
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Address Fields */}
+                          {calculatingShipping ? (
+                            <div className="space-y-3">
+                              {[...Array(5)].map((_, idx) => (
+                                <div key={idx} className="animate-pulse">
+                                  <div className="h-4 bg-muted rounded w-1/4 mb-2"></div>
+                                  <div className="h-10 bg-muted rounded"></div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                                <Input
+                                  {...register('area')}
+                                  label="Village/City/Area"
+                                  placeholder="Enter your area"
+                                  error={errors.area?.message}
+                                  required
                                 />
-                                <div className="mr-3 flex-shrink-0">{method.icon()}</div>
-                                <div className="flex-1">
-                                  <div className="font-medium text-sm lg:text-base">{method.name}</div>
-                                  <div className="text-xs lg:text-sm text-muted-foreground">{method.description}</div>
+                                <Input
+                                  {...register('city')}
+                                  label="City"
+                                  placeholder="Enter city name"
+                                  error={errors.city?.message}
+                                  required
+                                />
+                              </div>
+
+                              <Input
+                                {...register('address')}
+                                label="Complete Address"
+                                placeholder="House no., Street, Locality"
+                                error={errors.address?.message}
+                                required
+                              />
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                                <Input
+                                  {...register('houseNo')}
+                                  label="House/Flat No. (Optional)"
+                                  placeholder="Building, House no."
+                                  error={errors.houseNo?.message}
+                                />
+                                <Input
+                                  {...register('landmark')}
+                                  label="Landmark (Optional)"
+                                  placeholder="Near famous place"
+                                  error={errors.landmark?.message}
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                                <Input
+                                  {...register('district')}
+                                  label="District"
+                                  placeholder="Auto-filled from pincode"
+                                  error={errors.district?.message}
+                                  required
+                                  readOnly
+                                  className="bg-muted"
+                                />
+                                <Input
+                                  {...register('state')}
+                                  label="State"
+                                  placeholder="Auto-filled from pincode"
+                                  error={errors.state?.message}
+                                  required
+                                  readOnly
+                                  className="bg-muted"
+                                />
+                              </div>
+                            </>
+                          )}
+
+                          {/* Shipping Cost Display */}
+                          {calculatingShipping ? (
+                            <div className="bg-muted/50 p-3 lg:p-4 rounded-lg animate-pulse">
+                              <div className="h-4 bg-muted rounded w-full mb-2"></div>
+                              <div className="h-6 bg-muted rounded w-1/3"></div>
+                            </div>
+                          ) : (
+                            <>
+                              {calculatedShippingCost > 0 && (
+                                <div className="bg-accent p-3 lg:p-4 rounded-lg">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center">
+                                      <Truck className="h-4 w-4 text-accent-foreground mr-2" />
+                                      <div>
+                                        <p className="font-medium text-sm lg:text-base">Delivery Charges</p>
+                                        <p className="text-xs lg:text-sm text-muted-foreground">Based on your location</p>
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-lg lg:text-xl font-bold">
+                                        {currencySymbol}{calculatedShippingCost}
+                                      </p>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className={`w-4 h-4 border-2 rounded-full ${
-                                  selectedPaymentMethod === method.id
-                                    ? 'border-primary bg-primary'
-                                    : 'border-border'
-                                }`}>
-                                  {selectedPaymentMethod === method.id && !isProcessingPaymentTypeChange && (
-                                    <div className="w-2 h-2 bg-primary-foreground rounded-full m-0.5" />
-                                  )}
-                                  {isProcessingPaymentTypeChange && selectedPaymentMethod === method.id && (
-                                    <div className="w-2 h-2 border border-primary-foreground border-t-transparent rounded-full animate-spin m-0.5" />
-                                  )}
+                              )}
+
+                              {/* Shipping Calculation Pending */}
+                              {!hasValidShippingAddress && cart?.summary?.requires_pincode && (
+                                <div className="bg-orange-50 border border-orange-200 p-3 lg:p-4 rounded-lg">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center">
+                                      <Truck className="h-4 w-4 text-orange-600 mr-2" />
+                                      <div>
+                                        <p className="font-medium text-sm lg:text-base text-orange-800">Shipping Calculation Pending</p>
+                                        <p className="text-xs lg:text-sm text-orange-600">
+                                          {cart.summary.pincode_message || 'Enter delivery pincode to calculate shipping charges'}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-sm lg:text-base font-medium text-orange-800">TBD</p>
+                                    </div>
+                                  </div>
                                 </div>
-                              </label>
-                            );
-                          })}
+                              )}
+
+                              {/* Free Shipping Display */}
+                              {hasValidShippingAddress && calculatedShippingCost === 0 && (
+                                <div className="bg-green-50 border border-green-200 p-3 lg:p-4 rounded-lg">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center">
+                                      <Truck className="h-4 w-4 text-green-600 mr-2" />
+                                      <div>
+                                        <p className="font-medium text-sm lg:text-base text-green-800">FREE Delivery</p>
+                                        <p className="text-xs lg:text-sm text-green-600">No delivery charges for this order</p>
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-lg lg:text-xl font-bold text-green-800">
+                                        {currencySymbol}0
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Billing Address Option */}
+                    <Card>
+                      <CardContent className="p-3 lg:p-4">
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            id="sameAsBilling"
+                            checked={sameAsBilling}
+                            onChange={(e) => handleSameAsBillingChange(e.target.checked)}
+                            className="w-4 h-4 text-primary border-border rounded focus:ring-primary focus:ring-2"
+                          />
+                          <label htmlFor="sameAsBilling" className="text-sm font-medium cursor-pointer flex items-center">
+                            <CheckCircle className="h-4 w-4 text-primary mr-2" />
+                            Use the same address for billing
+                          </label>
                         </div>
                       </CardContent>
                     </Card>
-                  </>
-                  )}
 
-                  {/* Order Notes */}
-                  <Card>
-                    <CardContent className="pt-6">
-                      <Textarea
-                        {...register('notes')}
-                        label="Order Notes (Optional)"
-                        placeholder="Any special instructions for delivery..."
-                        rows={3}
-                      />
-                    </CardContent>
-                  </Card>
-
-                  {/* Error Display */}
-                  {error && (
-                    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-                      <div className="flex">
-                        <AlertCircle className="h-5 w-5 text-destructive mr-3 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-destructive">{error}</p>
+                    {/* Error Display */}
+                    {error && (
+                      <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                        <div className="flex">
+                          <AlertCircle className="h-5 w-5 text-destructive mr-3 flex-shrink-0 mt-0.5" />
+                          <p className="text-sm text-destructive">{error}</p>
+                        </div>
                       </div>
+                    )}
+
+                    {/* Navigation - Desktop Only */}
+                    <div className="hidden lg:flex flex-col sm:flex-row gap-3 lg:gap-4 sm:justify-between sm:items-center">
+                      <Button type="button" variant="outline" asChild className="order-2 sm:order-1">
+                        <Link href="/cart">
+                          <ChevronLeft className="w-4 h-4 mr-2" />
+                          Back to Cart
+                        </Link>
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={handleContinueToNext}
+                        disabled={!isCurrentStepValid() || calculatingShipping}
+                        className="order-1 sm:order-2"
+                      >
+                        {calculatingShipping ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Calculating...
+                          </>
+                        ) : (
+                          <>
+                            Continue to {sameAsBilling ? 'Payment' : 'Billing Address'}
+                            <ChevronRight className="w-4 h-4 ml-2" />
+                          </>
+                        )}
+                      </Button>
                     </div>
-                  )}
-
-                  {/* Navigation - Desktop Only */}
-                  <div className="hidden lg:flex flex-col sm:flex-row gap-3 lg:gap-4 sm:justify-between sm:items-center">
-                    <Button type="button" variant="outline" onClick={prevStep} className="order-2 sm:order-1">
-                      <ChevronLeft className="w-4 h-4 mr-2" />
-                      Back to {sameAsBilling ? 'Shipping' : 'Billing Address'}
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={isProcessing || calculatingShipping || !isCurrentStepValid()}
-                      className="order-1 sm:order-2 w-full sm:w-auto"
-                      form="checkout-form"
-                    >
-                      {isProcessing || calculatingShipping ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          {isProcessing ? 'Processing...' : 'Calculating...'}
-                        </>
-                      ) : (
-                        <>
-                          <Lock className="h-4 w-4 mr-2" />
-                          Place Order • {currencySymbol}{total.toFixed(2)}
-                        </>
-                      )}
-                    </Button>
                   </div>
-                </div>
-              )}
-            </form>
-          </div>
+                )}
 
-          {/* Order Summary - Desktop and Mobile */}
-          <div className="space-y-4 lg:space-y-6">
-            {/* Mobile Full Summary - Always Visible */}
-            <div className="lg:hidden">
-              <OrderSummaryCard
-                summary={{
-                  ...cart.summary,
-                  subtotal: subtotal,
-                  couponDiscount: couponDiscount,
-                  discountedSubtotal: discountedSubtotal,
-                  shippingCost: calculatedShippingCost,
-                  tax: tax,
-                  total: total,
-                  bundleDiscount: cart.summary?.bundleDiscount || 0,
-                  currencySymbol: currencySymbol,
-                  itemCount: cart?.total_items || 0
-                }}
-                onApplyCoupon={handleApplyCoupon}
-                onRemoveCoupon={handleRemoveCoupon}
-                applyCouponLoading={applyCouponLoading}
-                variant="checkout"
-                hasValidShippingAddress={hasValidShippingAddress}
-                calculatingShipping={calculatingShipping}
-              />
+                {/* STEP 2: BILLING ADDRESS */}
+                {currentStep === 2 && (
+                  <div className="space-y-4 lg:space-y-6">
+                    {sameAsBilling ? (
+                      <Card>
+                        <CardContent className="py-8 text-center">
+                          <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                          <p className="text-lg font-medium">Billing address is same as shipping address</p>
+                          <p className="text-muted-foreground mt-2">Click continue to proceed to payment</p>
+                          <div className="flex gap-3 justify-center mt-6">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={prevStep}
+                            >
+                              <ChevronLeft className="w-4 h-4 mr-2" />
+                              Back
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => setSameAsBilling(false)}
+                            >
+                              Use Different Billing Address
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={nextStep}
+                            >
+                              Continue to Payment
+                              <ChevronRight className="w-4 h-4 ml-2" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ) : isAuthenticated ? (
+                      <AddressManager
+                        selectedAddress={selectedBillingAddress}
+                        onAddressSelect={handleBillingAddressSelect}
+                      />
+                    ) : (
+                      <Card>
+                        <CardHeader className="pb-3 lg:pb-4">
+                          <CardTitle className="flex items-center text-sm lg:text-base">
+                            <Home className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+                            Billing Address
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 lg:space-y-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                            <Input
+                              {...register('billing_firstName')}
+                              label="First Name"
+                              placeholder="Enter first name"
+                              error={errors.billing_firstName?.message}
+                              required
+                            />
+                            <Input
+                              {...register('billing_lastName')}
+                              label="Last Name"
+                              placeholder="Enter last name"
+                              error={errors.billing_lastName?.message}
+                              required
+                            />
+                          </div>
+
+                          <Input
+                            {...register('billing_phone')}
+                            type="tel"
+                            label="Phone Number"
+                            placeholder="Enter phone number"
+                            error={errors.billing_phone?.message}
+                            required
+                          />
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                            <Input
+                              {...register('billing_pincode')}
+                              label="Pincode"
+                              placeholder="Enter pincode"
+                              error={errors.billing_pincode?.message}
+                              required
+                            />
+                            <Input
+                              {...register('billing_area')}
+                              label="Village/City/Area"
+                              placeholder="Enter area"
+                              error={errors.billing_area?.message}
+                              required
+                            />
+                          </div>
+
+                          <Input
+                            {...register('billing_address')}
+                            label="Complete Address"
+                            placeholder="House No, Street, Area"
+                            error={errors.billing_address?.message}
+                            required
+                          />
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
+                            <Input
+                              {...register('billing_city')}
+                              label="City"
+                              placeholder="Enter city"
+                              error={errors.billing_city?.message}
+                              required
+                            />
+                            <Input
+                              {...register('billing_state')}
+                              label="State"
+                              placeholder="Enter state"
+                              error={errors.billing_state?.message}
+                              required
+                            />
+                          </div>
+
+                          <Input
+                            {...register('billing_district')}
+                            label="District"
+                            placeholder="Enter district"
+                            error={errors.billing_district?.message}
+                            required
+                          />
+                        </CardContent>
+                      </Card>
+                    )}
+
+
+                  </div>
+                )}
+
+
+
+                {/* STEP 3: PAYMENT & REVIEW */}
+                {currentStep === 3 && (
+                  <div className="space-y-4 lg:space-y-6">
+                    {/* Payment Type Selection Card */}
+                    <Card>
+                      <CardHeader className="pb-3 lg:pb-4">
+                        <CardTitle className="flex items-center text-base lg:text-lg">
+                          <CreditCard className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+                          Select Payment Method
+                        </CardTitle>
+                        <p className="text-xs lg:text-sm text-muted-foreground mt-1">
+                          Choose how you'd like to pay for your order
+                        </p>
+                      </CardHeader>
+                      <CardContent className="space-y-3 lg:space-y-4">
+
+                        {/* Online Payment Option */}
+                        {availablePaymentMethods.length > 0 && (
+                          <div
+                            onClick={() => setPaymentType('online')}
+                            className={`cursor-pointer border-2 rounded-lg p-3 lg:p-4 transition-all ${paymentType === 'online'
+                              ? 'border-primary bg-primary/5 shadow-sm'
+                              : 'border-border hover:border-primary/50'
+                              }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center flex-1">
+                                <div className={`w-4 h-4 lg:w-5 lg:h-5 rounded-full border-2 mr-3 flex items-center justify-center flex-shrink-0 ${paymentType === 'online' ? 'border-primary' : 'border-gray-300'
+                                  }`}>
+                                  {paymentType === 'online' && (
+                                    <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-primary"></div>
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <p className="font-semibold text-sm lg:text-base">💳 Online Payment</p>
+                                    <p className="font-bold text-sm lg:text-base text-primary ml-2">
+                                      {currencySymbol}{(subtotal + calculatedShippingCost + tax).toFixed(2)}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                              <Shield className="h-4 w-4 lg:h-5 lg:w-5 text-green-600 ml-2 flex-shrink-0" />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* COD Option (if available) */}
+                        {codConfig?.enabled && (
+                          <div
+                            onClick={() => setPaymentType('cod')}
+                            className={`cursor-pointer border-2 rounded-lg p-3 lg:p-4 transition-all ${paymentType === 'cod'
+                              ? 'border-primary bg-primary/5 shadow-sm'
+                              : 'border-border hover:border-primary/50'
+                              }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center flex-1">
+                                <div className={`w-4 h-4 lg:w-5 lg:h-5 rounded-full border-2 mr-3 flex items-center justify-center flex-shrink-0 ${paymentType === 'cod' ? 'border-primary' : 'border-gray-300'
+                                  }`}>
+                                  {paymentType === 'cod' && (
+                                    <div className="w-2 h-2 lg:w-3 lg:h-3 rounded-full bg-primary"></div>
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <p className="font-semibold text-sm lg:text-base">{codConfig.display_name || '💵 Cash on Delivery'}</p>
+                                    <p className="font-bold text-sm lg:text-base text-primary ml-2">
+                                      {currencySymbol}{(subtotal + calculatedShippingCost + tax + codChargeAmount).toFixed(2)}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* No Payment Methods Available */}
+                        {!codConfig?.enabled && availablePaymentMethods.length === 0 && (
+                          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+                            <AlertCircle className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
+                            <p className="text-sm text-yellow-800 font-medium">
+                              No payment methods available
+                            </p>
+                            <p className="text-xs text-yellow-700 mt-1">
+                              Please contact support to complete your order
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+
+                    {/* Gateway Selection removed - automatically uses first gateway */}
+
+                    {/* Why COD Price is Higher - Educational Section */}
+                    {codChargeAmount > 0 && paymentType === 'cod' && (
+                      <Card className="bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200">
+                        <CardHeader className="pb-3 lg:pb-4">
+                          <CardTitle className="text-sm lg:text-base flex items-center text-orange-800">
+                            <Info className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+                            Why COD price is higher?
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <p className="text-xs lg:text-sm text-orange-700">
+                            Cash on Delivery orders have additional service charges to cover logistics and handling costs. Watch this short video to understand why:
+                          </p>
+
+                          {/* YouTube Video Embed */}
+                          <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-black">
+                            <iframe
+                              className="absolute top-0 left-0 w-full h-full"
+                              src="https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1"
+                              title="Why COD price is higher"
+                              frameBorder="0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            ></iframe>
+                          </div>
+
+                          <div className="flex items-start space-x-2 text-xs lg:text-sm text-orange-700 bg-white/50 p-2 lg:p-3 rounded-lg">
+                            <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-orange-600" />
+                            <p>
+                              <span className="font-medium">Tip:</span> Save {currencySymbol}{codChargeAmount.toFixed(2)} by choosing online payment instead!
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+
+                    {/* Place Order Button - Desktop Only */}
+                    <div className="hidden lg:block">
+                      <Button
+                        type="submit"
+                        disabled={isProcessing || !isStep3Valid()}
+                        className="w-full py-5 lg:py-6 text-base lg:text-lg font-bold bg-blue-600 hover:bg-blue-700"
+                        form="checkout-form"
+                      >
+                        {isProcessing ? (
+                          <>
+                            <Loader2 className="h-4 w-4 lg:h-5 lg:w-5 mr-2 animate-spin" />
+                            Processing Order...
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+                            🔐 Place Order - {currencySymbol}{total.toFixed(2)}
+                          </>
+                        )}
+                      </Button>
+                      {!isStep3Valid() && (
+                        <p className="text-xs lg:text-sm text-center text-muted-foreground mt-2">
+                          {!paymentType
+                            ? 'Please select a payment method to continue'
+                            : 'Ready to place order'}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Security Badge */}
+                    <div className="hidden lg:flex items-center justify-center text-xs text-muted-foreground gap-2 p-3 bg-muted/50 rounded-lg">
+                      <Shield className="h-4 w-4 text-green-600" />
+                      <span>Your payment information is secure and encrypted</span>
+                    </div>
+                  </div>
+                )}
+
+
+              </form>
             </div>
 
-            {/* Desktop Summary */}
-            <div className="hidden lg:block">
-              <OrderSummaryCard
-                summary={{
-                  ...cart.summary,
-                  subtotal: subtotal,
-                  couponDiscount: couponDiscount,
-                  discountedSubtotal: discountedSubtotal,
-                  shippingCost: calculatedShippingCost,
-                  tax: tax,
-                  total: total,
-                  bundleDiscount: cart.summary?.bundleDiscount || 0,
-                  currencySymbol: currencySymbol,
-                  itemCount: cart?.total_items || 0
-                }}
-                onApplyCoupon={handleApplyCoupon}
-                onRemoveCoupon={handleRemoveCoupon}
-                applyCouponLoading={applyCouponLoading}
-                variant="checkout"
-                hasValidShippingAddress={hasValidShippingAddress}
-                calculatingShipping={calculatingShipping}
-              />
-            </div>
+            {/* Order Summary - Desktop and Mobile */}
+            <div className="space-y-4 lg:space-y-6">
+              {/* Mobile Full Summary - Always Visible */}
+              <div className="lg:hidden">
+                <OrderSummaryCard
+                  summary={{
+                    ...cart.summary,
+                    subtotal: subtotal,
+                    couponDiscount: couponDiscount,
+                    discountedSubtotal: discountedSubtotal,
+                    shippingCost: calculatedShippingCost,
+                    tax: tax,
+                    total: total,
+                    charges: finalChargesList,
+                    totalCharges: finalTotalCharges,
+                    bundleDiscount: cart.summary?.bundle_discount || 0,
+                    currencySymbol: currencySymbol,
+                    itemCount: cart?.total_items || 0
+                  }}
+                  onApplyCoupon={handleApplyCoupon}
+                  onRemoveCoupon={handleRemoveCoupon}
+                  applyCouponLoading={applyCouponLoading}
+                  variant="checkout"
+                  hasValidShippingAddress={!!hasValidShippingAddress}
+                  calculatingShipping={calculatingShipping}
+                />
+              </div>
 
-            {/* Delivery & Security Info */}
-            <div className="space-y-4">
-              
-              {/* Delivery Info */}
-              <Card>
-                <CardContent className="p-4">
-                  <div className="space-y-3">
+              {/* Desktop Summary */}
+              <div className="hidden lg:block">
+                <OrderSummaryCard
+                  summary={{
+                    ...cart.summary,
+                    subtotal: subtotal,
+                    couponDiscount: couponDiscount,
+                    discountedSubtotal: discountedSubtotal,
+                    shippingCost: calculatedShippingCost,
+                    tax: tax,
+                    total: total,
+                    charges: finalChargesList,
+                    totalCharges: finalTotalCharges,
+                    bundleDiscount: cart.summary?.bundle_discount || 0,
+                    currencySymbol: currencySymbol,
+                    itemCount: cart?.total_items || 0
+                  }}
+                  onApplyCoupon={handleApplyCoupon}
+                  onRemoveCoupon={handleRemoveCoupon}
+                  applyCouponLoading={applyCouponLoading}
+                  variant="checkout"
+                  hasValidShippingAddress={!!hasValidShippingAddress}
+                  calculatingShipping={calculatingShipping}
+                />
+              </div>
+
+              {/* Delivery & Security Info */}
+              <div className="space-y-4">
+
+                {/* Delivery Info */}
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Truck className="h-4 w-4 text-primary" />
+                        <div>
+                          <p className="font-medium">Delivery Information</p>
+                          <p className="text-sm text-muted-foreground">
+                            {estimatedDelivery || 'Enter pincode for estimate'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {codAvailable && (
+                        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                          <DollarSign className="h-4 w-4" />
+                          <span>Cash on Delivery available</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Security Notice */}
+                <Card>
+                  <CardContent className="p-4">
                     <div className="flex items-center space-x-2">
-                      <Truck className="h-4 w-4 text-primary" />
+                      <Shield className="h-4 w-4 text-primary" />
                       <div>
-                        <p className="font-medium">Delivery Information</p>
+                        <p className="font-medium">100% Secure Checkout</p>
                         <p className="text-sm text-muted-foreground">
-                          {estimatedDelivery || 'Enter pincode for estimate'}
+                          SSL encrypted payment. Your data is safe with us.
                         </p>
                       </div>
                     </div>
-                    
-                    {codAvailable && (
-                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                        <DollarSign className="h-4 w-4" />
-                        <span>Cash on Delivery available</span>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Security Notice */}
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center space-x-2">
-                    <Shield className="h-4 w-4 text-primary" />
-                    <div>
-                      <p className="font-medium">100% Secure Checkout</p>
-                      <p className="text-sm text-muted-foreground">
-                        SSL encrypted payment. Your data is safe with us.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Mobile Sticky Bottom Navigation - Buttons Only - Positioned above nav */}
-      <div className="lg:hidden fixed bottom-16 left-0 right-0 bg-background border-t border-border shadow-lg z-40">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex gap-2">
-            {currentStep > 1 ? (
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={prevStep}
-                size="default"
-                className="flex-1 font-bold"
-              >
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Back
-              </Button>
-            ) : (
-              <Button 
-                type="button" 
-                variant="outline" 
-                asChild
-                size="default"
-                className="flex-1 font-bold"
-              >
-                <Link href="/cart">
+        {/* Mobile Sticky Bottom Navigation - Buttons Only - Positioned above nav */}
+        <div className="lg:hidden fixed bottom-16 left-0 right-0 bg-background border-t border-border shadow-lg z-40">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex gap-2">
+              {currentStep > 1 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={prevStep}
+                  className="flex-1 font-bold"
+                >
                   <ChevronLeft className="w-4 h-4 mr-1" />
-                  Cart
-                </Link>
-              </Button>
-            )}
-            
-            {currentStep === 3 ? (
-              <Button
-                type="submit"
-                disabled={isProcessing || !isCurrentStepValid()}
-                size="default"
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold"
-                form="checkout-form"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Lock className="h-4 w-4 mr-1" />
-                    🔐 Place Order
-                  </>
-                )}
-              </Button>
-            ) : (
-              <Button 
-                type="button" 
-                onClick={handleContinueToNext}
-                disabled={!isCurrentStepValid() || calculatingShipping}
-                size="default"
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold"
-              >
-                {calculatingShipping ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    Calculating...
-                  </>
-                ) : (
-                  <>
-                    Continue
-                    <ChevronRight className="w-4 h-4 ml-1" />
-                  </>
-                )}
-              </Button>
-            )}
+                  Back
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  asChild
+                  size="default"
+                  className="flex-1 font-bold"
+                >
+                  <Link href="/cart">
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Cart
+                  </Link>
+                </Button>
+              )}
+
+              {currentStep === 3 ? (
+                <Button
+                  type="submit"
+                  disabled={isProcessing || !isCurrentStepValid()}
+                  size="default"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                  form="checkout-form"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-4 w-4 mr-1" />
+                      🔐 Place Order
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={handleContinueToNext}
+                  disabled={!isCurrentStepValid() || calculatingShipping}
+                  size="default"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                >
+                  {calculatingShipping ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      Calculating...
+                    </>
+                  ) : (
+                    <>
+                      Continue
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-    </div>
-    </ProtectedRoute>
+      </div >
+    </ProtectedRoute >
   );
 }
 

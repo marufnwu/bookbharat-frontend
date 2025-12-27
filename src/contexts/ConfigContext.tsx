@@ -52,6 +52,7 @@ export interface SiteConfig {
     currency_symbol: string;
     min_order_amount: number;
     free_shipping_threshold: number;
+    free_shipping_enabled: boolean;
   };
   shipping: {
     zones_enabled: boolean;
@@ -211,7 +212,7 @@ export function ConfigProvider({
 
   const applyThemeToCSS = (theme: SiteConfig['theme']) => {
     const root = document.documentElement;
-    
+
     // Convert hex colors to HSL and apply to CSS custom properties
     root.style.setProperty('--primary', hexToHsl(theme.primary_color));
     root.style.setProperty('--secondary', hexToHsl(theme.secondary_color));
@@ -219,7 +220,7 @@ export function ConfigProvider({
     root.style.setProperty('--success', hexToHsl(theme.success_color));
     root.style.setProperty('--warning', hexToHsl(theme.warning_color));
     root.style.setProperty('--destructive', hexToHsl(theme.error_color));
-    
+
     // Apply font family
     if (theme.font_family) {
       root.style.setProperty('--font-sans', theme.font_family);

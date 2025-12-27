@@ -29,6 +29,8 @@ const nextConfig: NextConfig = {
       '@radix-ui/react-toast',
       'lucide-react'
     ],
+    // Optimize for read-only container deployments
+    isrFlushToDisk: false,  // Don't write ISR cache to disk on every request
   },
 
   // Set environment variables for build process
@@ -36,9 +38,19 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_BUILD_TIME: 'true'
   },
 
-  // Skip static generation for pages that use dynamic features
+  // Generate unique build ID for cache busting
+  // Changes on every deployment to ensure fresh content
   generateBuildId: async () => {
-    return 'build'
+    // Use timestamp for unique build ID (ensures cache invalidation)
+    return `build-${Date.now()}`
+
+    // Alternative: Use git commit hash for reproducible builds
+    // const { execSync } = require('child_process');
+    // try {
+    //   return execSync('git rev-parse --short HEAD').toString().trim();
+    // } catch {
+    //   return `build-${Date.now()}`;
+    // }
   },
 
   // Enable compression
@@ -101,6 +113,18 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
 
+  // Rewrites to proxy feed requests to backend
+  async rewrites() {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1$/, '') || 'http://localhost:8000';
+    return [
+      // Product Feeds - proxy to backend
+      {
+        source: '/feeds/:path*',
+        destination: `${backendUrl}/feeds/:path*`,
+      },
+    ];
+  },
+
   // Cache headers for static assets
   async headers() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
@@ -114,6 +138,32 @@ const nextConfig: NextConfig = {
       apiOrigin = apiUrl.replace(/\/(api|api-v\d+).*/, '');
     }
     return [
+      // Feed files - cache for 1 hour
+      {
+        source: '/feeds/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: process.env.NODE_ENV === 'development'
+              ? 'no-store, no-cache, must-revalidate, proxy-revalidate'
+              : 'public, max-age=3600, s-maxage=3600',
+          },
+          ...(process.env.NODE_ENV === 'development' ? [
+            {
+              key: 'Pragma',
+              value: 'no-cache',
+            },
+            {
+              key: 'Expires',
+              value: '0',
+            },
+          ] : []),
+          {
+            key: 'Content-Type',
+            value: 'application/xml; charset=utf-8',
+          },
+        ],
+      },
       {
         source: '/:all*(svg|jpg|jpeg|png|webp|gif|ico)',
         headers: [
@@ -152,6 +202,20 @@ const nextConfig: NextConfig = {
             key: 'X-DNS-Prefetch-Control',
             value: 'on',
           },
+          ...(process.env.NODE_ENV === 'development' ? [
+            {
+              key: 'Cache-Control',
+              value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            },
+            {
+              key: 'Pragma',
+              value: 'no-cache',
+            },
+            {
+              key: 'Expires',
+              value: '0',
+            },
+          ] : []),
         ],
       },
     ];
@@ -195,6 +259,15 @@ const nextConfig: NextConfig = {
             },
           },
         },
+      };
+    }
+
+    if (isServer) {
+      // Ensure chunk ids resolve without the implicit "chunks/" prefix that causes runtime require failures
+      config.output = {
+        ...config.output,
+        chunkFilename: '[id].js',
+        hotUpdateChunkFilename: '[id].hot-update.js',
       };
     }
 

@@ -25,6 +25,7 @@ interface CategoryProductSectionProps {
   showRating: boolean;
   showDiscount: boolean;
   lazyLoad: boolean;
+  onContentLoaded?: () => void;
 }
 
 export default function CategoryProductSection({
@@ -33,7 +34,8 @@ export default function CategoryProductSection({
   showSeeAll,
   showRating,
   showDiscount,
-  lazyLoad
+  lazyLoad,
+  onContentLoaded
 }: CategoryProductSectionProps) {
   const [products, setProducts] = useState<Product[]>(category.products || []);
   const [loading, setLoading] = useState(false);
@@ -41,6 +43,11 @@ export default function CategoryProductSection({
   const [isMobile, setIsMobile] = useState(false);
   const { siteConfig } = useConfig();
 
+  // Determine if category has products and the count
+  const hasProducts = category.products ? category.products.length > 0 : (category.products_count ? category.products_count > 0 : false);
+  const productsCount = category.products ? category.products.length : (category.products_count || 0);
+
+  
   // Mobile detection
   useEffect(() => {
     const checkMobile = () => {
@@ -50,31 +57,43 @@ export default function CategoryProductSection({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-  
+
   // Intersection Observer for lazy loading
   const { ref, inView } = useInView({
     threshold: 0.1,
     triggerOnce: true,
-    skip: !lazyLoad || products.length > 0
+    skip: !lazyLoad || products.length > 0 || !hasProducts
   });
 
   useEffect(() => {
+    // Don't load if category has no products
+    if (!hasProducts) {
+      return;
+    }
+
     if (lazyLoad && inView && products.length === 0) {
       loadCategoryProducts();
     }
-  }, [inView, lazyLoad]);
+  }, [inView, lazyLoad, hasProducts]);
 
   useEffect(() => {
+    // Don't load if category has no products
+    if (!hasProducts) {
+      return;
+    }
+
     if (!lazyLoad && products.length === 0) {
       loadCategoryProducts();
     }
-  }, []);
+  }, [hasProducts]);
 
   const loadCategoryProducts = async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
+     
+
       const response = await productApi.getProductsByCategory(category.id, {
         per_page: productsPerCategory,
         sort_by: 'created_at',
@@ -82,36 +101,37 @@ export default function CategoryProductSection({
       });
       
       if (response.success) {
-        setProducts(response.data.products.data || []);
+        const loadedProducts = response.data.products.data || [];
+                setProducts(loadedProducts);
       } else {
+        console.error(`Failed to load ${category.name} products`);
         setError('Failed to load products');
       }
     } catch (err: any) {
-      console.error('Failed to load category products:', err);
+      console.error(`Failed to load category products for ${category.name}:`, err);
       setError('Failed to load products');
     } finally {
       setLoading(false);
+      // Call onContentLoaded callback if provided
+      if (onContentLoaded) {
+        onContentLoaded();
+      }
     }
   };
 
+
+  // Early return if category has no products (after hooks are called)
+  if (!hasProducts) {
+    return null;
+  }
 
   if (lazyLoad && !inView) {
     return <div ref={ref} className="h-96" />; // Placeholder for lazy loading
   }
 
-  if (loading) {
-    return (
-      <section ref={ref} className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-center py-12">
-            <div className="flex items-center space-x-2">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <span>Loading {category.name} products...</span>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
+  // Don't show individual loading states - let parent handle it
+  if (loading && !lazyLoad) {
+    return null; // Let parent show loading
   }
 
   if (error) {
@@ -133,10 +153,12 @@ export default function CategoryProductSection({
     );
   }
 
+  // If no products after loading, don't render anything
   if (products.length === 0) {
-    return null;
+        return null;
   }
 
+  
   return (
     <section ref={ref} className="py-8 sm:py-12 md:py-16 bg-muted/30">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
@@ -167,7 +189,7 @@ export default function CategoryProductSection({
         </div>
 
         {/* View All Button for mobile */}
-        {showSeeAll && (
+        {showSeeAll && products.length > 0 && (
           <div className="text-center mt-6 sm:hidden">
             <Button asChild className="min-h-[44px] touch-target w-full max-w-xs">
               <Link href={`/categories/${category.slug || category.id}`}>

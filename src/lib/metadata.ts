@@ -30,6 +30,7 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
 
       const result = await response.json();
       const seoConfig = result.data?.seo || result.seo || result.data?.seo || {};
+      const siteConfig = result.data?.site || result.site || {};
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
       // Generate metadata object from backend configuration
@@ -44,6 +45,11 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
         authors: seoConfig.meta_tags?.author ? [{ name: seoConfig.meta_tags.author }] : undefined,
         creator: seoConfig.meta_tags?.author,
         publisher: seoConfig.meta_tags?.publisher,
+        icons: siteConfig.favicon ? {
+          icon: siteConfig.favicon,
+          shortcut: siteConfig.favicon,
+          apple: siteConfig.favicon,
+        } : undefined,
         robots: {
           index: seoConfig.meta_tags?.meta_robots?.includes('index') || true,
           follow: seoConfig.meta_tags?.meta_robots?.includes('follow') || true,
@@ -78,15 +84,74 @@ export async function generateDynamicMetadata(): Promise<Metadata> {
 
     // During build time or server-side generation, use fallback metadata
     if (isBuildTime) {
-      console.log('Build time detected, using fallback metadata');
-    } else {
-      console.log('Server-side generation detected, using fallback metadata');
+      return {
+        metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
+        title: {
+          template: "%s | BookBharat - Your Knowledge Partner",
+          default: "BookBharat - Your Knowledge Partner | Online Bookstore India",
+        },
+        description: "Discover millions of books online at BookBharat. India's leading bookstore with fiction, non-fiction, academic books and more. Fast delivery, secure payment, best prices.",
+        keywords: ["books", "online bookstore", "india", "fiction", "non-fiction", "academic books", "bookbharat"],
+        authors: [{ name: "BookBharat Team" }],
+        creator: "BookBharat",
+        publisher: "BookBharat",
+        openGraph: {
+          type: "website",
+          locale: "en_IN",
+          url: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+          title: "BookBharat - Your Knowledge Partner",
+          description: "Discover millions of books online at BookBharat. India's leading bookstore.",
+          siteName: "BookBharat",
+        },
+        twitter: {
+          card: "summary_large_image",
+          title: "BookBharat - Your Knowledge Partner",
+          description: "Discover millions of books online at BookBharat. India's leading bookstore.",
+          creator: "@bookbharat",
+        },
+        robots: {
+          index: true,
+          follow: true,
+        },
+      };
     }
-    throw new Error('Skipping dynamic metadata during build');
 
+    // Fallback to hardcoded metadata if backend fails
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
+    return {
+      metadataBase: new URL(siteUrl),
+      title: {
+        template: "%s | BookBharat - Your Knowledge Partner",
+        default: "BookBharat - Your Knowledge Partner | Online Bookstore India",
+      },
+      description: "Discover millions of books online at BookBharat. India's leading bookstore with fiction, non-fiction, academic books and more. Fast delivery, secure payment, best prices.",
+      keywords: ["books", "online bookstore", "india", "fiction", "non-fiction", "academic books", "bookbharat"],
+      authors: [{ name: "BookBharat Team" }],
+      creator: "BookBharat",
+      publisher: "BookBharat",
+      openGraph: {
+        type: "website",
+        locale: "en_IN",
+        url: siteUrl,
+        title: "BookBharat - Your Knowledge Partner",
+        description: "Discover millions of books online at BookBharat. India's leading bookstore.",
+        siteName: "BookBharat",
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: "BookBharat - Your Knowledge Partner",
+        description: "Discover millions of books online at BookBharat. India's leading bookstore.",
+        creator: "@bookbharat",
+      },
+      robots: {
+        index: true,
+        follow: true,
+      },
+    };
   } catch (error) {
     console.error('Failed to generate dynamic metadata, using fallback:', error);
-    
+
     // Fallback to hardcoded metadata if backend fails
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 

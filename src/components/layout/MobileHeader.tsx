@@ -7,11 +7,11 @@ import { useHydratedAuth } from '@/stores/auth';
 import { useCartStore } from '@/stores/cart';
 import { productApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { 
-  Search, 
-  ShoppingCart, 
-  User, 
-  Menu, 
+import {
+  Search,
+  ShoppingCart,
+  User,
+  Menu,
   X,
   Heart,
   ArrowLeft,
@@ -38,6 +38,11 @@ export function MobileHeader() {
   const router = useRouter();
   const { isAuthenticated, user, logout } = useHydratedAuth();
   const { getTotalItems } = useCartStore();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const totalItems = getTotalItems();
 
@@ -79,7 +84,8 @@ export function MobileHeader() {
       setShowSuggestions(false);
       setIsSearchOpen(false);
       setSearchQuery('');
-      router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+      // Redirect to unified products page with search parameter
+      router.push(`/products?search=${encodeURIComponent(query.trim())}`);
     }
   };
 
@@ -113,7 +119,7 @@ export function MobileHeader() {
               >
                 {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
-              
+
               <Link href="/" className="flex items-center">
                 <div className="bg-primary text-primary-foreground rounded-lg p-1.5">
                   <span className="text-sm font-bold">BB</span>
@@ -151,7 +157,7 @@ export function MobileHeader() {
               >
                 <Link href="/cart">
                   <ShoppingCart className="h-5 w-5" />
-                  {totalItems > 0 && (
+                  {isMounted && totalItems > 0 && (
                     <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] rounded-full h-5 w-5 flex items-center justify-center">
                       {totalItems > 99 ? '99+' : totalItems}
                     </span>
@@ -208,7 +214,7 @@ export function MobileHeader() {
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              
+
               {/* User Info */}
               {isAuthenticated && user && (
                 <div className="mt-3 p-3 bg-muted rounded-lg">
@@ -302,7 +308,7 @@ export function MobileHeader() {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            
+
             <form onSubmit={handleSearchSubmit} className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -323,36 +329,72 @@ export function MobileHeader() {
             </form>
           </div>
 
-          {/* Search Suggestions */}
+          {/* Search Suggestions - Enhanced with Images */}
           {showSuggestions && searchSuggestions.length > 0 && (
             <div className="space-y-2">
               {searchSuggestions.map((suggestion, index) => (
                 <button
                   key={index}
                   type="button"
-                  className="w-full p-3 text-left bg-muted rounded-lg hover:bg-muted/80 transition-colors"
+                  className="w-full p-2.5 text-left bg-muted rounded-lg hover:bg-muted/80 active:bg-muted/70 transition-colors group"
                   onClick={() => {
-                    if (suggestion.type === 'product') {
+                    // All suggestions from API are products, navigate to product details
+                    if (suggestion.slug || suggestion.id) {
                       router.push(`/products/${suggestion.slug || suggestion.id}`);
                     } else {
                       handleSearch(suggestion.title || suggestion.name);
                     }
                     setIsSearchOpen(false);
                     setSearchQuery('');
+                    setShowSuggestions(false);
                   }}
                 >
-                  <div className="flex items-start gap-3">
-                    <BookOpen className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{suggestion.title || suggestion.name}</p>
-                      {(suggestion.author || suggestion.category) && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {suggestion.author ? `by ${suggestion.author}` : `in ${suggestion.category}`}
+                  <div className="flex items-start gap-2.5">
+                    {/* Product Image */}
+                    {suggestion.image_url ? (
+                      <div className="flex-shrink-0 w-14 h-14 rounded overflow-hidden bg-gray-100">
+                        <img
+                          src={suggestion.image_url}
+                          alt={suggestion.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          loading="lazy"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex-shrink-0 w-14 h-14 rounded bg-gray-100 flex items-center justify-center">
+                        <BookOpen className="h-6 w-6 text-gray-400" />
+                      </div>
+                    )}
+
+                    {/* Product Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+                        {suggestion.title || suggestion.name}
+                      </p>
+                      {suggestion.author && (
+                        <p className="text-xs text-muted-foreground mt-1 truncate">
+                          by {suggestion.author}
+                        </p>
+                      )}
+                      {suggestion.publisher && (
+                        <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                          {suggestion.publisher}
                         </p>
                       )}
                     </div>
+
+                    {/* Price & Discount */}
                     {suggestion.price && (
-                      <span className="text-sm font-semibold text-primary">₹{suggestion.price}</span>
+                      <div className="flex-shrink-0 text-right">
+                        <div className="text-sm font-semibold text-primary">
+                          ₹{suggestion.price}
+                        </div>
+                        {suggestion.discount_percentage > 0 && (
+                          <div className="text-[10px] text-green-600 font-medium mt-0.5">
+                            {suggestion.discount_percentage}% OFF
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </button>

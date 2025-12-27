@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -39,7 +40,7 @@ interface ProductCardProps {
   className?: string;
 }
 
-export function ProductCard({ 
+export const ProductCard = React.memo(function ProductCard({
   product,
   variant = 'default',
   showCategory = true,
@@ -54,13 +55,13 @@ export function ProductCard({
 }: ProductCardProps) {
   const { siteConfig } = useConfig();
   const { addToCart: addToCartStore } = useCartStore();
-  const { 
-    addToWishlist, 
-    removeFromWishlist, 
+  const {
+    addToWishlist,
+    removeFromWishlist,
     isInWishlist,
-    isLoading: wishlistLoading 
+    isLoading: wishlistLoading
   } = useWishlistStore();
-  
+
   const [addingToCart, setAddingToCart] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -77,9 +78,9 @@ export function ProductCard({
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!product.in_stock) return;
-    
+
     try {
       setAddingToCart(true);
       await addToCartStore(product, 1);
@@ -93,7 +94,7 @@ export function ProductCard({
   const handleWishlistToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     try {
       if (isWishlisted) {
         await removeFromWishlist(product.id);
@@ -108,9 +109,9 @@ export function ProductCard({
   const handleBuyNow = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!product.in_stock) return;
-    
+
     try {
       setBuyingNow(true);
       await addToCartStore(product, 1);
@@ -159,8 +160,8 @@ export function ProductCard({
   const getFreeShippingProgress = () => {
     // Use zone-based free shipping threshold if available, otherwise use default
     const freeShippingThreshold = siteConfig?.shipping?.free_shipping_thresholds?.default ||
-                              siteConfig?.payment?.free_shipping_threshold ||
-                              0; // No fallback - should always come from config
+      siteConfig?.payment?.free_shipping_threshold ||
+      0; // No fallback - should always come from config
     return Math.min((product.price / freeShippingThreshold) * 100, 100);
   };
 
@@ -233,8 +234,16 @@ export function ProductCard({
     }
   };
 
-  const styles = getVariantStyles();
-  const discountPercentage = getDiscountPercentage();
+  // Memoize expensive calculations
+  const styles = useMemo(() => getVariantStyles(), [variant]);
+  const discountPercentage = useMemo(() => getDiscountPercentage(), [product.price, product.compare_price]);
+  const freeShippingProgress = useMemo(() => {
+    // Use zone-based free shipping threshold if available, otherwise use default
+    const freeShippingThreshold = siteConfig?.shipping?.free_shipping_thresholds?.default ||
+      siteConfig?.payment?.free_shipping_threshold ||
+      0; // No fallback - should always come from config
+    return Math.min((product.price / freeShippingThreshold) * 100, 100);
+  }, [product.price, siteConfig?.shipping?.free_shipping_thresholds?.default, siteConfig?.payment?.free_shipping_threshold]);
 
   return (
     <Card className={cn(
@@ -377,7 +386,7 @@ export function ProductCard({
           </div>
 
           {/* Free Shipping Info - Only show if product has free shipping OR is close to threshold */}
-          {mounted && siteConfig && (
+          {mounted && siteConfig && siteConfig?.payment?.free_shipping_enabled !== false && (
             <div className="space-y-2">
               {hasProductFreeShipping() ? (
                 <div className={cn(
@@ -392,8 +401,8 @@ export function ProductCard({
                 // Only show progress for products within reasonable range of free shipping
                 (() => {
                   const freeShippingThreshold = siteConfig?.shipping?.free_shipping_thresholds?.default ||
-                                            siteConfig?.payment?.free_shipping_threshold ||
-                                            500;
+                    siteConfig?.payment?.free_shipping_threshold ||
+                    500;
                   const isCloseToThreshold = product.price < freeShippingThreshold && product.price > (freeShippingThreshold * 0.6); // Show progress if within 60% of threshold
 
                   return isCloseToThreshold ? (
@@ -407,7 +416,7 @@ export function ProductCard({
                         <div
                           className="bg-primary rounded-full transition-all duration-300"
                           style={{
-                            width: `${getFreeShippingProgress()}%`,
+                            width: `${freeShippingProgress}%`,
                             height: '100%'
                           }}
                         />
@@ -474,6 +483,23 @@ export function ProductCard({
       </CardContent>
     </Card>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison function for optimal memoization
+  return (
+    prevProps.product.id === nextProps.product.id &&
+    prevProps.product.price === nextProps.product.price &&
+    prevProps.product.in_stock === nextProps.product.in_stock &&
+    prevProps.variant === nextProps.variant &&
+    prevProps.showCategory === nextProps.showCategory &&
+    prevProps.showAuthor === nextProps.showAuthor &&
+    prevProps.showRating === nextProps.showRating &&
+    prevProps.showDiscount === nextProps.showDiscount &&
+    prevProps.showWishlist === nextProps.showWishlist &&
+    prevProps.showQuickView === nextProps.showQuickView &&
+    prevProps.showAddToCart === nextProps.showAddToCart &&
+    prevProps.showBuyNow === nextProps.showBuyNow &&
+    prevProps.className === nextProps.className
+  );
+});
 
 export default ProductCard;

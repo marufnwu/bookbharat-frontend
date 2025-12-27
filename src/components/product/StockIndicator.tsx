@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Product } from '@/types';
+import { useConfig } from '@/contexts/ConfigContext';
 import {
   CheckCircle,
   AlertTriangle,
@@ -22,6 +23,10 @@ export function StockIndicator({
   className = '',
   showEstimatedDelivery = true
 }: StockIndicatorProps) {
+  const { siteConfig } = useConfig();
+  const freeShippingEnabled = siteConfig?.payment?.free_shipping_enabled !== false;
+  const freeShippingThreshold = siteConfig?.payment?.free_shipping_threshold || 0;
+
   const isLowStock = product.manage_stock &&
     product.stock_quantity <= product.min_stock_level &&
     product.stock_quantity > 0;
@@ -116,13 +121,12 @@ export function StockIndicator({
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
-            className={`h-2 rounded-full transition-all duration-300 ${
-              stockStatus.status === 'low-stock'
+            className={`h-2 rounded-full transition-all duration-300 ${stockStatus.status === 'low-stock'
                 ? 'bg-orange-400'
                 : stockStatus.status === 'in-stock'
-                ? 'bg-green-400'
-                : 'bg-red-400'
-            }`}
+                  ? 'bg-green-400'
+                  : 'bg-red-400'
+              }`}
             style={{ width: `${Math.max(5, stockPercentage)}%` }}
           />
         </div>
@@ -171,10 +175,12 @@ export function StockIndicator({
       {/* Additional Shipping Info */}
       {product.in_stock && !product.is_digital && (
         <div className="space-y-1 text-xs text-muted-foreground bg-blue-50 p-3 rounded-lg border border-blue-200">
-          <div className="flex items-center gap-2">
-            <Truck className="h-3 w-3" />
-            <span>Free shipping on orders above ₹499</span>
-          </div>
+          {freeShippingEnabled && freeShippingThreshold > 0 && (
+            <div className="flex items-center gap-2">
+              <Truck className="h-3 w-3" />
+              <span>Free shipping on orders above ₹{freeShippingThreshold}</span>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <Package className="h-3 w-3" />
             <span>Secure packaging guaranteed</span>

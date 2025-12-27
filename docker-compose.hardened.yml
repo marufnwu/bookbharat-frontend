@@ -1,0 +1,81 @@
+# ====================
+# HARDENED DOCKER COMPOSE
+# Security improvements:
+# - Bind to localhost only (127.0.0.1)
+# - Read-only filesystem with specific writable volumes
+# - Resource limits
+# - Security options
+# - Restart policy
+# ====================
+
+version: '3.8'
+
+services:
+  bb-front:
+    build:
+      context: .
+      dockerfile: Dockerfile.hardened
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+        NEXT_PUBLIC_SITE_NAME: ${NEXT_PUBLIC_SITE_NAME}
+        NEXT_PUBLIC_ENABLE_WISHLIST: ${NEXT_PUBLIC_ENABLE_WISHLIST}
+        NEXT_PUBLIC_ENABLE_REVIEWS: ${NEXT_PUBLIC_ENABLE_REVIEWS}
+        NEXT_PUBLIC_ENABLE_CHAT_SUPPORT: ${NEXT_PUBLIC_ENABLE_CHAT_SUPPORT}
+    container_name: bookbharat-frontend
+    
+    # SECURITY: Bind to localhost only - not accessible from internet
+    ports:
+      - "127.0.0.1:3000:3000"
+    
+    # SECURITY: Restart policy
+    restart: unless-stopped
+    
+    # SECURITY: Read-only root filesystem (with required Next.js write paths)
+    read_only: true
+    
+    # SECURITY: Temporary filesystem for writable directories
+    # Next.js needs these paths even in production for runtime operations
+    # uid=1001,gid=1001 ensures nextjs user can write (matches USER nextjs in Dockerfile)
+    tmpfs:
+      - /tmp:size=512m,uid=1001,gid=1001                          # Image optimization, temp files
+      - /app/.next/cache:size=500m,uid=1001,gid=1001              # ISR cache, route cache
+      - /app/.next/server:size=200m,uid=1001,gid=1001             # Runtime manifests, app paths
+    
+    # SECURITY: Resource limits (adjusted for Next.js production needs)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    
+    # SECURITY: Drop all capabilities, no new privileges
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    
+    # Runtime environment variables (secrets - load from .env)
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      - REVALIDATION_SECRET=${REVALIDATION_SECRET}
+    
+    # Health check - minimal process check (production-safe)
+    # Just verifies Node is responsive, doesn't hit HTTP endpoint
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

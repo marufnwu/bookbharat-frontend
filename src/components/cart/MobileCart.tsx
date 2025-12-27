@@ -8,11 +8,11 @@ import { useHydratedAuth } from '@/stores/auth';
 import { useCartStore } from '@/stores/cart';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Trash2, 
-  Plus, 
-  Minus, 
-  ShoppingBag, 
+import {
+  Trash2,
+  Plus,
+  Minus,
+  ShoppingBag,
   ArrowRight,
   Tag,
   Truck,
@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useConfig } from '@/contexts/ConfigContext';
 
 interface MobileCartItemProps {
   item: any;
@@ -34,12 +35,12 @@ interface MobileCartItemProps {
   isRemoving?: boolean;
 }
 
-export function MobileCartItem({ 
-  item, 
-  onUpdateQuantity, 
+export function MobileCartItem({
+  item,
+  onUpdateQuantity,
   onRemove,
   isUpdating,
-  isRemoving 
+  isRemoving
 }: MobileCartItemProps) {
   const [imageError, setImageError] = useState(false);
 
@@ -76,7 +77,7 @@ export function MobileCartItem({
               {item.product?.name || 'Product'}
             </h3>
           </Link>
-          
+
           {item.product?.author && (
             <p className="text-xs text-muted-foreground mb-1">
               by {item.product.author}
@@ -172,26 +173,30 @@ export function MobileCartSummary({
   onCheckout,
   isProcessing
 }: MobileCartSummaryProps) {
+  const { siteConfig } = useConfig();
+  const freeShippingEnabled = siteConfig?.payment?.free_shipping_enabled !== false;
+  const freeShippingThreshold = siteConfig?.payment?.free_shipping_threshold || 0;
+
   return (
     <div className="bg-card rounded-lg border border-border p-4 space-y-3">
       <h3 className="font-semibold text-sm">Order Summary</h3>
-      
+
       <div className="space-y-2 text-xs">
         <div className="flex justify-between">
           <span className="text-muted-foreground">Subtotal</span>
           <span>₹{subtotal.toFixed(2)}</span>
         </div>
-        
+
         <div className="flex justify-between">
           <span className="text-muted-foreground">Shipping</span>
           <span>{shipping === 0 ? 'Free' : `₹${shipping.toFixed(2)}`}</span>
         </div>
-        
+
         <div className="flex justify-between">
           <span className="text-muted-foreground">Tax</span>
           <span>₹{tax.toFixed(2)}</span>
         </div>
-        
+
         {discount > 0 && (
           <div className="flex justify-between text-green-600">
             <span>Discount</span>
@@ -199,13 +204,13 @@ export function MobileCartSummary({
           </div>
         )}
       </div>
-      
+
       <div className="pt-3 border-t border-border">
         <div className="flex justify-between font-semibold text-base mb-3">
           <span>Total</span>
           <span>₹{total.toFixed(2)}</span>
         </div>
-        
+
         <Button
           onClick={onCheckout}
           disabled={isProcessing}
@@ -227,10 +232,12 @@ export function MobileCartSummary({
 
       {/* Benefits */}
       <div className="pt-3 border-t border-border space-y-2">
-        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-          <Truck className="h-3 w-3" />
-          <span>Free delivery on orders above ₹499</span>
-        </div>
+        {freeShippingEnabled && freeShippingThreshold > 0 && (
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+            <Truck className="h-3 w-3" />
+            <span>Free delivery on orders above ₹{freeShippingThreshold}</span>
+          </div>
+        )}
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
           <Shield className="h-3 w-3" />
           <span>Secure payment & 100% safe checkout</span>

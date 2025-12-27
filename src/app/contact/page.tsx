@@ -225,44 +225,44 @@ export default async function ContactPage() {
             <CardContent className="p-6">
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 {feature.icon === 'users' ? <Users className="h-6 w-6 text-primary" /> :
-                 feature.icon === 'book' ? <BookOpen className="h-6 w-6 text-primary" /> :
-                 <HeadphonesIcon className="h-6 w-6 text-primary" />}
+                  feature.icon === 'book' ? <BookOpen className="h-6 w-6 text-primary" /> :
+                    <HeadphonesIcon className="h-6 w-6 text-primary" />}
               </div>
               <h3 className="font-semibold mb-2">{feature.title}</h3>
               <p className="text-sm text-muted-foreground">{feature.description}</p>
             </CardContent>
           </Card>
         )) || (
-          <>
-            <Card>
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="font-semibold mb-2">Customer First</h3>
-                <p className="text-sm text-muted-foreground">Your satisfaction is our top priority</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Clock className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="font-semibold mb-2">Quick Response</h3>
-                <p className="text-sm text-muted-foreground">We respond within 24 hours</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <HeadphonesIcon className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="font-semibold mb-2">Expert Support</h3>
-                <p className="text-sm text-muted-foreground">Knowledgeable team ready to help</p>
-              </CardContent>
-            </Card>
-          </>
-        )}
+            <>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Customer First</h3>
+                  <p className="text-sm text-muted-foreground">Your satisfaction is our top priority</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Clock className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Quick Response</h3>
+                  <p className="text-sm text-muted-foreground">We respond within 24 hours</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <HeadphonesIcon className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Expert Support</h3>
+                  <p className="text-sm text-muted-foreground">Knowledgeable team ready to help</p>
+                </CardContent>
+              </Card>
+            </>
+          )}
       </div>
     </div>
   );

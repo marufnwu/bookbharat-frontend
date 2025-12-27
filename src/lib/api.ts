@@ -4,7 +4,7 @@ import { authStore } from '@/stores/auth';
 import { seededRandom } from './seeded-random';
 // Lightweight dev logger to avoid runtime import issues
 const __isDev = process.env.NODE_ENV === 'development';
-const devLog = (...args: any[]) => { if (__isDev && typeof console !== 'undefined') console.log(...args); };
+const devLog = (..._args: any[]) => {};
 
 export interface ApiError {
   message: string;
@@ -16,23 +16,67 @@ class ApiClient {
   private client: AxiosInstance;
   private sessionId: string | null = null;
 
-  // Centralized image transformation helper
+  // Memoization caches for performance optimization
+  private static productImageCache = new Map<string, any>();
+  private static productsImageCache = new Map<string, any[]>();
+  private static readonly MAX_CACHE_SIZE = 1000;
+
+  // Clean cache when it gets too large
+  private static cleanCache(cache: Map<any, any>) {
+    if (cache.size > this.MAX_CACHE_SIZE) {
+      const keysToDelete = Array.from(cache.keys()).slice(0, Math.floor(this.MAX_CACHE_SIZE / 2));
+      keysToDelete.forEach(key => cache.delete(key));
+    }
+  }
+
+  // Centralized image transformation helper with memoization
   private transformProductImages(product: any): any {
     if (!product) return product;
 
-    return {
+    // Create cache key from product ID and images
+    const cacheKey = `${product.id}_${JSON.stringify(product.images || [])}`;
+
+    // Check cache first
+    if (ApiClient.productImageCache.has(cacheKey)) {
+      return ApiClient.productImageCache.get(cacheKey);
+    }
+
+    // Transform the product
+    const transformedProduct = {
       ...product,
       images: product.images?.map((img: any) => ({
         ...img,
         url: img.image_url || img.url || img.image_path
       })) || []
     };
+
+    // Clean cache if needed and store result
+    ApiClient.cleanCache(ApiClient.productImageCache);
+    ApiClient.productImageCache.set(cacheKey, transformedProduct);
+
+    return transformedProduct;
   }
 
-  // Transform multiple products
+  // Transform multiple products with memoization
   private transformProductsImages(products: any[]): any[] {
     if (!Array.isArray(products)) return products;
-    return products.map(product => this.transformProductImages(product));
+
+    // Create cache key from product IDs and images
+    const cacheKey = products.map(p => `${p.id}_${JSON.stringify(p.images || [])}`).join('|');
+
+    // Check cache first
+    if (ApiClient.productsImageCache.has(cacheKey)) {
+      return ApiClient.productsImageCache.get(cacheKey);
+    }
+
+    // Transform products
+    const transformedProducts = products.map(product => this.transformProductImages(product));
+
+    // Clean cache if needed and store result
+    ApiClient.cleanCache(ApiClient.productsImageCache);
+    ApiClient.productsImageCache.set(cacheKey, transformedProducts);
+
+    return transformedProducts;
   }
 
   // Transform cart/wishlist/order items with nested products
@@ -64,7 +108,7 @@ class ApiClient {
   constructor() {
     this.client = axios.create({
       baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
-      timeout: 10000, // Reduced timeout for faster failures
+      timeout: 30000, // Increased timeout to 30 seconds to prevent frequent timeouts
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -78,6 +122,15 @@ class ApiClient {
 
     // Request interceptor to add auth token and session ID
     this.client.interceptors.request.use((config) => {
+      // Debug logging for category API calls
+      if (config.url?.includes('/products/category/')) {
+        devLog('🚀 Category API Request:', {
+          url: config.url,
+          params: config.params,
+          method: config.method
+        });
+      }
+
       if (typeof window !== 'undefined') {
         // Add auth token if available
         const token = localStorage.getItem('auth_token');
@@ -85,7 +138,7 @@ class ApiClient {
           devLog('🔐 Using auth token for request:', config.url);
           config.headers.Authorization = `Bearer ${token}`;
         }
-        
+
         // ALWAYS add session ID if available (for cart continuity during login)
         const currentSessionId = localStorage.getItem('guest_session_id');
         if (currentSessionId) {
@@ -589,7 +642,7 @@ class ApiClient {
     // Create a separate axios instance without auth interceptors for public endpoints
     const publicClient = axios.create({
       baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
-      timeout: 10000,
+      timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -977,6 +1030,16 @@ class ApiClient {
 // Create and export a singleton instance
 export const apiClient = new ApiClient();
 
+// Create a public client for unauthenticated requests (tracking, etc.)
+export const publicClient = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+});
+
 // Export individual API modules for better organization
 export const authApi = {
   login: apiClient.login.bind(apiClient),
@@ -1108,15 +1171,18 @@ export const orderApi = {
 
   // Public tracking methods
   async trackOrder(data: { order_id: number; tracking_number?: string }) {
-    return publicClient.post('/tracking/track', data);
+    const response = await publicClient.post('/tracking/track', data);
+    return response.data;
   },
 
   async trackByOrderNumber(orderNumber: string) {
-    return publicClient.get(`/tracking/order/${orderNumber}`);
+    const response = await publicClient.get(`/tracking/order/${orderNumber}`);
+    return response.data;
   },
 
   async trackShipment(data: { carrier: string; tracking_number: string }) {
-    return publicClient.post('/tracking/shipment', data);
+    const response = await publicClient.post('/tracking/shipment', data);
+    return response.data;
   },
 };
 

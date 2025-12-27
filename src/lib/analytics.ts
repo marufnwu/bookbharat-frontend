@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 
 interface AnalyticsEvent {
   event: string;
@@ -81,8 +81,6 @@ class AnalyticsService {
 
     // Send to backend
     this.sendToBackend(analyticsEvent);
-
-    console.log('📊 Analytics Event:', event, properties);
   }
 
   private async sendToBackend(event: AnalyticsEvent): Promise<void> {

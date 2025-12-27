@@ -54,6 +54,7 @@ export default function HomeClient({
   const { siteConfig, homepageConfig } = useConfig();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [isSubscribingNewsletter, setIsSubscribingNewsletter] = useState(false);
+  const [categoriesLoaded, setCategoriesLoaded] = useState(0);
 
   const handleNewsletterSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,7 +135,7 @@ export default function HomeClient({
             </div>
             <Button
               variant="outline"
-              size={isMobile ? "sm" : "default"}
+              size={isMobile ? "sm" : "md"}
               className="ml-2 sm:ml-4 flex-shrink-0 min-h-[36px] sm:min-h-[40px] px-2.5 sm:px-4 touch-target"
               asChild
             >
@@ -176,17 +177,49 @@ export default function HomeClient({
           section => section.id === 'category_products'
         )?.settings;
 
-        return categories.map((category) => (
-          <CategoryProductSection
-            key={category.id}
-            category={{ ...category, products: [] }}
-            productsPerCategory={config?.products_per_category || 4}
-            showSeeAll={config?.show_see_all_button !== false}
-            showRating={config?.show_product_rating !== false}
-            showDiscount={config?.show_product_discount !== false}
-            lazyLoad={true}
-          />
-        ));
+        // Filter out categories with no products to avoid unnecessary API calls
+        const categoriesWithProducts = categories.filter(cat =>
+          cat.products_count && cat.products_count > 0
+        );
+
+        const handleCategoryLoaded = () => {
+          setCategoriesLoaded(prev => prev + 1);
+        };
+
+        // Check if all categories have loaded
+        const allCategoriesLoaded = categoriesLoaded >= categoriesWithProducts.length;
+
+        return (
+          <>
+            {/* Single Loading State for All Categories */}
+            {!allCategoriesLoaded && (
+              <section className="py-16">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                  <div className="flex items-center justify-center py-12">
+                    <div className="flex items-center space-x-2 text-muted-foreground">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      <span>Loading categories...</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* Category Sections - Show when all are loaded or progressively load */}
+            {categoriesWithProducts.map((category) => (
+              <CategoryProductSection
+                key={category.id}
+                category={category}
+                productsPerCategory={config?.products_per_category || 20}
+                showSeeAll={config?.show_see_all_button !== false}
+                showRating={config?.show_product_rating !== false}
+                showDiscount={config?.show_product_discount !== false}
+                lazyLoad={true}
+                onContentLoaded={handleCategoryLoaded}
+              />
+            ))}
+          </>
+        );
       })()}
 
       {/* Compact Newsletter Section - Mobile Optimized */}
@@ -244,7 +277,7 @@ export default function HomeClient({
           )}
           <Button
             variant="secondary"
-            size={isMobile ? "default" : "lg"}
+            size={isMobile ? "md" : "lg"}
             className="min-w-[140px] sm:min-w-[160px] min-h-[44px] sm:min-h-[48px] px-6 sm:px-8 touch-target"
             asChild
           >

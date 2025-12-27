@@ -1,7 +1,62 @@
-Dockerfile
-.dockerignore
+# Dependencies
 node_modules
 npm-debug.log
-README.md
+yarn-debug.log
+yarn-error.log
+
+# Next.js
 .next
+out
+dist
+
+# Testing
+coverage
+.nyc_output
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+*.log*
+
+# Local env files
+.env*.local
+.env.development
+.env.test
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Git
 .git
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# Documentation
+README.md
+CHANGELOG.md
+*.md
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db

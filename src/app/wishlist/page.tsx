@@ -1,35 +1,31 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { 
-  BookOpen, 
+import { ProductCard } from '@/components/ui/product-card';
+import { getProductCardProps, getProductGridClasses } from '@/lib/product-card-config';
+import {
   Heart,
-  Star,
   ShoppingCart,
-  X,
-  Share2,
   Filter,
   Loader2
 } from 'lucide-react';
 import { useWishlistStore } from '@/stores/wishlist';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useCartStore } from '@/stores/cart';
-import { OptimizedImage } from '@/components/ui/optimized-image';
 
 export default function WishlistPage() {
-  const { 
-    wishlistItems, 
-    isLoading, 
-    getWishlist, 
-    removeFromWishlist, 
+  const {
+    wishlistItems,
+    isLoading,
+    getWishlist,
+    removeFromWishlist,
     moveToCart,
-    getTotalItems 
+    getTotalItems
   } = useWishlistStore();
   const { addToCart } = useCartStore();
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     getWishlist();

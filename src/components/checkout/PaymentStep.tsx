@@ -8,6 +8,7 @@ import { AlertCircle, Shield, Truck, Clock, Loader2, CreditCard, Smartphone, Arr
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { GatewayIcon } from '@/components/payment/GatewayIcon';
 import { useCartStore } from '@/stores/cart';
+import { api } from '@/lib/api';
 
 interface PaymentMethod {
   id: string;
@@ -102,32 +103,51 @@ const PaymentStep: React.FC<PaymentStepProps> = ({
   ];
 
   useEffect(() => {
-    // Simulate loading payment methods
+    // Load payment methods from API
     const loadPaymentMethods = async () => {
       setLoadingMethods(true);
       setError(null);
 
       try {
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Fetch payment methods from actual API
+        const response = await api.getPaymentMethods(totalAmount, 'INR');
 
-        // Filter payment methods based on cart total and items
-        const filteredMethods = mockPaymentMethods.filter(method => {
-          // For demo purposes, show all methods
-          return true;
-        });
+        if (response?.gateways) {
+          // Transform API response to match component's PaymentMethod interface
+          const methods: PaymentMethod[] = response.gateways.map((gateway: any) => ({
+            id: gateway.payment_method || gateway.gateway,
+            name: gateway.display_name,
+            type: gateway.is_cod ? 'cod' : 'online',
+            description: gateway.description,
+            icon: gateway.payment_method || gateway.gateway,
+            charges: gateway.service_charges ? {
+              type: gateway.service_charges.type === 'percentage' ? 'percentage' : 'fixed',
+              value: gateway.service_charges.value || 0
+            } : {
+              type: 'fixed',
+              value: 0
+            },
+            processing_time: gateway.is_cod ? '2-4 business days' : 'Instant',
+            secure: !gateway.is_cod
+          }));
 
-        setAvailablePaymentMethods(filteredMethods);
+          setAvailablePaymentMethods(methods);
+        } else {
+          // Fallback to empty array if no gateways returned
+          setAvailablePaymentMethods([]);
+        }
       } catch (err) {
         setError('Failed to load payment methods');
         console.error('Payment methods loading error:', err);
+        // Fallback to empty array on error
+        setAvailablePaymentMethods([]);
       } finally {
         setLoadingMethods(false);
       }
     };
 
     loadPaymentMethods();
-  }, [subtotal, cartItems]);
+  }, [subtotal, cartItems, totalAmount]);
 
   const calculatePaymentCharges = (method: PaymentMethod): number => {
     if (!method.charges) return 0;

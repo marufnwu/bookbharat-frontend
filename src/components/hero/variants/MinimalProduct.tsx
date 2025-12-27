@@ -7,8 +7,22 @@ import { OptimizedImage } from '@/components/ui/optimized-image';
 import { cn } from '@/lib/utils';
 import { ArrowRight, BookOpen, CheckCircle, Star } from 'lucide-react';
 import { HeroVariantProps } from '../types';
+import { useConfig } from '@/contexts/ConfigContext';
 
 export function MinimalProduct({ config, className }: HeroVariantProps) {
+  const { siteConfig } = useConfig();
+  const freeShippingEnabled = siteConfig?.payment?.free_shipping_enabled !== false;
+
+  // Filter out \"Free Shipping\" trust badge if free shipping is disabled
+  const filteredTrustBadges = (config.trustBadges || []).filter(badge =>
+    freeShippingEnabled || !badge.toLowerCase().includes('free ship')
+  );
+
+  // Filter out "free shipping" from subtitle if disabled
+  const filteredSubtitle = !freeShippingEnabled && config.subtitle
+    ? config.subtitle.replace(/,?\s*free shipping\.?/gi, '.').replace(/with fast\.\s*/gi, 'with fast delivery.').replace(/\.\./g, '.')
+    : config.subtitle;
+
   return (
     <section className={cn(
       'relative overflow-hidden bg-white py-2 sm:py-3 md:py-4',
@@ -16,7 +30,7 @@ export function MinimalProduct({ config, className }: HeroVariantProps) {
     )}>
       {/* Clean minimal background */}
       <div className="absolute inset-0 bg-gradient-to-br from-gray-50/50 to-white"></div>
-      
+
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid md:grid-cols-5 gap-3 md:gap-6 items-center">
           {/* Left Side - Content */}
@@ -26,20 +40,20 @@ export function MinimalProduct({ config, className }: HeroVariantProps) {
               <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
               <span>Premium Books</span>
             </div>
-            
+
             {/* Title */}
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
               {config.title}
             </h1>
-            
+
             {/* Subtitle */}
             <p className="text-sm md:text-base text-gray-600 leading-relaxed max-w-xl">
-              {config.subtitle}
+              {filteredSubtitle}
             </p>
-            
+
             {/* CTAs */}
             <div className="flex flex-wrap items-center gap-2">
-              <Button 
+              <Button
                 className="bg-gray-900 hover:bg-gray-800 text-white px-5 py-2 text-sm"
                 asChild
               >
@@ -49,7 +63,7 @@ export function MinimalProduct({ config, className }: HeroVariantProps) {
                 </Link>
               </Button>
               {config.secondaryCta && (
-                <Button 
+                <Button
                   variant="outline"
                   className="px-5 py-2 text-sm"
                   asChild
@@ -62,9 +76,9 @@ export function MinimalProduct({ config, className }: HeroVariantProps) {
             </div>
 
             {/* Trust Badges - Compact */}
-            {config.trustBadges && config.trustBadges.length > 0 && (
+            {filteredTrustBadges && filteredTrustBadges.length > 0 && (
               <div className="flex flex-wrap gap-3 pt-3 border-t">
-                {config.trustBadges.slice(0, 3).map((badge, index) => (
+                {filteredTrustBadges.slice(0, 3).map((badge, index) => (
                   <div key={index} className="flex items-center gap-1.5 text-xs text-gray-600">
                     <CheckCircle className="h-4 w-4 text-green-600" />
                     <span>{badge}</span>
@@ -92,7 +106,7 @@ export function MinimalProduct({ config, className }: HeroVariantProps) {
                     <BookOpen className="h-24 w-24 text-gray-300" />
                   )}
                 </div>
-                
+
                 {/* Floating badges */}
                 {config.featuredProducts[0].sale_price && (
                   <div className="absolute top-2 right-2 bg-red-500 text-white px-2.5 py-1 rounded-lg font-semibold text-xs shadow">
@@ -103,8 +117,8 @@ export function MinimalProduct({ config, className }: HeroVariantProps) {
                   <div className="absolute bottom-2 left-2 bg-white rounded-lg px-3 py-1.5 shadow-md flex items-center gap-2">
                     <div className="flex gap-0.5">
                       {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
+                        <Star
+                          key={i}
                           className={`h-3 w-3 ${i < Math.floor(config.featuredProducts![0].average_rating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
                         />
                       ))}

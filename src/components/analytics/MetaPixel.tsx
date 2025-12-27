@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import Script from 'next/script'
 import { marketingConfigService } from '@/services/marketing-config'
 
@@ -131,25 +131,33 @@ export function useMetaPixel() {
     })
   }, [])
 
-  const trackEvent = (eventName: string, parameters?: Record<string, any>, eventId?: string) => {
-    if (!window.fbq || !config?.enabled) return
+  const trackEvent = useCallback(
+    (eventName: string, parameters?: Record<string, any>) => {
+       if (typeof window === 'undefined') return;
+       if (!config?.pixel_id) return;
+ 
+       try {
+         window.fbq('track', eventName, parameters);
+       } catch (error) {
+         console.error('Meta Pixel track event failed:', error);
+       }
+     },
+     [config?.pixel_id]
+   );
 
-    if (config.test_mode || trackingConfig?.debug?.console_logging) {
-      console.log('Meta Pixel Event:', eventName, parameters)
-    }
+  const trackCustomEvent = useCallback(
+    (eventName: string, parameters?: Record<string, any>) => {
+      if (typeof window === 'undefined') return;
+      if (!config?.pixel_id) return;
 
-    window.fbq('track', eventName, parameters, { eventID: eventId || `${eventName}_${Date.now()}` })
-  }
-
-  const trackCustomEvent = (eventName: string, parameters?: Record<string, any>) => {
-    if (!window.fbq || !config?.enabled) return
-
-    if (config.test_mode || trackingConfig?.debug?.console_logging) {
-      console.log('Meta Pixel Custom Event:', eventName, parameters)
-    }
-
-    window.fbq('trackCustom', eventName, parameters)
-  }
+      try {
+        window.fbq('trackCustom', eventName, parameters);
+      } catch (error) {
+        console.error('Meta Pixel track custom event failed:', error);
+      }
+    },
+    [config?.pixel_id]
+  );
 
   const trackViewContent = async (data: {
     content_ids: string[]

@@ -28,6 +28,7 @@ import {
   XCircle,
   Gift
 } from 'lucide-react';
+import { OrderTracking } from '@/components/orders/OrderTracking';
 
 export default function OrderDetailPage() {
   const params = useParams();
@@ -580,6 +581,14 @@ export default function OrderDetailPage() {
                   Return Items
                 </Button>
               )}
+
+              {/* Track Order button - show for all orders */}
+              <Button variant="default" className="w-full" asChild>
+                <Link href={`/track-order?order=${order.order_number || order.id}`}>
+                  <Truck className="h-4 w-4 mr-2" />
+                  Track Order
+                </Link>
+              </Button>
               
               <Button variant="outline" className="w-full" asChild>
                 <Link href="/contact">

@@ -4,15 +4,15 @@ import { Metadata } from 'next';
 async function fetchCategoryForMeta(id: string) {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
-    
-    const response = await fetch(`${apiUrl}/categories/${id}`, {
+
+    const response = await fetch(`${apiUrl}/categories/${encodeURIComponent(id)}`, {
       next: { revalidate: 3600 }, // Cache for 1 hour
     });
-    
+
     if (!response.ok) {
       throw new Error('Category not found');
     }
-    
+
     const data = await response.json();
     return data.success ? data.data : null;
   } catch (error) {
@@ -21,9 +21,10 @@ async function fetchCategoryForMeta(id: string) {
   }
 }
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const category = await fetchCategoryForMeta(params.id);
-  
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const category = await fetchCategoryForMeta(id);
+
   if (!category) {
     return {
       title: 'Category Not Found | BookBharat',
@@ -33,17 +34,18 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://v2.bookbharat.com';
   const categoryUrl = `${baseUrl}/categories/${category.slug || category.id}`;
-  const categoryImage = category.image_url || `${baseUrl}/book-placeholder.svg`;
+  const placeholderImage = `${baseUrl}/book-placeholder.svg`;
+  const categoryImage = category.image || category.image_url || placeholderImage;
 
   const title = `${category.name} Books | BookBharat`;
-  const description = category.description || 
+  const description = category.description ||
     `Browse ${category.name} books at BookBharat. Discover a wide collection of books in ${category.name} category. Best prices, fast delivery across India.`;
 
   return {
     title,
     description: description.substring(0, 160),
     keywords: [category.name, 'books', category.name + ' books', 'online bookstore', 'bookbharat'].join(', '),
-    
+
     openGraph: {
       title: category.name,
       description,
@@ -60,7 +62,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
       type: 'website',
       locale: 'en_IN',
     },
-    
+
     twitter: {
       card: 'summary_large_image',
       title: category.name,

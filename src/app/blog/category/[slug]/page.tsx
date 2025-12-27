@@ -23,7 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { BlogPost, BlogCategory } from '@/types/blog';
 import { blogApi } from '@/services/blog';
 import { formatDate } from '@/lib/utils';
-import SEOHead from '@/components/SEO/SEOHead';
+import SEOHead from '@/components/seo/SEOHead';
 
 export default function CategoryPage() {
   const isClient = useIsClient();

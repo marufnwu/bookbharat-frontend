@@ -55,7 +55,9 @@ async function getCategories() {
     });
     if (res.ok) {
       const data = await res.json();
-      return data.success ? data.data.slice(0, 6) : [];
+      const categories = data.success ? data.data : [];
+      // Increased limit from 6 to show more categories
+      return categories.slice(0, 12);
     }
   } catch (error) {
     console.error('Failed to fetch categories:', error);
@@ -68,7 +70,7 @@ async function getFeaturedProducts() {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
     const res = await fetch(`${apiUrl}/products/featured`, {
-      next: { revalidate: 1800 } // Cache for 30 minutes
+      next: { revalidate: 7200 } // Cache for 2 hours
     });
     if (res.ok) {
       const data = await res.json();
@@ -81,11 +83,28 @@ async function getFeaturedProducts() {
   return [];
 }
 
+async function getCategoriesWithProducts() {
+  try {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+    const res = await fetch(`${apiUrl}/products/by-categories?limit=6&products_per_category=20`, {
+      next: { revalidate: 7200 } // Cache for 2 hours
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.success ? data.data : [];
+    }
+  } catch (error) {
+    console.error('Failed to fetch categories with products:', error);
+    // Return empty array instead of throwing to prevent 500 errors
+  }
+  return [];
+}
+
 async function getHomepageSections() {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
     const res = await fetch(`${apiUrl}/homepage-layout/sections`, {
-      next: { revalidate: 1800 } // Cache for 30 minutes
+      next: { revalidate: 7200 } // Cache for 2 hours
     });
     if (res.ok) {
       const data = await res.json();
@@ -102,17 +121,18 @@ async function getHomepageSections() {
 export default async function Home() {
   try {
     // Fetch all data in parallel on the server
-    const [heroConfig, categories, featuredBooks, homepageSections] = await Promise.all([
+    const [heroConfig, categories, featuredBooks, homepageSections, categoriesWithProducts] = await Promise.all([
       getHeroConfig(),
       getCategories(),
       getFeaturedProducts(),
       getHomepageSections(),
+      getCategoriesWithProducts(),
     ]);
 
     // Check if we have any data - if not, use fallback
     const hasData = heroConfig || (categories && categories.length > 0) ||
-                   (featuredBooks && featuredBooks.length > 0) ||
-                   (homepageSections && homepageSections.length > 0);
+      (featuredBooks && featuredBooks.length > 0) ||
+      (homepageSections && homepageSections.length > 0);
 
     if (!hasData) {
       return SimpleHome();
@@ -129,6 +149,7 @@ export default async function Home() {
         categories={categories}
         featuredBooks={featuredBooks}
         homepageSections={homepageSections}
+        categoriesWithProducts={categoriesWithProducts}
         isMobile={isMobile}
       />
     );
@@ -140,4 +161,4 @@ export default async function Home() {
 }
 
 // Enable ISR with revalidation
-export const revalidate = 1800; // Revalidate every 30 minutes
+export const revalidate = 3600; // Revalidate every hour

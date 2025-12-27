@@ -68,7 +68,7 @@ export default function SocialShare({ url, title, description, className }: Soci
         });
       } catch (err) {
         // User cancelled sharing or error occurred
-        console.log('Error sharing:', err);
+        console.error('Error sharing:', err);
       }
     }
   };

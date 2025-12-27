@@ -39,7 +39,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { blogApi } from '@/services/blog';
 import { formatDate } from '@/lib/utils';
-import SEOHead from '@/components/SEO/SEOHead';
+import SEOHead from '@/components/seo/SEOHead';
 import SocialShare from '@/components/Social/SocialShare';
 
 export default function BlogPostPage() {

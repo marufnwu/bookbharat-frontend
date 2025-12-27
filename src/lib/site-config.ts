@@ -275,7 +275,6 @@ class SiteConfigService {
       });
 
       if (!response.ok) {
-        console.warn(`Failed to fetch ${endpoint}: ${response.statusText}`);
         return null;
       }
 
@@ -316,15 +315,12 @@ class SiteConfigService {
   }
 
   async getNavigationConfig(): Promise<NavigationConfig> {
-    console.log('🔧 Fetching navigation config...');
     // Temporarily disable cache for debugging
     // if (this.navigationConfigCache && this.isCacheValid()) {
-    //   console.log('🔧 Returning cached navigation config');
     //   return this.navigationConfigCache;
     // }
 
     const apiResponse = await this.fetchFromApi<any>('/config/navigation');
-    console.log('🔧 Raw API response:', apiResponse);
 
     if (apiResponse) {
       // Transform backend API structure to frontend expected structure
@@ -374,7 +370,6 @@ class SiteConfigService {
         }
       };
 
-      console.log('🔧 Transformed navigation config:', transformedConfig);
       this.navigationConfigCache = transformedConfig;
       this.lastFetchTime = Date.now();
     }

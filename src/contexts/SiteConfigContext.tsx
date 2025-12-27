@@ -194,13 +194,13 @@ export function useHomepageLayout() {
     }
 
     return {
-      heroSections: (homepageConfig.hero_sections || []).filter(section => section.active),
-      featuredSections: (homepageConfig.featured_sections || []).filter(section => section.active),
+      heroSections: (homepageConfig.hero_sections || []).filter(section => section.enabled),
+      featuredSections: (homepageConfig.featured_sections || []).filter(section => section.enabled),
       promotionalBanners: (homepageConfig.promotional_banners || []).filter(banner =>
-        banner.active && new Date(banner.end_date) > new Date()
+        banner.enabled
       ),
       testimonials: (homepageConfig.testimonials || []).filter(testimonial =>
-        testimonial.active && testimonial.featured
+        testimonial.enabled && testimonial.featured
       ),
       newsletter: homepageConfig.newsletter || {
         enabled: false,
@@ -220,11 +220,7 @@ export function useNavigationMenus() {
   const { navigationConfig } = useSiteConfigContext();
 
   return React.useMemo(() => {
-    // Debug logging
-    console.log('🔍 Debug navigationConfig:', navigationConfig);
-
     if (!navigationConfig) {
-      console.log('⚠️ Navigation config is null, returning empty structure');
       return {
         header: {
           primary: [],
@@ -242,9 +238,6 @@ export function useNavigationMenus() {
     const header = navigationConfig.header || { primary: [], secondary: [], mobile: [] };
     const footer = navigationConfig.footer || { sections: [], social: [] };
 
-    console.log('🔍 Debug header:', header);
-    console.log('🔍 Debug footer:', footer);
-
     const result = {
       header: {
         primary: (header.primary || []).filter(item => item.active),
@@ -260,7 +253,6 @@ export function useNavigationMenus() {
       },
     };
 
-    console.log('🔍 Debug final navigation result:', result);
     return result;
   }, [navigationConfig]);
 }
