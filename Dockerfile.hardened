@@ -96,11 +96,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # ====================
-# SECURITY: Remove shell tools to prevent command execution
-# This prevents attackers from using wget, curl, nc, sh, etc.
+# SECURITY: Remove dangerous tools to prevent command execution
+# Keep /bin/sh as it's needed by Node.js runtime
+# Remove: wget, curl, nc (netcat), bash, ash
 # ====================
 RUN rm -f /bin/wget /bin/nc /usr/bin/wget /usr/bin/nc /usr/bin/curl \
-    /bin/sh /bin/bash /bin/ash 2>/dev/null || true
+    /bin/bash /bin/ash /usr/bin/curl 2>/dev/null || true
 
 # Switch to non-root user
 USER nextjs
