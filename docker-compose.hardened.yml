@@ -31,15 +31,14 @@ services:
     # SECURITY: Restart policy
     restart: unless-stopped
     
-    # SECURITY: Read-only root filesystem (with required Next.js write paths)
-    read_only: true
+    # SECURITY: Read-only root filesystem (TEMPORARILY DISABLED FOR TESTING)
+    # read_only: true
     
-    # SECURITY: Writable volumes for Next.js runtime
-    # Using volumes instead of tmpfs for better compatibility
-    volumes:
-      - next-cache:/app/.next/cache
-      - next-server:/app/.next/server
-      - tmp-data:/tmp
+    # SECURITY: Writable volumes for Next.js runtime (TEMPORARILY DISABLED)
+    # volumes:
+    #   - next-cache:/app/.next/cache
+    #   - next-server:/app/.next/server
+    #   - tmp-data:/tmp
     
     # Alternative: Use tmpfs with explicit mode
     # tmpfs:
