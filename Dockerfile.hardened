@@ -88,15 +88,13 @@ RUN addgroup --system --gid 1001 nodejs && \
 # Copy public assets
 COPY --from=builder /app/public ./public
 
-# Create .next directory with correct permissions
-RUN mkdir .next && chown nextjs:nodejs .next
+# Set correct permission for prerender cache
+# Create subdirectories that will be mounted as tmpfs
+RUN mkdir -p .next/cache .next/server && chown -R nextjs:nodejs .next
 
-# Copy standalone output and static files
+# Automatically leverage output traces to reduce image size
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# CRITICAL: Copy .next/server directory (contains pages-manifest.json and other runtime files)
-COPY --from=builder --chown=nextjs:nodejs /app/.next/server ./.next/server
 
 # ====================
 # SECURITY: Remove dangerous tools to prevent command execution
