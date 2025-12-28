@@ -2407,7 +2407,7 @@ export default function CheckoutPage() {
                         ) : (
                           <>
                             <Lock className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                            🔐 Place Order - {currencySymbol}{total.toFixed(2)}
+                            Place Order - {currencySymbol}{total.toFixed(2)}
                           </>
                         )}
                       </Button>
@@ -2533,17 +2533,17 @@ export default function CheckoutPage() {
         </div>
 
         {/* Mobile Sticky Bottom Navigation - Buttons Only - Positioned above nav */}
-        <div className="lg:hidden fixed bottom-16 left-0 right-0 bg-background border-t border-border shadow-lg z-40">
-          <div className="container mx-auto px-4 py-3">
-            <div className="flex gap-2">
+        <div className="lg:hidden fixed bottom-16 left-0 right-0 bg-background border-t-2 border-border shadow-2xl z-40">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex gap-3">
               {currentStep > 1 ? (
                 <Button
                   type="button"
                   variant="outline"
                   onClick={prevStep}
-                  className="flex-1 font-bold"
+                  className="flex-1 font-semibold h-12 text-base border-2"
                 >
-                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  <ChevronLeft className="w-5 h-5 mr-1" />
                   Back
                 </Button>
               ) : (
@@ -2552,10 +2552,10 @@ export default function CheckoutPage() {
                   variant="outline"
                   asChild
                   size="default"
-                  className="flex-1 font-bold"
+                  className="flex-1 font-semibold h-12 text-base border-2"
                 >
                   <Link href="/cart">
-                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    <ChevronLeft className="w-5 h-5 mr-1" />
                     Cart
                   </Link>
                 </Button>
@@ -2566,18 +2566,18 @@ export default function CheckoutPage() {
                   type="submit"
                   disabled={isProcessing || !isCurrentStepValid()}
                   size="default"
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                  className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 text-base shadow-lg"
                   form="checkout-form"
                 >
                   {isProcessing ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                       Processing...
                     </>
                   ) : (
                     <>
-                      <Lock className="h-4 w-4 mr-1" />
-                      🔐 Place Order
+                      <Lock className="h-5 w-5 mr-2" />
+                      Place Order
                     </>
                   )}
                 </Button>
@@ -2587,17 +2587,17 @@ export default function CheckoutPage() {
                   onClick={handleContinueToNext}
                   disabled={!isCurrentStepValid() || calculatingShipping}
                   size="default"
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                  className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 text-base shadow-lg"
                 >
                   {calculatingShipping ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                       Calculating...
                     </>
                   ) : (
                     <>
                       Continue
-                      <ChevronRight className="w-4 h-4 ml-1" />
+                      <ChevronRight className="h-5 w-5 ml-2" />
                     </>
                   )}
                 </Button>
