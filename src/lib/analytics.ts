@@ -31,7 +31,7 @@ class AnalyticsService {
 
   private loadEvents(): void {
     if (typeof window === 'undefined') return;
-    
+
     try {
       const saved = localStorage.getItem('analytics_events');
       if (saved) {
@@ -44,7 +44,7 @@ class AnalyticsService {
 
   private saveEvents(): void {
     if (typeof window === 'undefined') return;
-    
+
     try {
       localStorage.setItem('analytics_events', JSON.stringify(this.events));
     } catch (error) {
@@ -85,7 +85,11 @@ class AnalyticsService {
 
   private async sendToBackend(event: AnalyticsEvent): Promise<void> {
     try {
-      await fetch('/api/analytics/track', {
+      // Use existing backend endpoint for analytics tracking
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+      const baseUrl = apiUrl.replace('/api/v1', '');
+
+      await fetch(`${baseUrl}/api/v1/tracking/track/event`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
