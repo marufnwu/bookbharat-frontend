@@ -244,7 +244,7 @@ export default function CartPage() {
 
         <div className="lg:grid lg:grid-cols-3 lg:gap-8">
           {/* Cart Items */}
-          <div className="lg:col-span-2 space-y-3 p-4 lg:p-0">
+          <div className="lg:col-span-2 space-y-3 p-4 lg:p-0 lg:shadow-none shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1),0_4px_6px_-2px_rgba(0,0,0,0.05)]">
             {cart.items.map((item) => (
               <MobileGestureCard
                 key={item.id}
@@ -393,7 +393,7 @@ export default function CartPage() {
                       </div>
 
                       {/* Quantity & Remove */}
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2">
                         <MobileQuantityControls
                           quantity={item.quantity}
                           onIncrease={() => handleQuantityChange(item.id, item.quantity + 1)}
@@ -407,20 +407,20 @@ export default function CartPage() {
                             {item.quantity} bundle{item.quantity > 1 ? 's' : ''}
                           </span>
                         )}
-                      </div>
 
-                      {/* Mobile Remove Button */}
-                      <button
-                        onClick={() => handleRemoveItem(item.id)}
-                        disabled={removing === item.id}
-                        className="p-2 text-destructive lg:hidden"
-                      >
-                        {removing === item.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </button>
+                        {/* Mobile Remove Button - Inline */}
+                        <button
+                          onClick={() => handleRemoveItem(item.id)}
+                          disabled={removing === item.id}
+                          className="p-2 text-destructive lg:hidden flex-shrink-0"
+                        >
+                          {removing === item.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </Card>

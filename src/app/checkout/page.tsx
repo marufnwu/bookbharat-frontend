@@ -1703,6 +1703,12 @@ export default function CheckoutPage() {
               <form id="checkout-form" key={currentStep} onSubmit={(e) => {
                 e.preventDefault();
 
+                // CRITICAL: Only process order creation on step 3 (payment step)
+                if (currentStep !== 3) {
+                  logger.warn('Form submitted but not on payment step, ignoring');
+                  return;
+                }
+
                 // For authenticated users with selected address, skip validation
                 if (isAuthenticated && selectedShippingAddress) {
                   // Manually call onSubmit with current form values

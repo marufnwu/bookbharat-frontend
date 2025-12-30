@@ -361,11 +361,7 @@ function FrequentlyBoughtTogetherComponent({ productId, mainProduct }: Frequentl
               <p className="text-sm text-green-600 text-center">
                 Save ₹{bundle.savings.toFixed(2)} with this bundle!
               </p>
-              {bundle.discountRule && (
-                <p className="text-xs text-gray-600 text-center">
-                  {bundle.discountRule.description || `${bundle.discountRule.name} applied`}
-                </p>
-              )}
+              
             </div>
           )}
         </div>

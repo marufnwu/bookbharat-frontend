@@ -341,7 +341,7 @@ export default function HomeClient({
               featuredProducts: featuredBooks
             }}
           />
-          <PromotionalBannersSection />
+         
           {/* ... other default sections ... */}
         </>
       )}

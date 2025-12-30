@@ -140,9 +140,9 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
   }, [product.id, handleAddToCart, handleBuyNow]);
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div>
       {/* Mobile-First Header - Name and Author */}
-      <div className="space-y-1">
+      <div className="space-y-0">
         <div className="flex flex-wrap gap-1 sm:gap-2">
           {product.is_featured && (
             <Badge className="bg-purple-500 hover:bg-purple-600 text-white text-[10px] sm:text-xs px-1.5 py-0.5 sm:px-2">
@@ -234,17 +234,17 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
           </div>
         )}
 
-        <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
+        {/* <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
           <Shield className="h-3 w-3" />
           <span>Inclusive of all taxes</span>
-        </div>
+        </div> */}
       </div>
 
       {/* Enhanced Stock Status */}
-      <StockIndicator
+      {/* <StockIndicator
         product={product}
         showEstimatedDelivery={true}
-      />
+      /> */}
 
       {/* Bundle Variant Selector */}
       {activeBundleVariants.length > 0 && (
@@ -260,7 +260,7 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
 
       {/* Mobile-First Quantity Selector - Hidden on mobile (uses mobile action bar) */}
       {product.in_stock && (
-        <div className="hidden md:flex items-center gap-2 lg:gap-3">
+        <div className="flex items-center gap-2 lg:gap-3 my-1">
           <span className="text-xs sm:text-sm font-medium">
             {selectedBundleVariant ? 'Number of Bundles:' : 'Quantity:'}
           </span>
@@ -290,29 +290,25 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
 
       {/* Desktop Action Buttons */}
       {product.in_stock && (
-        <div className="flex md:flex md:flex-row gap-3 lg:gap-4">
+        <div className="flex md:flex md:flex-row gap-3 lg:gap-4 my-2">
           <Button
             onClick={handleAddToCart}
             disabled={addingToCart}
-            className={`w-full text-sm md:text-base md:py-3 lg:py-3.5 ${selectedBundleVariant ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
+            className={`w-full h-12 text-sm md:text-base md:py-3 lg:py-3.5 ${selectedBundleVariant ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
             variant={selectedBundleVariant ? 'default' : 'outline'}
           >
-            {addingToCart ? (
+            {addingToCart && (
               <Loader2 className="h-4 w-4 md:h-5 md:w-5 mr-2 animate-spin" />
-            ) : (
-              <ShoppingCart className="h-4 w-4 md:h-5 md:w-5 mr-2" />
             )}
             {selectedBundleVariant ? 'Add Bundle to Cart' : 'Add to Cart'}
           </Button>
           <Button
             onClick={handleBuyNow}
             disabled={buyingNow}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-sm"
+            className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-sm"
           >
-            {buyingNow ? (
+            {buyingNow && (
               <Loader2 className="h-4 w-4 md:h-5 md:w-5 mr-2 animate-spin" />
-            ) : (
-              <Zap className="h-4 w-4 md:h-5 md:w-5 mr-2" />
             )}
             {selectedBundleVariant ? 'Buy Bundle Now' : 'Buy Now'}
           </Button>
@@ -331,8 +327,7 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
             "h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1",
             isWishlisted && "fill-red-500 text-red-500"
           )} />
-          <span className="hidden xs:inline">{isWishlisted ? 'Wishlisted' : 'Wishlist'}</span>
-          <span className="xs:hidden">{isWishlisted ? '❤️' : '🤍'}</span>
+          <span className="">{isWishlisted ? 'Wishlisted' : 'Wishlist'}</span>
         </Button>
         <Button
           variant="outline"
@@ -345,32 +340,7 @@ export function ProductInfoCompact({ product, className = '' }: ProductInfoCompa
         </Button>
       </div>
 
-      {/* Mobile-First Key Features */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 pt-2 sm:pt-3 border-t">
-        {siteConfig?.payment?.free_shipping_enabled !== false && (siteConfig?.payment?.free_shipping_threshold || 0) > 0 && (
-          <div className="flex items-start gap-1.5 sm:gap-2">
-            <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary mt-0.5 flex-shrink-0" />
-            <div>
-              <div className="text-[10px] sm:text-xs font-medium">Free Delivery</div>
-              <div className="text-[9px] sm:text-xs text-muted-foreground">On orders above {currencySymbol}{siteConfig.payment.free_shipping_threshold}</div>
-            </div>
-          </div>
-        )}
-        <div className="flex items-start gap-1.5 sm:gap-2">
-          <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary mt-0.5 flex-shrink-0" />
-          <div>
-            <div className="text-[10px] sm:text-xs font-medium">Easy Returns</div>
-            <div className="text-[9px] sm:text-xs text-muted-foreground">7 days return policy</div>
-          </div>
-        </div>
-        <div className="flex items-start gap-1.5 sm:gap-2">
-          <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary mt-0.5 flex-shrink-0" />
-          <div>
-            <div className="text-[10px] sm:text-xs font-medium">Secure Payment</div>
-            <div className="text-[9px] sm:text-xs text-muted-foreground">100% secure</div>
-          </div>
-        </div>
-      </div>
+      
     </div>
   );
 }

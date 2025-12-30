@@ -177,83 +177,7 @@ export default function ProductDetailPage() {
                   productName={product.name}
                 />
               </div>
-            </div>
-
-            {/* Compact Quick Actions - Desktop */}
-            <div className="hidden lg:block">
-              <div className="bg-white rounded-xl p-4 shadow border border-gray-200 sticky top-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                    <Zap className="h-3 w-3 text-white" />
-                  </div>
-                  <h3 className="font-bold text-gray-900 text-sm">Quick Actions</h3>
-                </div>
-
-                <div className="space-y-2">
-                  <button
-                    className="w-full px-3 py-3 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground rounded-lg font-semibold hover:from-primary/95 hover:to-primary/90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow-md transform hover:scale-[1.01] active:scale-[0.99] relative overflow-hidden group"
-                    disabled={!product.in_stock}
-                    onClick={() => {
-                      const event = new CustomEvent('addToCart', { detail: { product, quantity: 1 } });
-                      window.dispatchEvent(event);
-                    }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                    <div className="relative flex items-center gap-2">
-                      <div className="relative">
-                        <ShoppingCart className="h-4 w-4" />
-                        {product.in_stock && (
-                          <div className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                        )}
-                      </div>
-                      <span className="text-sm">{product.in_stock ? 'Add to Cart' : 'Out of Stock'}</span>
-                    </div>
-                  </button>
-
-                  <button
-                    className="w-full px-3 py-3 bg-gradient-to-r from-orange-500 via-orange-500 to-red-500 text-white rounded-lg font-semibold hover:from-orange-600 hover:via-orange-600 hover:to-red-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow-md transform hover:scale-[1.01] active:scale-[0.99] relative overflow-hidden group"
-                    disabled={!product.in_stock}
-                    onClick={() => {
-                      const event = new CustomEvent('buyNow', { detail: { product, quantity: 1 } });
-                      window.dispatchEvent(event);
-                    }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                    <div className="relative flex items-center gap-2">
-                      <Zap className="h-4 w-4 drop-shadow-sm" />
-                      <span className="text-sm drop-shadow-sm">Buy Now</span>
-                    </div>
-                  </button>
-                </div>
-
-                {/* Compact Trust Indicators */}
-                <div className="mt-4 pt-3 border-t border-gray-100">
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="group cursor-pointer">
-                      <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-1 group-hover:bg-blue-200 transition-colors">
-                        <Truck className="h-4 w-4 text-blue-600" />
-                      </div>
-                      <div className="text-xs text-gray-600 font-medium">Fast Delivery</div>
-                      <div className="text-xs text-gray-500">2-3 days</div>
-                    </div>
-                    <div className="group cursor-pointer">
-                      <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-1 group-hover:bg-green-200 transition-colors">
-                        <Shield className="h-4 w-4 text-green-600" />
-                      </div>
-                      <div className="text-xs text-gray-600 font-medium">Secure</div>
-                      <div className="text-xs text-gray-500">100% Safe</div>
-                    </div>
-                    <div className="group cursor-pointer">
-                      <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-1 group-hover:bg-purple-200 transition-colors">
-                        <RotateCcw className="h-4 w-4 text-purple-600" />
-                      </div>
-                      <div className="text-xs text-gray-600 font-medium">Easy Returns</div>
-                      <div className="text-xs text-gray-500">7 days</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            </div>            
           </div>
 
           {/* Right Column - Product Information */}
@@ -362,12 +286,6 @@ export default function ProductDetailPage() {
               window.dispatchEvent(event);
             }}
           >
-            <div className="relative">
-              <ShoppingCart className="h-5 w-5" />
-              {product.in_stock && (
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              )}
-            </div>
             <span className="tracking-wide">{product.in_stock ? 'Add to Cart' : 'Out of Stock'}</span>
           </button>
           <button
@@ -379,7 +297,6 @@ export default function ProductDetailPage() {
             }}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-            <Zap className="h-5 w-5 drop-shadow-sm" />
             <span className="tracking-wide drop-shadow-sm">Buy Now</span>
           </button>
         </div>
