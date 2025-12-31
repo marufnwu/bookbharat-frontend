@@ -5,6 +5,19 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { User } from '@/types';
 import { authApi } from '@/lib/api';
 
+const setAuthCookie = (token: string) => {
+  if (typeof document !== 'undefined') {
+    // Set cookie for 30 days to match token expiry
+    document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+  }
+};
+
+const removeAuthCookie = () => {
+  if (typeof document !== 'undefined') {
+    document.cookie = 'auth_token=; path=/; max-age=0; SameSite=Lax';
+  }
+};
+
 interface AuthState {
   user: User | null;
   token: string | null;
@@ -50,6 +63,7 @@ export const useAuthStore = create<AuthState>()(
           // Store token in localStorage for API client
           if (typeof window !== 'undefined') {
             localStorage.setItem('auth_token', token);
+            setAuthCookie(token);
           }
         } catch (error) {
           set({ isLoading: false });
@@ -73,6 +87,7 @@ export const useAuthStore = create<AuthState>()(
           // Store token in localStorage for API client
           if (typeof window !== 'undefined') {
             localStorage.setItem('auth_token', token);
+            setAuthCookie(token);
           }
         } catch (error) {
           set({ isLoading: false });
@@ -92,6 +107,7 @@ export const useAuthStore = create<AuthState>()(
         if (typeof window !== 'undefined') {
           localStorage.removeItem('auth_token');
           localStorage.removeItem('auth-store');
+          removeAuthCookie();
           sessionStorage.clear();
         }
 
@@ -127,6 +143,7 @@ export const useAuthStore = create<AuthState>()(
         // Store token in localStorage for API client
         if (typeof window !== 'undefined' && token) {
           localStorage.setItem('auth_token', token);
+          setAuthCookie(token);
         }
       },
       setHasHydrated: (state) => set({ hasHydrated: state }),
@@ -140,6 +157,7 @@ export const useAuthStore = create<AuthState>()(
         if (typeof window !== 'undefined') {
           localStorage.removeItem('auth_token');
           localStorage.removeItem('auth-store');
+          removeAuthCookie();
         }
       },
 

@@ -13,6 +13,7 @@ import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { TrackingScripts } from "@/components/seo/TrackingScripts";
 import { getServerThemeConfig, generateThemeStyles, generateThemeScript, generateCriticalCSS } from "@/lib/theme-preloader";
 import { ClientProviders } from "@/components/providers/ClientProviders";
+import { getServerAuthUser } from "@/lib/server-auth";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -40,6 +41,7 @@ export default async function RootLayout({
 
   // Fetch site configurations server-side for optimal performance
   const siteConfigs = await getServerSideAllConfigs();
+  const userData = await getServerAuthUser();
 
   return (
     <html lang="en" style={themeStyles}>
@@ -81,7 +83,7 @@ export default async function RootLayout({
               hero: siteConfigs.heroConfig,
             }}
           >
-            <ClientProviders>
+            <ClientProviders initialUser={userData}>
               <div className="min-h-screen flex flex-col">
                 <Header />
 

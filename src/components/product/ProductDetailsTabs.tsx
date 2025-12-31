@@ -98,7 +98,7 @@ export function ProductDetailsTabs({ product, className = '' }: ProductDetailsTa
 
       {/* Enhanced Tags */}
       {product.tags && product.tags.length > 0 && (
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 sm:p-6 border border-purple-100">
+        <div className="hidden bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 sm:p-6 border border-purple-100 ">
           <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
             <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
             Browse Tags

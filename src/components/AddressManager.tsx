@@ -571,7 +571,7 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
               </div>
 
               <div>
-                <Label htmlFor="zila">Zila *</Label>
+                <Label htmlFor="zila">District *</Label>
                 <Input
                   {...form.register('zila')}
                   placeholder="Enter zila/district"

@@ -35,7 +35,7 @@ export function Header() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const { isAuthenticated, user, logout } = useHydratedAuth();
+  const { isAuthenticated, user, logout, hasHydrated } = useHydratedAuth();
   const cart = useCartStore((state) => state.cart);
   const removeItem = useCartStore((state) => state.removeItem);
   const getTotalItems = useCartStore((state) => state.getTotalItems);
@@ -409,7 +409,9 @@ export function Header() {
               </div>
 
               {/* User menu */}
-              {isAuthenticated ? (
+              {!hasHydrated ? (
+                <div className="h-9 w-24 bg-muted animate-pulse rounded-md touch-target" />
+              ) : isAuthenticated ? (
                 <div className="relative group">
                   <Button variant="ghost" size="sm" className="touch-target">
                     <User className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />

@@ -7,8 +7,10 @@ import { Toaster } from 'sonner';
 import { useState } from 'react';
 import '@/lib/logger';
 
+import { User } from '@/types';
+
 // Group non-critical providers together to be lazy loaded
-export function ClientProviders({ children }: { children: React.ReactNode }) {
+export function ClientProviders({ children, initialUser }: { children: React.ReactNode; initialUser?: User | null }) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
@@ -20,7 +22,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
+      <AuthProvider initialUser={initialUser}>
         <CartProvider>
           {children}
           <Toaster position="top-right" richColors closeButton />
