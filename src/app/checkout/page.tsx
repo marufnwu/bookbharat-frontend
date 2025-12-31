@@ -22,6 +22,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useConfig } from '@/contexts/ConfigContext';
 import { useCartStore } from '@/stores/cart';
 import { useHydratedAuth } from '@/stores/auth';
@@ -191,6 +198,7 @@ export default function CheckoutPage() {
   const persistedState = getPersistedState();
 
   const [shippingCost, setShippingCost] = useState(persistedState.shippingCost || 0);
+  const [showCodAdvanceModal, setShowCodAdvanceModal] = useState(false);
   const [calculatingShipping, setCalculatingShipping] = useState(false);
   const [sameAsBilling, setSameAsBilling] = useState(persistedState.sameAsBilling ?? true);
   const [estimatedDelivery, setEstimatedDelivery] = useState<string>(persistedState.estimatedDelivery || '?');
@@ -251,6 +259,11 @@ export default function CheckoutPage() {
   const [paymentFlowSettings, setPaymentFlowSettings] = useState<PaymentFlowSettings>({ type: 'two_tier', default_payment_type: 'none' });
   const [isProcessingPaymentTypeChange, setIsProcessingPaymentTypeChange] = useState(false);
   const lastPaymentMethodRef = useRef<string | null>(null); // Track last payment method to prevent infinite loop
+
+  // Pre-calculated totals for both payment types (always displayed)
+  const [onlineTotalCalculated, setOnlineTotalCalculated] = useState<number>(0);
+  const [codTotalCalculated, setCodTotalCalculated] = useState<number>(0);
+  const [codAdvanceAmount, setCodAdvanceAmount] = useState<number>(0); // Advance payment amount for COD
 
   const {
     register,
@@ -489,33 +502,20 @@ export default function CheckoutPage() {
     }
   }, [cart?.summary, codConfig]);
 
-  // Update cart when payment type changes - CLEAN & SIMPLE
+  // Use backend-calculated payment summaries for display (single source of truth)
   useEffect(() => {
-    if (!paymentType) return;
-
-    const actualPaymentMethod = paymentType === 'cod'
-      ? 'cod'
-      : (availablePaymentMethods[0]?.payment_method || null);
-
-    // Skip if same as last update - prevents infinite loop
-    if (lastPaymentMethodRef.current === actualPaymentMethod) {
-      return;
+    const paymentSummaries = cart?.summary?.payment_summaries;
+    
+    if (paymentSummaries) {
+      setOnlineTotalCalculated(paymentSummaries.online?.total || 0);
+      setCodTotalCalculated(paymentSummaries.cod?.total || 0);
+      setCodAdvanceAmount(paymentSummaries.cod?.advance_amount || 0);
     }
+  }, [cart?.summary]);
 
-    const updateCart = async () => {
-      try {
-        await setPaymentMethod(actualPaymentMethod);
-        lastPaymentMethodRef.current = actualPaymentMethod; // Track update
-        logger.log('✅ Cart updated with payment method:', actualPaymentMethod);
-      } catch (error) {
-        logger.error('❌ Failed to update payment method:', error);
-      }
-    };
-
-    // Debounce to prevent rapid API calls
-    const timer = setTimeout(updateCart, 300);
-    return () => clearTimeout(timer);
-  }, [paymentType, availablePaymentMethods]); // Removed setPaymentMethod to prevent infinite loop
+  // NOTE: Payment type changes no longer need to trigger cart API calls!
+  // Backend now returns payment_summaries with BOTH Online and COD totals.
+  // We just use the pre-calculated values from state.
 
 
   // Ref to track ongoing pincode validation requests to prevent duplicates
@@ -594,6 +594,8 @@ export default function CheckoutPage() {
           if (persistedAddress.postal_code && persistedAddress.postal_code.length === 6) {
             // Set delivery pincode to trigger shipping calculation later
             setDeliveryPincode(persistedAddress.postal_code);
+            // CRITICAL FIX: Explicitly calculate shipping for restored address
+            calculateShipping(persistedAddress.postal_code);
           }
         } else {
           // Otherwise, use default shipping address
@@ -609,6 +611,8 @@ export default function CheckoutPage() {
             if (defaultShipping.postal_code && defaultShipping.postal_code.length === 6) {
               // Set delivery pincode to trigger shipping calculation later
               setDeliveryPincode(defaultShipping.postal_code);
+              // CRITICAL FIX: Explicitly calculate shipping for default address
+              calculateShipping(defaultShipping.postal_code);
             }
           }
         }
@@ -751,10 +755,13 @@ export default function CheckoutPage() {
   const handleShippingAddressSelect = (address: Address) => {
     setSelectedShippingAddress(address);
     setSelectedAddressId(address.id);
-    populateFormFromAddress(address); // This already calls setDeliveryPincode
-
-    // populateFormFromAddress already handles shipping calculation via setDeliveryPincode
-    // No need to call calculateShipping again - prevents duplicate cart API calls
+    populateFormFromAddress(address); // This updates form values
+    
+    // CRITICAL FIX: Force shipping calculation when address is selected
+    // setDeliveryPincode does NOT trigger calculation automatically
+    if (address.postal_code && address.postal_code.length === 6) {
+       calculateShipping(address.postal_code);
+    }
   };
 
   const handleBillingAddressSelect = (address: Address) => {
@@ -1189,6 +1196,26 @@ export default function CheckoutPage() {
   }
   const finalTotalCharges = finalChargesList.reduce((acc: number, c: any) => acc + (parseFloat(c.amount) || 0), 0);
 
+  // 6. Calculate "Pay Now" amount for Place Order button
+  // - Online payment: full online total
+  // - Pure COD (no advance): 0 (pay on delivery)
+  // - COD with advance: only the advance amount
+  let payNowAmount = 0;
+  let payNowLabel = 'Place Order';
+  
+  if (paymentType === 'online') {
+    payNowAmount = onlineTotalCalculated;
+    payNowLabel = `Pay Now ${currencySymbol}${payNowAmount.toFixed(2)}`;
+  } else if (paymentType === 'cod') {
+    if (codConfig?.advance_payment?.required && codAdvanceAmount > 0) {
+      payNowAmount = codAdvanceAmount;
+      payNowLabel = `Pay Now ${currencySymbol}${payNowAmount.toFixed(2)}`;
+    } else {
+      payNowAmount = 0;
+      payNowLabel = 'Place Order';
+    }
+  }
+
   // Load payment methods when total changes (but not during payment type changes)
   // DISABLED: This was causing redundant calls. Payment methods are loaded:
   // 1. When user reaches payment step (currentStep === 3)
@@ -1217,60 +1244,25 @@ export default function CheckoutPage() {
   const selectedPaymentMethod = watch('paymentMethod');
 
 
-  // Handle payment type change - recalculate cart with COD charges
-  useEffect(() => {
-    if (!paymentType) return; // Exit early if no payment type selected
-
-    const handlePaymentTypeChange = async () => {
-      if (isProcessingPaymentTypeChange) {
-        logger.log('⚠️ Payment type change already in progress, skipping');
-        return;
-      }
-
-      setIsProcessingPaymentTypeChange(true);
-      logger.log('🔄 Payment type changed to:', paymentType);
-
-      try {
-        if (paymentType === 'cod') {
-          logger.log('💳 COD selected, recalculating with COD charges');
-          // Clear payment method selection first to prevent conflicts
-          setValue('paymentMethod', '');
-          // setPaymentMethod already calls getCart() internally, no need to call again
-          await setPaymentMethod('cod');
-        } else if (paymentType === 'online') {
-          logger.log('💳 Online payment selected, removing COD charges');
-          // Clear payment method selection first to prevent conflicts
-          setValue('paymentMethod', '');
-          // setPaymentMethod already calls getCart() internally, no need to call again
-          await setPaymentMethod('online');
-        }
-      } catch (error) {
-        logger.error('Failed to update cart with payment type change:', error);
-      } finally {
-        setIsProcessingPaymentTypeChange(false);
-      }
-    };
-
-    handlePaymentTypeChange();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentType]); // CRITICAL: Only depend on paymentType - NOT isProcessingPaymentTypeChange to avoid loop!
+  // NOTE: No API call needed on payment type change!
+  // The backend returns payment_summaries with BOTH Online and COD totals.
+  // We just switch which pre-calculated total to display.
+  // The selected payment method is sent to the server only during order creation.
 
   // Auto-select first available gateway when online payment is selected OR COD with advance payment
+  // This is for form state only - does NOT trigger API calls
   useEffect(() => {
     const shouldAutoSelect =
       (paymentType === 'online') ||
       (paymentType === 'cod' && codConfig?.advance_payment?.required);
 
     if (shouldAutoSelect && availablePaymentMethods.length > 0) {
-      // Automatically select the first available gateway
       const firstGateway = availablePaymentMethods[0].payment_method;
-      // Only set if not already set to avoid loops or overriding user selection (though UI is hidden now)
       if (getValues('paymentMethod') !== firstGateway) {
         setValue('paymentMethod', firstGateway);
-        logger.log('🤖 Auto-selected payment gateway:', firstGateway);
       }
     }
-  }, [paymentType, availablePaymentMethods, setValue, codConfig]);
+  }, [paymentType, availablePaymentMethods, setValue, codConfig, getValues]);
 
   // Handle payment gateway redirection
   const handlePaymentRedirect = (paymentDetails: any, gateway: string) => {
@@ -1458,6 +1450,8 @@ export default function CheckoutPage() {
         // If pure COD (no advance), send 'cod'
         // If COD with advance OR online, send the selected gateway from form
         payment_method: (paymentType === 'cod' && !codConfig?.advance_payment?.required) ? 'cod' : (selectedPaymentMethod || data.paymentMethod),
+        // CRITICAL: Send payment_type so backend knows this is COD with advance payment
+        payment_type: paymentType,
         // REMOVED: shipping_cost - backend calculates from delivery address (security)
         notes: data.notes || '?',
         coupon_code: activeCouponCode,
@@ -2302,7 +2296,7 @@ export default function CheckoutPage() {
                                   <div className="flex items-center justify-between">
                                     <p className="font-semibold text-sm lg:text-base">💳 Online Payment</p>
                                     <p className="font-bold text-sm lg:text-base text-primary ml-2">
-                                      {currencySymbol}{(subtotal + calculatedShippingCost + tax).toFixed(2)}
+                                      {currencySymbol}{onlineTotalCalculated.toFixed(2)}
                                     </p>
                                   </div>
                                 </div>
@@ -2315,7 +2309,12 @@ export default function CheckoutPage() {
                         {/* COD Option (if available) */}
                         {codConfig?.enabled && (
                           <div
-                            onClick={() => setPaymentType('cod')}
+                            onClick={() => {
+                              setPaymentType('cod');
+                              if (codConfig?.advance_payment?.required && codAdvanceAmount > 0) {
+                                setShowCodAdvanceModal(true);
+                              }
+                            }}
                             className={`cursor-pointer border-2 rounded-lg p-3 lg:p-4 transition-all ${paymentType === 'cod'
                               ? 'border-primary bg-primary/5 shadow-sm'
                               : 'border-border hover:border-primary/50'
@@ -2333,8 +2332,19 @@ export default function CheckoutPage() {
                                   <div className="flex items-center justify-between">
                                     <p className="font-semibold text-sm lg:text-base">{codConfig.display_name || '💵 Cash on Delivery'}</p>
                                     <p className="font-bold text-sm lg:text-base text-primary ml-2">
-                                      {currencySymbol}{(subtotal + calculatedShippingCost + tax + codChargeAmount).toFixed(2)}
+                                      {currencySymbol}{codTotalCalculated.toFixed(2)}
                                     </p>
+                                  </div>
+                                  {/* Show COD charge and advance payment info */}
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    {codChargeAmount > 0 && (
+                                      <span className="mr-2">+{currencySymbol}{codChargeAmount.toFixed(2)} COD fee</span>
+                                    )}
+                                    {codAdvanceAmount > 0 && (
+                                      <span className="text-orange-600 font-medium">
+                                        ({currencySymbol}{codAdvanceAmount.toFixed(2)} advance required)
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -2413,7 +2423,7 @@ export default function CheckoutPage() {
                         ) : (
                           <>
                             <Lock className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                            Place Order - {currencySymbol}{total.toFixed(2)}
+                            {payNowLabel}
                           </>
                         )}
                       </Button>
@@ -2489,6 +2499,7 @@ export default function CheckoutPage() {
                   variant="checkout"
                   hasValidShippingAddress={!!hasValidShippingAddress}
                   calculatingShipping={calculatingShipping}
+                  placeOrderLabel={payNowLabel}
                 />
               </div>
 
@@ -2583,7 +2594,7 @@ export default function CheckoutPage() {
                   ) : (
                     <>
                       <Lock className="h-5 w-5 mr-2" />
-                      Place Order
+                      {payNowLabel}
                     </>
                   )}
                 </Button>
@@ -2613,6 +2624,30 @@ export default function CheckoutPage() {
         </div>
 
       </div >
+
+      {/* COD Advance Info Modal */}
+      <Dialog open={showCodAdvanceModal} onOpenChange={setShowCodAdvanceModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Advance Payment Required / এডভান্স পেমেন্ট প্রয়োজন</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="p-4 bg-orange-50 border border-orange-100 rounded-lg">
+              <p className="text-sm font-medium text-orange-800 mb-2">
+                Only Rs {codAdvanceAmount.toFixed(0)} in advance, the remaining amount will be paid at the time of book delivery.
+              </p>
+              <p className="text-base font-bold text-orange-900">
+                মাত্র {codAdvanceAmount.toFixed(0)} টাকা এডভান্স করুন, বাকি টাকা বই হাতে পাওয়ার পর।
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowCodAdvanceModal(false)} className="w-full">
+              Okay, I Understand / ঠিক আছে
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ProtectedRoute >
   );
 }

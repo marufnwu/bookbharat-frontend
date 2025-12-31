@@ -86,6 +86,7 @@ interface OrderSummaryCardProps {
   hasValidShippingAddress?: boolean;
   calculatingShipping?: boolean;
   availableCoupons?: any[];
+  placeOrderLabel?: string;
   children?: React.ReactNode; // For custom content like cart items
 }
 
@@ -102,6 +103,7 @@ export function OrderSummaryCard({
   hasValidShippingAddress = false,
   calculatingShipping = false,
   availableCoupons = [],
+  placeOrderLabel,
   children
 }: OrderSummaryCardProps) {
   const { siteConfig } = useConfig();
@@ -658,7 +660,7 @@ export function OrderSummaryCard({
             ) : (
               <>
                 <Shield className="h-4 w-4 mr-2" />
-                Place Order • {summary.currencySymbol}{parseFloat(String(summary.total)).toFixed(2)}
+                {placeOrderLabel || `Place Order • ${summary.currencySymbol}${parseFloat(String(summary.total)).toFixed(2)}`}
               </>
             )}
           </Button>
