@@ -83,6 +83,11 @@ interface SiteSEO {
   robots_txt_enabled: boolean;
 }
 
+interface SiteCommunication {
+  sms_enabled: boolean;
+  whatsapp_enabled: boolean;
+}
+
 interface SiteConfig {
   site: {
     name: string;
@@ -107,6 +112,7 @@ interface SiteConfig {
   payment: SitePayment;
   shipping: SiteShipping;
   social: SiteSocial;
+  communication: SiteCommunication;
   seo: SiteSEO;
 }
 
@@ -532,6 +538,10 @@ class SiteConfigService {
         pinterest_url: '',
         whatsapp_enabled: false,
       },
+      communication: {
+        sms_enabled: false,
+        whatsapp_enabled: false,
+      },
       seo: {
         meta_title: 'BookBharat - Your Knowledge Partner',
         meta_description: 'Discover millions of books online at BookBharat',
@@ -592,6 +602,7 @@ export type {
   SitePayment,
   SiteShipping,
   SiteSocial,
+  SiteCommunication,
   SiteSEO,
   HomepageConfig,
   HeroSection,
