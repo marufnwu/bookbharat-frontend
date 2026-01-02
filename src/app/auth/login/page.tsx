@@ -22,7 +22,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('password');
+  const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>('otp');
   const [redirecting, setRedirecting] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -106,25 +106,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Login Method Tabs */}
-        <div className="flex gap-2 mb-4">
-          <Button
-            variant={loginMethod === 'password' ? 'default' : 'outline'}
-            className="flex-1"
-            onClick={() => setLoginMethod('password')}
-          >
-            <KeyRound className="h-4 w-4 mr-2" />
-            Password
-          </Button>
-          <Button
-            variant={loginMethod === 'otp' ? 'default' : 'outline'}
-            className="flex-1"
-            onClick={() => setLoginMethod('otp')}
-          >
-            <Phone className="h-4 w-4 mr-2" />
-            Mobile OTP
-          </Button>
-        </div>
+
 
         {loginMethod === 'password' ? (
           <Card>
@@ -203,6 +185,16 @@ export default function LoginPage() {
                     'Sign In'
                   )}
                 </Button>
+
+                <div className="text-center mt-4">
+                    <button
+                        type="button"
+                        onClick={() => setLoginMethod('otp')}
+                        className="text-sm text-primary hover:underline font-medium"
+                    >
+                        Login with Mobile OTP
+                    </button>
+                </div>
               </form>
             </CardContent>
           </Card>
@@ -212,6 +204,18 @@ export default function LoginPage() {
             title="Sign in with Mobile OTP"
             description="Enter your phone number to receive an OTP"
           />
+        )}
+
+        {loginMethod === 'otp' && (
+            <div className="text-center mt-4">
+                <button
+                    type="button"
+                    onClick={() => setLoginMethod('password')}
+                    className="text-sm text-primary hover:underline font-medium"
+                >
+                    Login with Email & Password
+                </button>
+            </div>
         )}
 
         {/* Sign up link */}

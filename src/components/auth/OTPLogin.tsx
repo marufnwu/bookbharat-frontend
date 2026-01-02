@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Phone, MessageSquare, ArrowLeft, Check } from 'lucide-react';
 import axios from 'axios';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
 
 type Channel = 'sms' | 'whatsapp';
 
@@ -17,6 +18,7 @@ interface OTPLoginProps {
 }
 
 export function OTPLogin({ onSuccess, onBack, title = 'Login with OTP', description }: OTPLoginProps) {
+  const { siteConfig } = useSiteConfig();
   const [step, setStep] = useState<'phone' | 'channel' | 'otp'>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [channel, setChannel] = useState<Channel>('sms');
@@ -233,33 +235,46 @@ export function OTPLogin({ onSuccess, onBack, title = 'Login with OTP', descript
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button
-              variant="outline"
-              className="w-full h-auto py-4 flex items-center justify-start gap-3"
-              onClick={() => handleSendOTP('sms')}
-              disabled={loading}
-            >
-              <Phone className="h-5 w-5 text-primary" />
-              <div className="text-left">
-                <div className="font-medium">SMS</div>
-                <div className="text-xs text-muted-foreground">{phoneNumber}</div>
-              </div>
-              {loading && <Loader2 className="h-4 w-4 ml-auto animate-spin" />}
-            </Button>
+              {/* SMS Option */}
+              {(siteConfig?.communication?.sms_enabled ?? false) && (
+                <Button
+                  variant="outline"
+                  className="w-full h-auto py-4 flex items-center justify-start gap-3"
+                  onClick={() => handleSendOTP('sms')}
+                  disabled={loading}
+                >
+                  <Phone className="h-5 w-5 text-primary" />
+                  <div className="text-left">
+                    <div className="font-medium">SMS</div>
+                    <div className="text-xs text-muted-foreground">{phoneNumber}</div>
+                  </div>
+                  {loading && <Loader2 className="h-4 w-4 ml-auto animate-spin" />}
+                </Button>
+              )}
 
-            <Button
-              variant="outline"
-              className="w-full h-auto py-4 flex items-center justify-start gap-3"
-              onClick={() => handleSendOTP('whatsapp')}
-              disabled={loading}
-            >
-              <MessageSquare className="h-5 w-5 text-primary" />
-              <div className="text-left">
-                <div className="font-medium">WhatsApp</div>
-                <div className="text-xs text-muted-foreground">{phoneNumber}</div>
-              </div>
-              {loading && <Loader2 className="h-4 w-4 ml-auto animate-spin" />}
-            </Button>
+              {/* WhatsApp Option */}
+              {(siteConfig?.communication?.whatsapp_enabled ?? false) && (
+                <Button
+                  variant="outline"
+                  className="w-full h-auto py-4 flex items-center justify-start gap-3"
+                  onClick={() => handleSendOTP('whatsapp')}
+                  disabled={loading}
+                >
+                  <MessageSquare className="h-5 w-5 text-primary" />
+                  <div className="text-left">
+                    <div className="font-medium">WhatsApp</div>
+                    <div className="text-xs text-muted-foreground">{phoneNumber}</div>
+                  </div>
+                  {loading && <Loader2 className="h-4 w-4 ml-auto animate-spin" />}
+                </Button>
+              )}
+
+              {/* No Channels Available Fallback */}
+              {!(siteConfig?.communication?.sms_enabled ?? false) && !(siteConfig?.communication?.whatsapp_enabled ?? false) && (
+                 <div className="text-center text-muted-foreground py-4">
+                   No verification methods available. Please contact support.
+                 </div>
+              )}
 
             {error && (
               <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
