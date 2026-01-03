@@ -357,14 +357,75 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
             <MapPin className="h-5 w-5 mr-2" />
             Delivery Address
           </div>
-          <Button onClick={() => openEditDialog()}>Add New Address</Button>
+          {addresses.length > 0 && (
+            <Button onClick={() => openEditDialog()}>Add New Address</Button>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
 
       {addresses.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          No addresses found. Add your first address to continue.
+        <div className="relative min-h-[450px] w-full">
+          {/* Blurred Background Content */}
+          <div className="absolute inset-0 blur-sm pointer-events-none opacity-50 select-none overflow-hidden">
+             <div className="grid gap-4">
+               {[1, 2, 3, 4].map((i) => (
+                 <Card key={i} className="bg-muted/20 border-border/50">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-2 w-full">
+                           <div className="h-5 bg-muted-foreground/20 rounded w-1/3"></div>
+                           <div className="space-y-1">
+                              <div className="h-4 bg-muted-foreground/10 rounded w-2/3"></div>
+                              <div className="h-4 bg-muted-foreground/10 rounded w-1/2"></div>
+                              <div className="h-4 bg-muted-foreground/10 rounded w-1/4"></div>
+                           </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                 </Card>
+               ))}
+             </div>
+          </div>
+
+          {/* Centered Add Button */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-10 p-4">
+             {/* Glowing Wrapper */}
+             <div className="relative max-w-sm w-full mx-auto group">
+               {/* Animated Outer Glow/Shadow */}
+               <div className="absolute -inset-1 bg-gradient-to-r from-primary/80 via-accent/80 to-primary/80 rounded-2xl blur-lg opacity-25 group-hover:opacity-50 transition duration-500 animate-pulse"></div>
+               
+               <div className="relative text-center p-8 rounded-xl bg-background/90 backdrop-blur-md border border-primary/10 shadow-2xl overflow-hidden hover:border-primary/30 transition-all duration-300">
+                  {/* Decorative background gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  
+                  <div className="relative z-10">
+                    <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-inner">
+                      <MapPin className="h-8 w-8 text-primary animate-[bounce_3s_infinite]" />
+                    </div>
+                    
+                    <h3 className="text-xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                      Where should we deliver?
+                    </h3>
+                    
+                    <p className="text-muted-foreground mb-6 leading-relaxed">
+                      No addresses found. Add your first address to continue.
+                    </p>
+                    
+                    <Button 
+                      onClick={() => openEditDialog()} 
+                      size="lg" 
+                      className="w-full font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300"
+                    >
+                      <span className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Add New Address
+                      </span>
+                    </Button>
+                  </div>
+               </div>
+             </div>
+          </div>
         </div>
       ) : (
         <div className="grid gap-4">
@@ -373,8 +434,8 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
               key={address.id} 
               className={`cursor-pointer transition-colors ${
                 selectedAddress?.id === address.id 
-                  ? 'ring-2 ring-blue-500 bg-blue-50' 
-                  : 'hover:bg-gray-50'
+                  ? 'ring-2 ring-primary bg-primary/5' 
+                  : 'hover:bg-muted/50'
               }`}
               onClick={() => onAddressSelect(address)}
             >
@@ -386,28 +447,39 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
                         {address.first_name} {address.last_name}
                       </h4>
                       {address.is_default && (
-                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                        <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full font-medium">
                           Default
                         </span>
                       )}
-                      <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full capitalize">
+                      <span className="px-2 py-0.5 bg-muted text-muted-foreground text-xs rounded-full capitalize">
                         {address.type}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-600 space-y-1">
-                      <p>{address.village_city_area}</p>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p className="font-medium text-foreground">{address.village_city_area}</p>
                       {address.house_number && <p>House: {address.house_number}</p>}
                       <p>Landmark: {address.landmark}</p>
                       <p>{address.post_name}, {address.zila}, {address.state} - {address.pincode}</p>
-                      <p>Phone: {address.phone}</p>
-                      <p>WhatsApp: {address.whatsapp_number}</p>
+                      <div className="flex gap-4 mt-2 pt-2 border-t border-border/50">
+                        {address.phone && (
+                          <span className="flex items-center text-xs">
+                             Phone: {address.phone}
+                          </span>
+                        )}
+                        {address.whatsapp_number && (
+                          <span className="flex items-center text-xs">
+                             WA: {address.whatsapp_number}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 ml-4">
                     {!address.is_default && (
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
+                        className="h-8 px-2"
                         onClick={(e) => {
                           e.stopPropagation()
                           handleSetDefault(address.id)
@@ -417,8 +489,9 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
                       </Button>
                     )}
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
+                      className="h-8 px-2"
                       onClick={(e) => {
                         e.stopPropagation()
                         openEditDialog(address)
@@ -427,8 +500,9 @@ export default function AddressManager({ onAddressSelect, selectedAddress }: Add
                       Edit
                     </Button>
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
+                      className="h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
                       onClick={(e) => {
                         e.stopPropagation()
                         openDeleteDialog(address)
